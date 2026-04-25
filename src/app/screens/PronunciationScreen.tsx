@@ -2,13 +2,20 @@ import { useNavigate } from "react-router";
 import { TopBar } from "../components/TopBar";
 import { AksharaButton } from "../components/AksharaButton";
 import { Volume2 } from "lucide-react";
+import { useLevelConfig } from "../hooks/useLevelConfig";
+import { useAuth } from "../contexts/AuthContext";
+import { getLetterContent } from "../data/letterContent";
 
 export function PronunciationScreen() {
   const navigate = useNavigate();
+  const { currentLetter } = useLevelConfig();
+  const { user } = useAuth();
+  const avatarEmoji = user?.user_metadata?.avatar ?? "🐻";
+  const content = getLetterContent(currentLetter);
 
   return (
     <div className="h-screen bg-[#F7F6F2] flex flex-col overflow-hidden">
-      <TopBar avatarEmoji="🐻" progress={30} onExit={() => navigate("/")} />
+      <TopBar avatarEmoji={avatarEmoji} progress={30} onExit={() => navigate("/resume")} />
 
       <div className="flex-1 flex flex-col items-center justify-center gap-12 p-8">
         <h1 className="text-5xl font-bold text-gray-800 tracking-wide">
@@ -16,26 +23,23 @@ export function PronunciationScreen() {
         </h1>
 
         <div className="flex gap-16 items-center">
-          {/* Letter Display */}
           <div className="w-48 h-48 bg-white rounded-3xl border-4 border-gray-300 flex items-center justify-center shadow-lg">
-            <span className="text-8xl font-bold text-gray-800">अ</span>
+            <span className="text-8xl font-bold text-gray-800">{currentLetter}</span>
           </div>
 
-          {/* Mouth/Tongue Visual */}
           <div className="w-64 h-64 bg-white rounded-3xl border-4 border-gray-300 flex items-center justify-center shadow-lg">
-            <div className="text-center">
-              <div className="text-9xl mb-4">👄</div>
-              <p className="text-xl text-gray-600 tracking-wide">
-                Open your mouth
+            <div className="text-center px-4">
+              <div className="text-9xl mb-4">{content.mouthEmoji}</div>
+              <p className="text-lg text-gray-600 tracking-wide leading-snug">
+                {content.pronunciationHint}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Replay Button */}
         <button
           className="flex items-center gap-3 px-12 py-5 bg-[#4A90E2] text-white rounded-full hover:bg-[#357ABD] transition-all text-2xl tracking-wide"
-          onClick={() => console.log("Replay audio")}
+          onClick={() => console.log(`Replay audio for ${currentLetter}`)}
         >
           <Volume2 size={32} />
           Replay Sound
@@ -44,10 +48,6 @@ export function PronunciationScreen() {
         <AksharaButton onClick={() => navigate("/example-words")}>
           Next
         </AksharaButton>
-      </div>
-
-      <div className="absolute top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm">
-        7. Pronunciation Screen
       </div>
     </div>
   );

@@ -1,0 +1,18 @@
+# Akshara-Flow — Python dependencies
+# Install all:  pip install -r requirements.txt
+
+# ── Web framework ─────────────────────────────────────────────────
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# ── LLM provider ──────────────────────────────────────────────────
+google-genai>=0.8.0
+
+# ── Environment variables ─────────────────────────────────────────
+python-dotenv>=1.0.0
+
+# ── Database ──────────────────────────────────────────────────────
+supabase>=2.0.0
+
+# ── Dev / testing ─────────────────────────────────────────────────
+pytest>=8.0.0

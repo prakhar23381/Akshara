@@ -1,78 +1,200 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { TopBar } from "../components/TopBar";
 import { OptionCard } from "../components/OptionCard";
 import { Volume2 } from "lucide-react";
+import { useLevelConfig } from "../hooks/useLevelConfig";
+import { useSessionTracker } from "../hooks/useSessionTracker";
+import { useAuth } from "../contexts/AuthContext";
+import { FEATURE_HIGHLIGHT_POSITIONS } from "../types/levelConfig";
+import type { ModuleType } from "../types/levelConfig";
 
 type GameState = "default" | "hesitation" | "hint" | "wrong" | "correct";
 
+const FAIL_FORCE = 2;
+
 export function GameScreen() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const userId = user?.id ?? "offline";
+  const { levelConfig, sessionNumber } = useLevelConfig();
+  const tracker = useSessionTracker({
+    userId,
+    targetAlphabet: levelConfig.target_alphabet,
+    sessionNumber,
+  });
+
   const [gameState, setGameState] = useState<GameState>("default");
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [consecutiveFails, setConsecutiveFails] = useState(0);
+  const [audioSlowMode, setAudioSlowMode] = useState(false);
 
-  const correctAnswer = "अ";
-  const options = ["अ", "आ", "इ", "ई"];
+  const gameStateRef = useRef<GameState>("default");
+  gameStateRef.current = gameState;
+
+  const { correctAnswer, options } = useMemo(() => {
+    const correct = levelConfig.target_alphabet;
+    const pool = levelConfig.distractor_pool
+      .filter((l) => l !== correct)
+      .slice(0, 3);
+    const opts = [correct, ...pool];
+    for (let i = opts.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [opts[i], opts[j]] = [opts[j], opts[i]];
+    }
+    return { correctAnswer: correct, options: opts };
+  }, [levelConfig]);
+
+  const moduleType: ModuleType =
+    levelConfig.distractor_similarity === "low"
+      ? "dissimilar"
+      : levelConfig.visual_aid_intensity === "none"
+        ? "similar"
+        : "scaffold";
 
   useEffect(() => {
-    // Simulate hesitation timer (3 seconds)
-    const hesitationTimer = setTimeout(() => {
-      if (gameState === "default") {
-        setGameState("hesitation");
-      }
-    }, 3000);
+    tracker.markAudioEnd();
+  }, [tracker]);
 
-    // Simulate hint timer (5 seconds)
+  useEffect(() => {
+    const stage1 = levelConfig.hesitation_trigger_stage1_ms;
+    const stage2 = levelConfig.hesitation_trigger_stage2_ms;
+    // Stage 3: if still blank after hint, auto-guided win so child never gets stuck
+    const stage3 = stage2 + 12000;
+
+    const hesitationTimer = setTimeout(() => {
+      if (gameStateRef.current === "default") setGameState("hesitation");
+    }, stage1);
+
     const hintTimer = setTimeout(() => {
-      if (gameState === "hesitation") {
-        setGameState("hint");
+      if (gameStateRef.current === "hesitation") setGameState("hint");
+    }, stage2);
+
+    const autoWinTimer = setTimeout(() => {
+      if (gameStateRef.current === "hint") {
+        tracker.recordGuidedWin(correctAnswer, moduleType);
+        setGameState("correct");
+        setTimeout(() => navigate("/reward"), 3000);
       }
-    }, 5000);
+    }, stage3);
 
     return () => {
       clearTimeout(hesitationTimer);
       clearTimeout(hintTimer);
+      clearTimeout(autoWinTimer);
     };
-  }, [gameState]);
+  }, [
+    correctAnswer,
+    levelConfig.hesitation_trigger_stage1_ms,
+    levelConfig.hesitation_trigger_stage2_ms,
+    moduleType,
+    navigate,
+    tracker,
+  ]);
 
-  const handleOptionClick = (option: string) => {
+  const handleOptionClick = useCallback((option: string) => {
     if (gameState === "correct" || gameState === "wrong") return;
 
     setSelectedOption(option);
 
     if (option === correctAnswer) {
+      tracker.recordAttempt({
+        targetLetter: correctAnswer,
+        selectedLetter: option,
+        moduleType,
+        wasGuidedWin: false,
+      });
+
+      setConsecutiveFails(0);
       setGameState("correct");
+
       setTimeout(() => {
-        navigate("/tracing");
-      }, 1500);
+        navigate("/reward");
+      }, 3000);
     } else {
+      const nextFails = consecutiveFails + 1;
+      setConsecutiveFails(nextFails);
+
+      tracker.recordAttempt({
+        targetLetter: correctAnswer,
+        selectedLetter: option,
+        moduleType,
+        wasGuidedWin: false,
+      });
+
       setGameState("wrong");
+
       setTimeout(() => {
-        setGameState("hint");
-        setSelectedOption(null);
-      }, 1000);
+        if (nextFails >= FAIL_FORCE) {
+          tracker.recordGuidedWin(correctAnswer, moduleType);
+          setConsecutiveFails(0);
+          setGameState("correct");
+
+          setTimeout(() => {
+            navigate("/reward");
+          }, 3000);
+        } else {
+          setAudioSlowMode(true);
+          setGameState("hint");
+          setSelectedOption(null);
+        }
+      }, 2000);
     }
-  };
+  }, [
+    consecutiveFails,
+    correctAnswer,
+    gameState,
+    moduleType,
+    navigate,
+    tracker,
+  ]);
 
   const getOptionState = (option: string) => {
     if (gameState === "correct" && option === correctAnswer) return "correct";
     if (gameState === "wrong" && option === selectedOption) return "wrong";
     if (gameState === "hint" && option === correctAnswer) return "hint";
     if (gameState === "hesitation" && option !== correctAnswer) return "dimmed";
+    if (consecutiveFails >= FAIL_FORCE && option !== correctAnswer) return "dimmed";
     return "default";
   };
 
+  const featurePosition = levelConfig.feature_to_highlight
+    ? FEATURE_HIGHLIGHT_POSITIONS[levelConfig.feature_to_highlight]
+    : null;
+
+  const isHintActive = gameState === "hint" || gameState === "hesitation";
+  // visual_aid_intensity drives proactive vs reactive dot display:
+  //   "animated" (insufficient_data / gross_shape_blindness) → show from the start, animated
+  //   "static"   (feature_neglect)                          → show only when child hesitates
+  //   "none"     (visual_mastery)                           → never show
+  const proactive = levelConfig.visual_aid_intensity === "animated";
+  const showDot = proactive || isHintActive;
+  const glowOpacity = isHintActive ? 1.0 : levelConfig.scaffold_intensity;
+  const glowAnimated = proactive || isHintActive;
+  const dotSize = isHintActive ? "w-5 h-5" : "w-3 h-3";
+
   return (
     <div className="h-screen bg-[#F7F6F2] flex flex-col overflow-hidden">
-      <TopBar avatarEmoji="🐻" progress={50} onExit={() => navigate("/")} />
+      <TopBar avatarEmoji={user?.user_metadata?.avatar ?? "🐻"} progress={50} onExit={() => navigate("/resume")} />
 
       <div className="flex-1 flex flex-col items-center justify-center gap-12 p-8">
         <div className="text-center">
           <div className="flex items-center justify-center gap-4 mb-4">
-            <Volume2 size={40} className="text-[#4A90E2]" />
+            <Volume2
+              size={40}
+              className="text-[#4A90E2] cursor-pointer"
+              onClick={() => {
+                // TODO: play audio for correctAnswer
+              }}
+            />
             <p className="text-4xl text-gray-800 tracking-wide">
-              Find the letter "अ"
+              Find the letter "{correctAnswer}"
             </p>
+            {audioSlowMode && (
+              <span className="text-sm bg-amber-100 text-amber-700 px-2 py-1 rounded">
+                0.8x speed
+              </span>
+            )}
           </div>
           <p className="text-xl text-gray-500 tracking-wide">
             Listen and tap the correct letter
@@ -81,54 +203,53 @@ export function GameScreen() {
 
         <div className="grid grid-cols-4 gap-6 max-w-4xl">
           {options.map((option) => (
-            <OptionCard
-              key={option}
-              state={getOptionState(option)}
-              onClick={() => handleOptionClick(option)}
-            >
-              {option}
-            </OptionCard>
+            <div key={option} className="relative">
+              <OptionCard
+                state={getOptionState(option)}
+                onClick={() => handleOptionClick(option)}
+              >
+                {option}
+              </OptionCard>
+
+              {option === correctAnswer &&
+                featurePosition &&
+                showDot && (
+                  <div
+                    className={`absolute ${dotSize} rounded-full bg-amber-400 pointer-events-none`}
+                    style={{
+                      ...featurePosition,
+                      opacity: glowOpacity,
+                      animation: glowAnimated
+                        ? "pulse 1.2s ease-in-out infinite"
+                        : "none",
+                    }}
+                  />
+                )}
+            </div>
           ))}
         </div>
 
-        {/* State Indicator for Wireframe */}
-        <div className="bg-white px-6 py-3 rounded-lg border-2 border-gray-300">
-          <p className="text-lg text-gray-700">
-            <span className="font-bold">Current State:</span>{" "}
-            {gameState === "default" && "Default (0-3s)"}
-            {gameState === "hesitation" && "Hesitation (3-5s) - Distractors dimmed"}
-            {gameState === "hint" && "Hint (5s+) - Correct option pulses"}
-            {gameState === "wrong" && "Wrong - Shake animation"}
-            {gameState === "correct" && "Correct - Green highlight, auto-advance"}
-          </p>
-        </div>
-
-        {/* Manual State Controls for Wireframe Demo */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => setGameState("default")}
-            className="px-4 py-2 bg-gray-200 rounded-lg text-sm hover:bg-gray-300"
-          >
-            Reset to Default
-          </button>
-          <button
-            onClick={() => setGameState("hesitation")}
-            className="px-4 py-2 bg-gray-200 rounded-lg text-sm hover:bg-gray-300"
-          >
-            Show Hesitation
-          </button>
-          <button
-            onClick={() => setGameState("hint")}
-            className="px-4 py-2 bg-gray-200 rounded-lg text-sm hover:bg-gray-300"
-          >
-            Show Hint
-          </button>
-        </div>
+        {import.meta.env.DEV && (
+          <div className="bg-white px-6 py-3 rounded-lg border-2 border-gray-300">
+            <p className="text-sm text-gray-600">
+              <span className="font-bold">State:</span> {gameState} |{" "}
+              <span className="font-bold">Fails:</span> {consecutiveFails} |{" "}
+              <span className="font-bold">TrackerFails:</span> {tracker.getConsecutiveFails()} |{" "}
+              <span className="font-bold">Mode:</span> {levelConfig.input_mode} |{" "}
+              <span className="font-bold">Scaffold:</span>{" "}
+              {levelConfig.scaffold_intensity.toFixed(2)} |{" "}
+              <span className="font-bold">Provider:</span> {levelConfig.provider_used}
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="absolute top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm">
-        9. Game Screen (Multi-State)
-      </div>
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: ${glowOpacity}; }
+          50% { transform: scale(1.5); opacity: ${glowOpacity * 0.4}; }
+        }
+      `}</style>
     </div>
   );
 }

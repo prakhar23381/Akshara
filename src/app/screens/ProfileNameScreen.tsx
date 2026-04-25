@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { useNavigate } from "react-router";
 import { AksharaButton } from "../components/AksharaButton";
+import { useProfileSetup } from "../contexts/ProfileSetupContext";
 
 export function ProfileNameScreen() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
+  const { name, setName } = useProfileSetup();
 
   return (
     <div className="h-screen bg-[#F7F6F2] flex flex-col items-center justify-center gap-16 overflow-hidden p-8">
@@ -34,10 +34,6 @@ export function ProfileNameScreen() {
       >
         Next
       </AksharaButton>
-
-      <div className="absolute top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm">
-        3A. Profile: Name
-      </div>
     </div>
   );
 }

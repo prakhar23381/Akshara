@@ -13,12 +13,12 @@ import { GameScreen } from "./screens/GameScreen";
 import { TracingScreen } from "./screens/TracingScreen";
 import { RewardScreen } from "./screens/RewardScreen";
 import { TransitionScreen } from "./screens/TransitionScreen";
-import { WireframeIndex } from "./screens/WireframeIndex";
+import { HomeRedirect } from "./screens/HomeRedirect";
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    Component: WireframeIndex,
+    Component: HomeRedirect,
   },
   {
     path: "/welcome",
