@@ -8,7 +8,7 @@ import { getLetterContent } from "../data/letterContent";
 
 export function ExampleWordsScreen() {
   const navigate = useNavigate();
-  const { currentLetter } = useLevelConfig();
+  const { currentLetter, levelConfig } = useLevelConfig();
   const { user } = useAuth();
   const avatarEmoji = user?.user_metadata?.avatar ?? "🐻";
   const { exampleWords } = getLetterContent(currentLetter);
@@ -41,8 +41,12 @@ export function ExampleWordsScreen() {
           ))}
         </div>
 
-        <AksharaButton onClick={() => navigate("/game")}>
-          Play Game
+        <AksharaButton
+          onClick={() =>
+            navigate(levelConfig.input_mode === "trace" ? "/tracing" : "/game")
+          }
+        >
+          {levelConfig.input_mode === "trace" ? "Trace the Letter" : "Play Game"}
         </AksharaButton>
       </div>
     </div>

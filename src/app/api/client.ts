@@ -5,6 +5,33 @@ import type {
 } from "../types/levelConfig";
 import { supabase } from "../lib/supabase";
 
+export interface LetterStat {
+  sessions_count: number;
+  mastered: boolean;
+  last_cognitive_state: string;
+  avg_error_rate_pct: number | null;
+  trend: "improving" | "stable" | "needs attention";
+  confused_with: string[];
+}
+
+export interface ProgressReport {
+  status: "ok";
+  empty?: boolean;
+  message?: string;
+  display_name: string;
+  total_sessions: number;
+  letters_mastered: number;
+  letter_stats: Record<string, LetterStat>;
+  ai_insights: {
+    overall_message: string;
+    encouragement: string;
+    strengths: string[];
+    focus_areas: string[];
+    letter_insights: Record<string, string>;
+  };
+  provider: string;
+}
+
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5050";
 
 export const FALLBACK_LEVEL_CONFIG: LevelConfig = {
@@ -54,6 +81,22 @@ export async function analyzeSession(
   } catch (error) {
     console.warn("[API] /analyze_session failed, using fallback:", error);
     return makeFallbackResponse(payload);
+  }
+}
+
+export async function fetchProgressReport(): Promise<ProgressReport | null> {
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${BASE_URL}/progress_report`, {
+      method: "GET",
+      headers,
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as ProgressReport;
+  } catch (error) {
+    console.warn("[API] /progress_report failed:", error);
+    return null;
   }
 }
 

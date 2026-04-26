@@ -14,6 +14,7 @@ import { TracingScreen } from "./screens/TracingScreen";
 import { RewardScreen } from "./screens/RewardScreen";
 import { TransitionScreen } from "./screens/TransitionScreen";
 import { HomeRedirect } from "./screens/HomeRedirect";
+import { ProgressScreen } from "./screens/ProgressScreen";
 
 export const router = createBrowserRouter([
   {
@@ -75,5 +76,9 @@ export const router = createBrowserRouter([
   {
     path: "/transition",
     Component: TransitionScreen,
+  },
+  {
+    path: "/progress",
+    Component: ProgressScreen,
   },
 ]);

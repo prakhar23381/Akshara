@@ -9,6 +9,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { FEATURE_HIGHLIGHT_POSITIONS } from "../types/levelConfig";
 import type { ModuleType } from "../types/levelConfig";
 
+
 type GameState = "default" | "hesitation" | "hint" | "wrong" | "correct";
 
 const FAIL_FORCE = 2;
@@ -59,7 +60,6 @@ export function GameScreen() {
   useEffect(() => {
     const stage1 = levelConfig.hesitation_trigger_stage1_ms;
     const stage2 = levelConfig.hesitation_trigger_stage2_ms;
-    // Stage 3: if still blank after hint, auto-guided win so child never gets stuck
     const stage3 = stage2 + 12000;
 
     const hesitationTimer = setTimeout(() => {
@@ -163,33 +163,30 @@ export function GameScreen() {
     : null;
 
   const isHintActive = gameState === "hint" || gameState === "hesitation";
-  // visual_aid_intensity drives proactive vs reactive dot display:
-  //   "animated" (insufficient_data / gross_shape_blindness) → show from the start, animated
-  //   "static"   (feature_neglect)                          → show only when child hesitates
-  //   "none"     (visual_mastery)                           → never show
-  const proactive = levelConfig.visual_aid_intensity === "animated";
-  const showDot = proactive || isHintActive;
+  const isAssessmentSession = levelConfig.cognitive_state === "insufficient_data";
+  const proactive = !isAssessmentSession && levelConfig.visual_aid_intensity === "animated";
+  const showDot = !isAssessmentSession && (proactive || isHintActive);
   const glowOpacity = isHintActive ? 1.0 : levelConfig.scaffold_intensity;
   const glowAnimated = proactive || isHintActive;
-  const dotSize = isHintActive ? "w-5 h-5" : "w-3 h-3";
+  // Proactive (gross_shape_blindness): slightly larger dot, gentle breathe
+  // Hint-rescue (feature_neglect): medium dot on hesitation
+  const dotSize = proactive ? 20 : isHintActive ? 16 : 10;
 
   return (
     <div className="h-screen bg-[#F7F6F2] flex flex-col overflow-hidden">
       <TopBar avatarEmoji={user?.user_metadata?.avatar ?? "🐻"} progress={50} onExit={() => navigate("/resume")} />
 
-      <div className="flex-1 flex flex-col items-center justify-center gap-12 p-8">
+      <div className="flex-1 flex flex-col items-center justify-center gap-8 p-8">
+        {/* Question prompt — letter name intentionally hidden, audio only */}
         <div className="text-center">
           <div className="flex items-center justify-center gap-4 mb-4">
             <Volume2
-              size={40}
-              className="text-[#4A90E2] cursor-pointer"
+              size={52}
+              className="text-[#4A90E2] cursor-pointer hover:text-[#3070C0] transition-colors"
               onClick={() => {
                 // TODO: play audio for correctAnswer
               }}
             />
-            <p className="text-4xl text-gray-800 tracking-wide">
-              Find the letter "{correctAnswer}"
-            </p>
             {audioSlowMode && (
               <span className="text-sm bg-amber-100 text-amber-700 px-2 py-1 rounded">
                 0.8x speed
@@ -197,10 +194,11 @@ export function GameScreen() {
             )}
           </div>
           <p className="text-xl text-gray-500 tracking-wide">
-            Listen and tap the correct letter
+            Tap the letter you heard 👆
           </p>
         </div>
 
+        {/* Options grid */}
         <div className="grid grid-cols-4 gap-6 max-w-4xl">
           {options.map((option) => (
             <div key={option} className="relative">
@@ -215,12 +213,14 @@ export function GameScreen() {
                 featurePosition &&
                 showDot && (
                   <div
-                    className={`absolute ${dotSize} rounded-full bg-amber-400 pointer-events-none`}
+                    className="absolute rounded-full bg-amber-400 pointer-events-none"
                     style={{
+                      width: dotSize,
+                      height: dotSize,
                       ...featurePosition,
                       opacity: glowOpacity,
                       animation: glowAnimated
-                        ? "pulse 1.2s ease-in-out infinite"
+                        ? "breathe 2s ease-in-out infinite"
                         : "none",
                     }}
                   />
@@ -233,9 +233,8 @@ export function GameScreen() {
           <div className="bg-white px-6 py-3 rounded-lg border-2 border-gray-300">
             <p className="text-sm text-gray-600">
               <span className="font-bold">State:</span> {gameState} |{" "}
+              <span className="font-bold">Cognitive:</span> {levelConfig.cognitive_state} |{" "}
               <span className="font-bold">Fails:</span> {consecutiveFails} |{" "}
-              <span className="font-bold">TrackerFails:</span> {tracker.getConsecutiveFails()} |{" "}
-              <span className="font-bold">Mode:</span> {levelConfig.input_mode} |{" "}
               <span className="font-bold">Scaffold:</span>{" "}
               {levelConfig.scaffold_intensity.toFixed(2)} |{" "}
               <span className="font-bold">Provider:</span> {levelConfig.provider_used}
@@ -244,10 +243,11 @@ export function GameScreen() {
         )}
       </div>
 
+      {/* Gentle breathing animation — scale 1→1.12→1, slow 2s */}
       <style>{`
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); opacity: ${glowOpacity}; }
-          50% { transform: scale(1.5); opacity: ${glowOpacity * 0.4}; }
+        @keyframes breathe {
+          0%, 100% { transform: scale(1);    opacity: ${glowOpacity}; }
+          50%       { transform: scale(1.12); opacity: ${glowOpacity * 0.6}; }
         }
       `}</style>
     </div>

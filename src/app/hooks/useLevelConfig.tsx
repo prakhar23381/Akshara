@@ -16,6 +16,7 @@ interface LevelConfigContextValue {
   incrementSessionNumber: () => void;
   letterIndex: number;
   advanceLetter: () => void;
+  jumpToLetterIndex: (index: number) => void;
   currentLetter: string;
   nextLetter: string | null;
   lastAvgLatencyMs: number;
@@ -42,6 +43,11 @@ export function LevelConfigProvider({ children }: { children: ReactNode }) {
     setSessionNumber(1);
   };
 
+  const jumpToLetterIndex = (index: number) => {
+    setLetterIndex(Math.min(index, LETTER_SEQUENCE.length - 1));
+    setSessionNumber(1);
+  };
+
   const currentLetter = LETTER_SEQUENCE[letterIndex];
   const nextLetter =
     letterIndex < LETTER_SEQUENCE.length - 1
@@ -56,13 +62,14 @@ export function LevelConfigProvider({ children }: { children: ReactNode }) {
       incrementSessionNumber,
       letterIndex,
       advanceLetter,
+      jumpToLetterIndex,
       currentLetter,
       nextLetter,
       lastAvgLatencyMs,
       setLastAvgLatencyMs,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [levelConfig, sessionNumber, letterIndex, currentLetter, nextLetter, lastAvgLatencyMs],
+    [levelConfig, sessionNumber, letterIndex, currentLetter, nextLetter, lastAvgLatencyMs, jumpToLetterIndex],
   );
 
   return (

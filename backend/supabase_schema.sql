@@ -23,7 +23,7 @@ CREATE POLICY "users_own_profile" ON user_profiles
 -- One row per completed level. Used to build user history for LLM personalisation.
 CREATE TABLE IF NOT EXISTS learning_sessions (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id             UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  user_id             UUID REFERENCES user_profiles(id) ON DELETE CASCADE NOT NULL,
   letter              TEXT NOT NULL,
   session_number      INT  NOT NULL DEFAULT 1,
   cognitive_state     TEXT NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS learning_sessions (
 -- One row per (user, letter). Tracks mastery and last-known timing for each letter.
 CREATE TABLE IF NOT EXISTS letter_progress (
   id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id                 UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  user_id                 UUID REFERENCES user_profiles(id) ON DELETE CASCADE NOT NULL,
   letter                  TEXT  NOT NULL,
   letter_index            INT   NOT NULL,
   mastered                BOOLEAN DEFAULT FALSE,

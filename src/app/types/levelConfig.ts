@@ -77,8 +77,8 @@ export const FEATURE_HIGHLIGHT_POSITIONS: Record<
   // ष
   dot_inside_arch:      { top: "40%", right: "30%" },
   // म / भ
-  arch_top_center:      { top: "8%",  right: "35%" },
-  right_bar_upper:      { top: "25%", right: "8%"  },
+  arch_top_center:      { top: "10%", left: "50%"  },   // centre of the double arch
+  right_bar_upper:      { top: "22%", right: "6%"  },   // the extra bar on भ
   // क / ख
   horizontal_bar_middle:{ top: "45%", right: "15%" },
   // ट / ठ

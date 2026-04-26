@@ -18,15 +18,21 @@ analyze_bp = Blueprint("analyze", __name__)
 diagnosis_agent = DiagnosisAgent()
 level_agent     = LevelGeneratorAgent()
 
+# VISUAL_MASTERY is capped at FEATURE_NEGLECT when starting a brand-new letter.
+# The child hasn't seen the new letter yet — don't skip basic shape recognition.
+_NEW_LETTER_STATE_CAP = {
+    CognitiveState.VISUAL_MASTERY: CognitiveState.FEATURE_NEGLECT,
+}
+
 
 def _get_db():
     """Lazy import so the app still starts if Supabase creds are missing."""
     try:
-        from db import verify_jwt, load_user_history, save_session
-        return verify_jwt, load_user_history, save_session
+        from db import verify_jwt, load_user_history, save_session, get_latest_cognitive_state
+        return verify_jwt, load_user_history, save_session, get_latest_cognitive_state
     except Exception as e:
         import logging; logging.getLogger(__name__).warning(f"[DB] import failed: {e}")
-        return None, None, None
+        return None, None, None, None
 
 
 def _parse_payload(data: dict) -> SessionPayload:
@@ -67,8 +73,8 @@ def analyze_session():
     if missing:
         return jsonify({"error": f"Missing fields: {missing}"}), 400
 
-    # ── Auth: verify JWT if present ───────────────────────────────────────────
-    verify_jwt, load_user_history, save_session = _get_db()
+    # ── Auth ──────────────────────────────────────────────────────────────────
+    verify_jwt, load_user_history, save_session, get_latest_cognitive_state = _get_db()
     verified_user_id = None
     raw_jwt = None
     auth_header = request.headers.get("Authorization", "")
@@ -84,13 +90,29 @@ def analyze_session():
     except (KeyError, ValueError) as e:
         return jsonify({"error": f"Payload parse error: {str(e)}"}), 422
 
-    # ── Load real user history (fills in the TODO that was always []) ─────────
+    # ── Load letter-specific history for LLM personalisation ─────────────────
     user_history = []
     if verified_user_id and raw_jwt and load_user_history:
         user_history = load_user_history(verified_user_id, session.target_alphabet, raw_jwt)
 
     # ── Diagnose ──────────────────────────────────────────────────────────────
     state, reasoning = diagnosis_agent.diagnose(session)
+
+    # ── Carry the learning profile forward when starting a new letter ─────────
+    # INSUFFICIENT_DATA means the current session has 0 attempts (initialisation
+    # call for a new letter). If the child has learned any previous letter, we
+    # already know their cognitive profile — use it instead of cold-starting.
+    if state == CognitiveState.INSUFFICIENT_DATA and verified_user_id and raw_jwt and get_latest_cognitive_state:
+        prior_state_str = get_latest_cognitive_state(verified_user_id, raw_jwt)
+        if prior_state_str and prior_state_str != CognitiveState.INSUFFICIENT_DATA.value:
+            prior_state = CognitiveState(prior_state_str)
+            # Cap at FEATURE_NEGLECT for brand-new letters (don't skip shape recognition)
+            state = _NEW_LETTER_STATE_CAP.get(prior_state, prior_state)
+            reasoning = (
+                f"Carrying forward learning profile from prior letter. "
+                f"Prior state: {prior_state_str} → starting {session.target_alphabet} "
+                f"at {state.value}."
+            )
 
     # ── Generate level config ─────────────────────────────────────────────────
     level_config = level_agent.generate(

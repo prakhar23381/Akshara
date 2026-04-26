@@ -30,9 +30,11 @@ if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
 
 from IP.routes.analyze import analyze_bp
+from IP.routes.progress import progress_bp
 
 app = Flask(__name__)
 app.register_blueprint(analyze_bp)
+app.register_blueprint(progress_bp)
 
 
 @app.after_request

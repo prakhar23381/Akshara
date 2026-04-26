@@ -18,7 +18,7 @@ export function ResumeScreen() {
     letterIndex,
     lastAvgLatencyMs,
     setLastAvgLatencyMs,
-    advanceLetter,
+    jumpToLetterIndex,
   } = useLevelConfig();
 
   const [loading, setLoading] = useState(false);
@@ -53,19 +53,19 @@ export function ResumeScreen() {
 
       if (progressRes.data) {
         const { letter_index, mastered, last_avg_latency_ms } = progressRes.data;
-        // If the highest letter_index row is mastered, they should be on the next letter.
-        // Otherwise they're still working on that letter.
+        // Single atomic jump — avoids re-triggering the effect on each increment.
         const targetIndex = mastered
           ? Math.min(letter_index + 1, LETTER_SEQUENCE.length - 1)
           : letter_index;
-        for (let i = letterIndex; i < targetIndex; i++) advanceLetter();
+        jumpToLetterIndex(targetIndex);
         setLastAvgLatencyMs((last_avg_latency_ms as number) ?? 6000);
       }
       setProgressLoaded(true);
     }
 
     loadAll();
-  }, [user, progressLoaded, letterIndex, advanceLetter, setLastAvgLatencyMs]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, progressLoaded]);
 
   async function handleContinue() {
     setLoading(true);
@@ -129,7 +129,7 @@ export function ResumeScreen() {
             🏆 Rewards
           </AksharaButton>
           <AksharaButton
-            onClick={() => alert("Progress screen (coming soon)")}
+            onClick={() => navigate("/progress")}
             variant="secondary"
             size="small"
           >

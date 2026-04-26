@@ -77,6 +77,70 @@ def load_user_history(user_id: str, letter: str, user_jwt: str, limit: int = 5) 
         return []
 
 
+def get_latest_cognitive_state(user_id: str, user_jwt: str) -> str | None:
+    """
+    Return the most recent cognitive_state from any letter this user has learned.
+    Used to seed the starting state for a new letter — so after the first letter
+    the child is never treated as a cold start again.
+    """
+    try:
+        resp = (
+            _authed(user_jwt)
+            .from_("learning_sessions")
+            .select("cognitive_state")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        rows = resp.data or []
+        return rows[0]["cognitive_state"] if rows else None
+    except Exception as e:
+        logger.warning(f"[DB] get_latest_cognitive_state failed: {e}")
+        return None
+
+
+def load_all_sessions(user_id: str, user_jwt: str, limit: int = 60) -> list[dict]:
+    """Load all learning sessions for a user, newest first."""
+    try:
+        resp = (
+            _authed(user_jwt)
+            .from_("learning_sessions")
+            .select(
+                "letter, session_number, cognitive_state, error_rate_pct, "
+                "avg_latency_ms, scaffold_intensity, confused_pairs, created_at"
+            )
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    except Exception as e:
+        logger.warning(f"[DB] load_all_sessions failed: {e}")
+        return []
+
+
+def load_letter_progress(user_id: str, user_jwt: str) -> list[dict]:
+    """Load all letter_progress rows for a user."""
+    try:
+        resp = (
+            _authed(user_jwt)
+            .from_("letter_progress")
+            .select(
+                "letter, letter_index, mastered, sessions_count, "
+                "last_cognitive_state, last_scaffold_intensity, last_avg_latency_ms"
+            )
+            .eq("user_id", user_id)
+            .order("letter_index", desc=False)
+            .execute()
+        )
+        return resp.data or []
+    except Exception as e:
+        logger.warning(f"[DB] load_letter_progress failed: {e}")
+        return []
+
+
 def save_session(
     user_id: str,
     letter: str,

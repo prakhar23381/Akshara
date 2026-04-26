@@ -46,7 +46,7 @@ STATE_RULES: dict[CognitiveState, dict] = {
     },
     CognitiveState.INSUFFICIENT_DATA: {
         "distractor_similarity": DistractorSimilarity.LOW,
-        "visual_aid_intensity":  VisualAidIntensity.ANIMATED,  # no prior data → show help proactively
+        "visual_aid_intensity":  VisualAidIntensity.NONE,  # first session = assessment, no cues
         "input_mode":            InputMode.TAP,
         "scaffold_intensity":    0.6,
     },
@@ -55,19 +55,17 @@ STATE_RULES: dict[CognitiveState, dict] = {
 # The 5-letter learning sequence (must match frontend LETTER_SEQUENCE)
 LETTER_SEQUENCE = ["म", "ग", "घ", "ध", "ब"]
 
-FALLBACK_DISTRACTORS: dict[str, list[str]] = {
-    "म": ["ल", "भ", "ध", "ह"],
-    "ग": ["ल", "घ", "ध", "ह"],
-    "घ": ["ग", "ध", "म", "ह"],
-    "ध": ["घ", "ग", "म", "ह"],
-    "ब": ["व", "म", "ध", "ह"],
-    "व": ["ब", "म", "ध", "ह"],
-    "ण": ["न", "म", "ध", "ह"],
-    "प": ["य", "म", "ध", "ह"],
-    "ट": ["ठ", "म", "ध", "ह"],
-    "ड": ["ढ", "म", "ध", "ह"],
+# Two pools per letter: easy (dissimilar shapes) and hard (confusable pairs).
+# Used when the LLM is unavailable.
+FALLBACK_DISTRACTORS: dict[str, dict[str, list[str]]] = {
+    "म": {"easy": ["ल", "ह", "स", "र"],   "hard": ["भ", "ध", "न", "ब"]},
+    "ग": {"easy": ["ल", "ह", "स", "र"],   "hard": ["घ", "ध", "ज", "ञ"]},
+    "घ": {"easy": ["ल", "ह", "स", "र"],   "hard": ["ग", "ध", "ज", "ञ"]},
+    "ध": {"easy": ["ल", "ह", "स", "र"],   "hard": ["घ", "ग", "ज", "ञ"]},
+    "ब": {"easy": ["ल", "ह", "स", "र"],   "hard": ["व", "भ", "ध", "ण"]},
 }
-DEFAULT_DISTRACTOR_FALLBACK = ["ल", "म", "ह", "स"]
+DEFAULT_DISTRACTOR_EASY = ["ल", "ह", "स", "र"]
+DEFAULT_DISTRACTOR_HARD = ["भ", "ध", "न", "ब"]
 
 
 class LevelGeneratorAgent:
@@ -109,9 +107,9 @@ class LevelGeneratorAgent:
             visual_aid_intensity         = rules["visual_aid_intensity"],
             input_mode                   = rules["input_mode"],
             scaffold_intensity           = scaffold,
-            distractor_pool              = llm_result.get("distractor_pool", self._fallback_distractors(session.target_alphabet)),
+            distractor_pool              = llm_result.get("distractor_pool", self._fallback_distractors(session.target_alphabet, state)),
             feature_to_highlight         = llm_result.get("feature_to_highlight", ""),
-            phonological_note            = llm_result.get("phonological_note", ""),
+            phonological_note            = "",
             hesitation_trigger_stage1_ms = stage1_ms,
             hesitation_trigger_stage2_ms = stage2_ms,
             reasoning                    = llm_result.get("reasoning", reasoning),
@@ -184,12 +182,15 @@ class LevelGeneratorAgent:
 
     def _hard_fallback(self, state: CognitiveState, target: str) -> dict:
         return {
-            "distractor_pool":      self._fallback_distractors(target),
+            "distractor_pool":      self._fallback_distractors(target, state),
             "feature_to_highlight": "",
-            "phonological_note":    "",
             "reasoning":            f"System fallback — standard config for state: {state.value}",
         }
 
-    def _fallback_distractors(self, target: str) -> list[str]:
-        return FALLBACK_DISTRACTORS.get(target, DEFAULT_DISTRACTOR_FALLBACK)
+    def _fallback_distractors(self, target: str, state: CognitiveState) -> list[str]:
+        pools = FALLBACK_DISTRACTORS.get(target)
+        use_hard = state in (CognitiveState.FEATURE_NEGLECT, CognitiveState.VISUAL_MASTERY)
+        if pools:
+            return pools["hard"] if use_hard else pools["easy"]
+        return DEFAULT_DISTRACTOR_HARD if use_hard else DEFAULT_DISTRACTOR_EASY
     
