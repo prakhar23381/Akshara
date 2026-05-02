@@ -4,19 +4,25 @@ import { TopBar } from "../components/TopBar";
 import { LetterDisplay } from "../components/LetterDisplay";
 import { useLevelConfig } from "../hooks/useLevelConfig";
 import { useAuth } from "../contexts/AuthContext";
+import { useLetterAudio } from "../hooks/useLetterAudio";
 
 export function AnimationScreen() {
   const navigate = useNavigate();
   const { currentLetter } = useLevelConfig();
   const { user } = useAuth();
   const avatarEmoji = user?.user_metadata?.avatar ?? "🐻";
+  const { play } = useLetterAudio(currentLetter);
 
   useEffect(() => {
+    // Play letter sound as soon as the screen appears
+    play();
+
     const timer = setTimeout(() => {
       navigate("/pronunciation");
     }, 3000);
+
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [navigate, play]);
 
   return (
     <div className="h-screen bg-[#F7F6F2] flex flex-col overflow-hidden">
@@ -34,7 +40,7 @@ export function AnimationScreen() {
         />
 
         <p className="text-2xl text-gray-600 tracking-wide text-center">
-          Auto-playing sound... 🔊
+          🔊 Listen carefully…
           <br />
           <span className="text-lg text-gray-500">
             (Auto-transitions in 3 seconds)

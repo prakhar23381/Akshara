@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { TopBar } from "../components/TopBar";
 import { AksharaButton } from "../components/AksharaButton";
@@ -5,6 +6,7 @@ import { Volume2 } from "lucide-react";
 import { useLevelConfig } from "../hooks/useLevelConfig";
 import { useAuth } from "../contexts/AuthContext";
 import { getLetterContent } from "../data/letterContent";
+import { useLetterAudio } from "../hooks/useLetterAudio";
 
 export function PronunciationScreen() {
   const navigate = useNavigate();
@@ -12,6 +14,12 @@ export function PronunciationScreen() {
   const { user } = useAuth();
   const avatarEmoji = user?.user_metadata?.avatar ?? "🐻";
   const content = getLetterContent(currentLetter);
+  const { play } = useLetterAudio(currentLetter);
+
+  // Auto-play once on mount so the child hears it again on this screen
+  useEffect(() => {
+    play();
+  }, [play]);
 
   return (
     <div className="h-screen bg-[#F7F6F2] flex flex-col overflow-hidden">
@@ -39,7 +47,7 @@ export function PronunciationScreen() {
 
         <button
           className="flex items-center gap-3 px-12 py-5 bg-[#4A90E2] text-white rounded-full hover:bg-[#357ABD] transition-all text-2xl tracking-wide"
-          onClick={() => console.log(`Replay audio for ${currentLetter}`)}
+          onClick={play}
         >
           <Volume2 size={32} />
           Replay Sound

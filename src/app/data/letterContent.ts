@@ -58,6 +58,19 @@ export const LETTER_CONTENT: Record<string, LetterContent> = {
   },
 };
 
+// Maps each Hindi letter to its audio file in /public/audio/
+export const LETTER_AUDIO: Record<string, string> = {
+  "म": "/audio/ma.mp3",
+  "ग": "/audio/ga.mp3",
+  "घ": "/audio/gha.mp3",
+  "ध": "/audio/dha.mp3",
+  "ब": "/audio/ba.mp3",
+};
+
+export function getLetterAudio(letter: string): string | null {
+  return LETTER_AUDIO[letter] ?? null;
+}
+
 export function getLetterContent(letter: string): LetterContent {
   return (
     LETTER_CONTENT[letter] ?? {

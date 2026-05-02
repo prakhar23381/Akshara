@@ -119,7 +119,7 @@ class GeminiAPIProvider(BaseLLMProvider):
     Auth:    export GEMINI_API_KEY=your-key
     """
 
-    def __init__(self, model: str = "gemini-2.5-flash-lite"):
+    def __init__(self, model: str = "gemini-2.5-flash"):
         self._api_key = os.environ.get("GEMINI_API_KEY")
         self._model   = model
 
@@ -167,9 +167,9 @@ class LLMProviderRouter:
 
     def __init__(self, providers: list[BaseLLMProvider] | None = None):
         self._providers = providers or [
-            GeminiAPIProvider("gemini-3.1-flash-lite-preview"),   # preferred: latest
-            GeminiAPIProvider("gemini-2.5-flash-lite"),   # fallback 1
-            GeminiAPIProvider("gemini-2.0-flash"),         # fallback 2: stable, high capacity
+            GeminiAPIProvider("gemini-3.1-flash-lite-preview"),  # preferred: latest
+            GeminiAPIProvider("gemini-2.5-flash"),         # fallback 1: stable capable
+            GeminiAPIProvider("gemini-2.0-flash"),         # fallback 2: high capacity
         ]
 
     @property

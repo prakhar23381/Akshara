@@ -6,6 +6,7 @@ import { Volume2 } from "lucide-react";
 import { useLevelConfig } from "../hooks/useLevelConfig";
 import { useSessionTracker } from "../hooks/useSessionTracker";
 import { useAuth } from "../contexts/AuthContext";
+import { useLetterAudio } from "../hooks/useLetterAudio";
 import { FEATURE_HIGHLIGHT_POSITIONS } from "../types/levelConfig";
 import type { ModuleType } from "../types/levelConfig";
 
@@ -29,6 +30,7 @@ export function GameScreen() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [consecutiveFails, setConsecutiveFails] = useState(0);
   const [audioSlowMode, setAudioSlowMode] = useState(false);
+  const { play: playAudio } = useLetterAudio(levelConfig.target_alphabet, audioSlowMode, tracker.markAudioEnd);
 
   const gameStateRef = useRef<GameState>("default");
   gameStateRef.current = gameState;
@@ -53,9 +55,17 @@ export function GameScreen() {
         ? "similar"
         : "scaffold";
 
+  // Auto-play letter sound on mount; markAudioEnd fires via onEnded callback
   useEffect(() => {
-    tracker.markAudioEnd();
-  }, [tracker]);
+    playAudio();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally run once on mount only
+
+  // Replay at 0.8x when slow mode activates after a wrong answer
+  useEffect(() => {
+    if (audioSlowMode) playAudio();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioSlowMode]);
 
   useEffect(() => {
     const stage1 = levelConfig.hesitation_trigger_stage1_ms;
@@ -183,13 +193,11 @@ export function GameScreen() {
             <Volume2
               size={52}
               className="text-[#4A90E2] cursor-pointer hover:text-[#3070C0] transition-colors"
-              onClick={() => {
-                // TODO: play audio for correctAnswer
-              }}
+              onClick={playAudio}
             />
             {audioSlowMode && (
               <span className="text-sm bg-amber-100 text-amber-700 px-2 py-1 rounded">
-                0.8x speed
+                0.6x speed
               </span>
             )}
           </div>
