@@ -4,6 +4,8 @@ import type {
   SessionPayload,
 } from "../types/levelConfig";
 import { supabase } from "../lib/supabase";
+import { queueOfflineSession, syncOfflineSessions } from "../lib/offline_sync";
+
 
 export interface LetterStat {
   sessions_count: number;
