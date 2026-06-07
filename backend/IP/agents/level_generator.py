@@ -63,6 +63,12 @@ FALLBACK_DISTRACTORS: dict[str, dict[str, list[str]]] = {
     "घ": {"easy": ["ल", "ह", "स", "र"],   "hard": ["ग", "ध", "ज", "ञ"]},
     "ध": {"easy": ["ल", "ह", "स", "र"],   "hard": ["घ", "ग", "ज", "ञ"]},
     "ब": {"easy": ["ल", "ह", "स", "र"],   "hard": ["व", "भ", "ध", "ण"]},
+    "भ": {"easy": ["ल", "ह", "स", "र"],   "hard": ["म", "ध", "न", "ब"]},
+    "व": {"easy": ["ल", "ह", "स", "र"],   "hard": ["ब", "भ", "ध", "ण"]},
+    "त": {"easy": ["ल", "ह", "स", "र"],   "hard": ["न", "ध", "म", "ब"]},
+    "न": {"easy": ["ल", "ह", "स", "र"],   "hard": ["त", "ध", "म", "ब"]},
+    "प": {"easy": ["ल", "ह", "स", "र"],   "hard": ["य", "ष", "फ", "ण"]},
+    "य": {"easy": ["ल", "ह", "स", "र"],   "hard": ["प", "ष", "फ", "ण"]},
 }
 DEFAULT_DISTRACTOR_EASY = ["ल", "ह", "स", "र"]
 DEFAULT_DISTRACTOR_HARD = ["भ", "ध", "न", "ब"]
@@ -83,8 +89,23 @@ class LevelGeneratorAgent:
         rules = STATE_RULES[state]
 
         baseline_ms = session.avg_latency_ms if session.avg_latency_ms > 0 else 6000.0
-        stage1_ms   = baseline_ms + 8000
-        stage2_ms   = baseline_ms + 13000
+        
+        # Calculate pacing compression for students with attention / coordination / anxiety cues
+        jitter_total = sum(a.jitter_count for a in session.attempts)
+        avg_hover = sum(a.hover_duration_ms for a in session.attempts) / len(session.attempts) if session.attempts else 0.0
+        
+        pacing_multiplier = 1.0
+        if jitter_total > 5:
+            # Reduce rescue delay up to 30% for high jitter (frustrated/erratic navigation)
+            pacing_multiplier -= min(0.3, (jitter_total - 5) * 0.03)
+        if avg_hover > 2000.0:
+            # Reduce rescue delay up to 20% for prolonged option hovering
+            pacing_multiplier -= min(0.2, (avg_hover - 2000.0) / 10000.0)
+            
+        pacing_multiplier = max(0.5, pacing_multiplier) # absolute floor to prevent flashing too rapidly
+        
+        stage1_ms   = baseline_ms + (8000 * pacing_multiplier)
+        stage2_ms   = baseline_ms + (13000 * pacing_multiplier)
 
         llm_result, provider_used = self._call_llm(
             session=session, state=state, reasoning=reasoning,

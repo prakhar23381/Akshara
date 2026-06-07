@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { TopBar } from "../components/TopBar";
 import { TracingCanvas } from "../components/TracingCanvas";
@@ -10,6 +11,7 @@ export function TracingScreen() {
   const { currentLetter } = useLevelConfig();
   const { user } = useAuth();
   const avatarEmoji = user?.user_metadata?.avatar ?? "🐻";
+  const [canAdvance, setCanAdvance] = useState(false);
 
   return (
     <div className="h-screen bg-[#F7F6F2] flex flex-col overflow-hidden">
@@ -25,10 +27,13 @@ export function TracingScreen() {
           </p>
         </div>
 
-        <TracingCanvas letter={currentLetter} />
+        <TracingCanvas letter={currentLetter} onComplete={() => setCanAdvance(true)} />
 
-        <AksharaButton onClick={() => navigate("/game")}>
-          Now find it!
+        <AksharaButton
+          onClick={() => navigate("/game")}
+          disabled={!canAdvance}
+        >
+          {canAdvance ? "Now find it! 🚀" : "Trace the letter to unlock ✍️"}
         </AksharaButton>
       </div>
     </div>

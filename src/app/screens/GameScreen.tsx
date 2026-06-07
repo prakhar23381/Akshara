@@ -9,6 +9,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useLetterAudio } from "../hooks/useLetterAudio";
 import { FEATURE_HIGHLIGHT_POSITIONS } from "../types/levelConfig";
 import type { ModuleType } from "../types/levelConfig";
+import { playSuccessSound, playErrorSound, playEncouragementSound } from "../utils/soundEffects";
 
 
 type GameState = "default" | "hesitation" | "hint" | "wrong" | "correct";
@@ -117,6 +118,7 @@ export function GameScreen() {
 
       setConsecutiveFails(0);
       setGameState("correct");
+      playSuccessSound();
 
       setTimeout(() => {
         navigate("/reward");
@@ -133,12 +135,14 @@ export function GameScreen() {
       });
 
       setGameState("wrong");
+      playErrorSound();
 
       setTimeout(() => {
         if (nextFails >= FAIL_FORCE) {
           tracker.recordGuidedWin(correctAnswer, moduleType);
           setConsecutiveFails(0);
           setGameState("correct");
+          playSuccessSound();
 
           setTimeout(() => {
             navigate("/reward");
@@ -147,6 +151,7 @@ export function GameScreen() {
           setAudioSlowMode(true);
           setGameState("hint");
           setSelectedOption(null);
+          playEncouragementSound();
         }
       }, 2000);
     }

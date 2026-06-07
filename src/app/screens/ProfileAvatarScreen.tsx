@@ -46,7 +46,7 @@ export function ProfileAvatarScreen() {
       data: { profile_complete: true, display_name: name, avatar },
     });
 
-    navigate("/resume", { replace: true });
+    navigate("/assessment", { replace: true });
   }
 
   return (

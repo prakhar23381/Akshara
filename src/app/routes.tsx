@@ -15,6 +15,7 @@ import { RewardScreen } from "./screens/RewardScreen";
 import { TransitionScreen } from "./screens/TransitionScreen";
 import { HomeRedirect } from "./screens/HomeRedirect";
 import { ProgressScreen } from "./screens/ProgressScreen";
+import { ParentDashboardScreen } from "./screens/ParentDashboardScreen";
 
 export const router = createBrowserRouter([
   {
@@ -80,5 +81,9 @@ export const router = createBrowserRouter([
   {
     path: "/progress",
     Component: ProgressScreen,
+  },
+  {
+    path: "/parent-dashboard",
+    Component: ParentDashboardScreen,
   },
 ]);

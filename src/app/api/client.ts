@@ -34,6 +34,11 @@ export interface ProgressReport {
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5050";
 
+// Trigger sync on module load
+syncOfflineSessions(BASE_URL).catch((err) =>
+  console.error("[OfflineSync] Init sync failed:", err)
+);
+
 export const FALLBACK_LEVEL_CONFIG: LevelConfig = {
   user_id: "offline",
   target_alphabet: "म",
@@ -74,12 +79,14 @@ export async function analyzeSession(
 
     if (!response.ok) {
       console.warn(`[API] /analyze_session returned ${response.status}`);
+      queueOfflineSession(payload);
       return makeFallbackResponse(payload);
     }
 
     return (await response.json()) as AnalyzeSessionResponse;
   } catch (error) {
     console.warn("[API] /analyze_session failed, using fallback:", error);
+    queueOfflineSession(payload);
     return makeFallbackResponse(payload);
   }
 }
