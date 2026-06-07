@@ -3,13 +3,18 @@ import { motion } from "motion/react";
 import { useAuth } from "../contexts/AuthContext";
 
 export function LoginScreen() {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, signInOffline } = useAuth();
   const [loading, setLoading] = useState(false);
 
   async function handleGoogleLogin() {
     setLoading(true);
     await signInWithGoogle();
     // Page will redirect — no need to reset loading
+  }
+
+  async function handleOfflineLogin() {
+    setLoading(true);
+    await signInOffline();
   }
 
   return (
@@ -72,6 +77,20 @@ export function LoginScreen() {
             />
           </svg>
           {loading ? "Redirecting…" : "Continue with Google"}
+        </button>
+
+        <div className="w-full flex items-center justify-between gap-3 text-xs text-gray-400 uppercase tracking-widest my-1">
+          <span className="h-[1px] bg-gray-200 flex-1"></span>
+          <span>or</span>
+          <span className="h-[1px] bg-gray-200 flex-1"></span>
+        </div>
+
+        <button
+          onClick={handleOfflineLogin}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-3 bg-[#4A90E2] hover:bg-[#3b80d2] text-white rounded-2xl px-6 py-4 text-lg font-bold transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? "Opening Sandbox…" : "Play Offline (Sandbox Mode)"}
         </button>
 
         <p className="text-sm text-gray-400 text-center">
