@@ -83,10 +83,6 @@ export function UserTypeScreen() {
         />
       </div>
 
-      <div className="absolute top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm">
-        2. User Type Selection
-      </div>
-
       {/* Adult Gate Modal Overlay */}
       <AnimatePresence>
         {showMathGate && (

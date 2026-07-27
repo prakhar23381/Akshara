@@ -13,27 +13,39 @@ export function TracingScreen() {
   const avatarEmoji = user?.user_metadata?.avatar ?? "🐻";
   const [canAdvance, setCanAdvance] = useState(false);
 
+  const handleComplete = (score: number, success: boolean) => {
+    setCanAdvance(success);
+  };
+
+  const handleClear = () => {
+    setCanAdvance(false);
+  };
+
   return (
     <div className="h-screen bg-[#F7F6F2] flex flex-col overflow-hidden">
-      <TopBar avatarEmoji={avatarEmoji} progress={70} onExit={() => navigate("/resume")} />
+      <TopBar avatarEmoji={avatarEmoji} progress={70} onExit={() => navigate("/roadmap")} />
 
-      <div className="flex-1 flex flex-col items-center justify-center gap-12 p-8">
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 sm:gap-5 p-3 sm:p-5">
         <div className="text-center">
-          <h1 className="text-5xl font-bold text-gray-800 mb-3 tracking-wide">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-800 tracking-wide">
             Trace the letter "{currentLetter}"
           </h1>
-          <p className="text-2xl text-gray-600 tracking-wide">
-            Use your finger to draw it ✨
+          <p className="text-xs sm:text-sm md:text-base text-gray-500 font-medium tracking-wide">
+            Follow the guide path to draw it ✨
           </p>
         </div>
 
-        <TracingCanvas letter={currentLetter} onComplete={() => setCanAdvance(true)} />
+        <TracingCanvas
+          letter={currentLetter}
+          onComplete={handleComplete}
+          onClear={handleClear}
+        />
 
         <AksharaButton
-          onClick={() => navigate("/game")}
+          onClick={() => navigate("/memory")}
           disabled={!canAdvance}
         >
-          {canAdvance ? "Now find it! 🚀" : "Trace the letter to unlock ✍️"}
+          Play Memory Match! 🚀
         </AksharaButton>
       </div>
     </div>

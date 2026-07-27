@@ -160,6 +160,7 @@ export function useSessionTracker({
   }, [sessionNumber, targetAlphabet, trackerKey, trackerState, userId]);
 
   return {
+    attempts: trackerState.attempts,
     markAudioEnd,
     recordAttempt,
     recordGuidedWin,

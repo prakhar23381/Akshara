@@ -18,7 +18,15 @@ progress_bp = Blueprint("progress", __name__)
 
 _router = LLMProviderRouter()
 
-LETTER_SEQUENCE = ["म", "ग", "घ", "ध", "ब"]
+LETTER_SEQUENCE = [
+    "क", "ख", "ग", "घ", "ङ",
+    "च", "छ", "ज", "झ", "ञ",
+    "ट", "ठ", "ड", "ढ", "ण",
+    "त", "थ", "द", "ध", "न",
+    "प", "फ", "ब", "भ", "म",
+    "य", "र", "ल", "व",
+    "श", "ष", "स", "ह"
+]
 
 PROGRESS_SYSTEM_PROMPT = """
 You are a compassionate learning specialist analyzing a child's progress in

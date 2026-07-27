@@ -136,6 +136,7 @@ def analyze_session():
             avg_latency_ms     = session.avg_latency_ms,
             confused_pairs     = [list(p) for p in session.confused_pairs()],
             provider_used      = level_config.provider_used,
+            reasoning          = level_config.reasoning,
             user_jwt           = raw_jwt,
         )
 

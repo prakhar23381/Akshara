@@ -17,9 +17,19 @@ const DEFAULT_DOTS = [
   { x: 200, y: 250 },
   { x: 120, y: 200 },
 ];
+const GRID_SIZE = 10;
+const CELL_SIZE = 400 / GRID_SIZE; // 40px per cell
+
+const getCellIndex = (x: number, y: number) => {
+  const col = Math.min(GRID_SIZE - 1, Math.max(0, Math.floor(x / CELL_SIZE)));
+  const row = Math.min(GRID_SIZE - 1, Math.max(0, Math.floor(y / CELL_SIZE)));
+  return row * GRID_SIZE + col;
+};
 
 export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const targetGridRef = useRef<Set<number>>(new Set());
+  const userGridRef = useRef<Set<number>>(new Set());
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -30,6 +40,8 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
   const [evaluation, setEvaluation] = useState<"none" | "success" | "fail">("none");
   const [score, setScore] = useState(0);
   const visitedRef = useRef<Set<number>>(new Set());
+  const totalPointsRef = useRef(0);
+  const strayPointsRef = useRef(0);
 
   const strokes: StrokePath[] = LETTER_STROKES[letter] || [];
 
@@ -59,6 +71,13 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
 
     const finalDots = dots.length > 0 ? dots : DEFAULT_DOTS;
     setGuideDots(finalDots);
+    
+    // Initialize target grid cells
+    const targetCells = new Set<number>();
+    finalDots.forEach(dot => {
+      targetCells.add(getCellIndex(dot.x, dot.y));
+    });
+    targetGridRef.current = targetCells;
     
     // Clear state
     visitedRef.current = new Set();
@@ -168,6 +187,9 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
 
     const { x, y } = getScaledCoordinates(e);
 
+    // Record user drawing cell in grid
+    userGridRef.current.add(getCellIndex(x, y));
+
     // Draw raw brush stroke freely on the canvas without visual dots or snapping
     ctx.strokeStyle = "#4A90E2";
     ctx.lineWidth = 14;
@@ -178,13 +200,27 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
 
     // Background hit test sample nodes
     let updated = false;
+    let minDistance = Infinity;
+
     guideDots.forEach((dot, index) => {
       const dist = Math.hypot(x - dot.x, y - dot.y);
+      if (dist < minDistance) {
+        minDistance = dist;
+      }
       if (dist < 28 && !visitedRef.current.has(index)) {
         visitedRef.current.add(index);
         updated = true;
       }
     });
+
+    totalPointsRef.current += 1;
+    if (minDistance > 30) { // 30px stray distance threshold (slightly above 28px hit radius)
+      strayPointsRef.current += 1;
+    }
+
+    if (totalPointsRef.current % 15 === 0) {
+      console.log(`[TracingCanvas draw] x=${x.toFixed(1)}, y=${y.toFixed(1)}, minDistance=${minDistance.toFixed(1)}, total=${totalPointsRef.current}, stray=${strayPointsRef.current}`);
+    }
 
     if (updated) {
       const currentProgress = (visitedRef.current.size / guideDots.length) * 100;
@@ -205,6 +241,9 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
       }
     }
     visitedRef.current = new Set();
+    totalPointsRef.current = 0;
+    strayPointsRef.current = 0;
+    userGridRef.current.clear();
     setProgress(0);
     setHasDrawn(false);
     setEvaluation("none");
@@ -213,10 +252,50 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
   };
 
   const checkDrawing = () => {
-    const finalScore = Math.round(Math.min(100, progress));
+    const targetCells = targetGridRef.current;
+    const userCells = userGridRef.current;
+
+    if (targetCells.size === 0 || userCells.size === 0) {
+      setScore(0);
+      setEvaluation("fail");
+      playErrorSound();
+      if (onComplete) onComplete(0, false);
+      return;
+    }
+
+    let tp = 0; // True Positives
+    let fp = 0; // False Positives
+    let fn = 0; // False Negatives
+
+    // Evaluate true positives and false negatives
+    targetCells.forEach((cell) => {
+      if (userCells.has(cell)) {
+        tp++;
+      } else {
+        fn++;
+      }
+    });
+
+    // Evaluate false positives (off-path drawing)
+    userCells.forEach((cell) => {
+      if (!targetCells.has(cell)) {
+        fp++;
+      }
+    });
+
+    // Weighted Jaccard Similarity: penalize FP (drawing wrong paths) more than missing some path (FN)
+    const penaltyWeightFP = 1.5;
+    const penaltyWeightFN = 1.0;
+
+    const denominator = tp + penaltyWeightFP * fp + penaltyWeightFN * fn;
+    const similarity = denominator > 0 ? tp / denominator : 0;
+    const finalScore = Math.max(0, Math.round(similarity * 100));
+
+    console.log(`[TracingCanvas checkDrawing] TP=${tp}, FP=${fp}, FN=${fn}, JaccardScore=${finalScore}%`);
+
     setScore(finalScore);
-    
-    if (finalScore >= 80) {
+
+    if (finalScore >= 75) { // 75% master threshold adjusted for grid checks
       setEvaluation("success");
       playSuccessSound();
       if (onComplete) onComplete(finalScore, true);
@@ -228,9 +307,9 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
   };
 
   return (
-    <div className="flex flex-col items-center gap-6">
-      {/* 500x500 visual container */}
-      <div className="relative w-[500px] h-[500px] select-none">
+    <div className="flex flex-col items-center gap-4 sm:gap-6 w-full max-w-[400px]">
+      {/* Responsive visual container */}
+      <div className="relative w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] md:w-[400px] md:h-[400px] select-none">
         
         {/* SVG Drawing Outline Silhouette Guide Layer */}
         <svg
@@ -293,11 +372,10 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
         {/* Glowing pointer during demonstration */}
         {animatingTemplate && (
           <motion.div
-            className="absolute w-8 h-8 bg-yellow-400 border-2 border-white rounded-full shadow-lg z-20 pointer-events-none"
+            className="absolute w-8 h-8 bg-yellow-400 border-2 border-white rounded-full shadow-lg z-20 pointer-events-none -translate-x-1/2 -translate-y-1/2"
             animate={{
-              // Convert 400x400 coordinates to scaled 500x500 offsets
-              x: (pointerPos.x * 1.25) - 16,
-              y: (pointerPos.y * 1.25) - 16,
+              left: `${(pointerPos.x / 400) * 100}%`,
+              top: `${(pointerPos.y / 400) * 100}%`,
             }}
             transition={{
               type: "tween",
@@ -314,28 +392,28 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="absolute inset-0 bg-white/90 rounded-3xl z-20 flex flex-col items-center justify-center p-8 gap-4 border-4 border-gray-300"
+              className="absolute inset-0 bg-white/90 rounded-3xl z-20 flex flex-col items-center justify-center p-4 sm:p-8 gap-2 sm:gap-4 border-4 border-gray-300"
             >
               {evaluation === "success" ? (
-                <div className="text-center space-y-4">
-                  <span className="text-7xl">🌟</span>
-                  <h3 className="text-3xl font-black text-emerald-600">Great Job! Success!</h3>
-                  <p className="text-xl text-gray-500 font-medium">
+                <div className="text-center space-y-2 sm:space-y-4">
+                  <span className="text-5xl sm:text-7xl">🌟</span>
+                  <h3 className="text-2xl sm:text-3xl font-black text-emerald-600">Great Job! Success!</h3>
+                  <p className="text-base sm:text-xl text-gray-500 font-medium">
                     You matched the letter shape with a score of{" "}
                     <span className="font-bold text-gray-800">{score}%</span>!
                   </p>
                 </div>
               ) : (
-                <div className="text-center space-y-4">
-                  <span className="text-7xl">🔄</span>
-                  <h3 className="text-3xl font-black text-rose-500">Try Again!</h3>
-                  <p className="text-xl text-gray-500 font-medium">
+                <div className="text-center space-y-2 sm:space-y-4">
+                  <span className="text-5xl sm:text-7xl">🔄</span>
+                  <h3 className="text-2xl sm:text-3xl font-black text-rose-500">Try Again!</h3>
+                  <p className="text-base sm:text-xl text-gray-500 font-medium">
                     Keep practicing! You scored{" "}
                     <span className="font-bold text-gray-800">{score}%</span>.
                   </p>
                   <button
                     onClick={clearCanvas}
-                    className="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold text-lg rounded-2xl shadow-md transition-colors"
+                    className="px-4 py-2 sm:px-6 sm:py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm sm:text-lg rounded-2xl shadow-md transition-colors"
                   >
                     Clear and Retry 🧹
                   </button>
@@ -347,11 +425,11 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
       </div>
 
       {/* Buttons Panel */}
-      <div className="flex gap-4 select-none">
+      <div className="flex flex-wrap justify-center gap-2 sm:gap-4 select-none">
         <button
           onClick={clearCanvas}
           disabled={animatingTemplate || !hasDrawn}
-          className="px-6 py-3 font-bold rounded-2xl bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:opacity-50 transition-colors border border-gray-300 shadow-sm text-lg flex items-center gap-2"
+          className="px-4 py-2 sm:px-6 sm:py-3 font-bold rounded-2xl bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:opacity-50 transition-colors border border-gray-300 shadow-sm text-sm sm:text-lg flex items-center gap-1 sm:gap-2"
         >
           Clear Drawing 🧹
         </button>
@@ -360,7 +438,7 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
           <button
             onClick={checkDrawing}
             disabled={animatingTemplate || !hasDrawn}
-            className="px-6 py-3 font-bold rounded-2xl bg-[#4A90E2] hover:bg-[#357ABD] text-white disabled:opacity-50 transition-colors shadow-md text-lg flex items-center gap-2"
+            className="px-4 py-2 sm:px-6 sm:py-3 font-bold rounded-2xl bg-[#4A90E2] hover:bg-[#357ABD] text-white disabled:opacity-50 transition-colors shadow-md text-sm sm:text-lg flex items-center gap-1 sm:gap-2"
           >
             Check Drawing 🔍
           </button>
@@ -369,7 +447,7 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
         <button
           onClick={playPreviewAnimation}
           disabled={animatingTemplate || evaluation !== "none"}
-          className="px-6 py-3 font-bold rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-800 disabled:opacity-50 transition-colors border border-amber-200 shadow-sm text-lg"
+          className="px-4 py-2 sm:px-6 sm:py-3 font-bold rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-800 disabled:opacity-50 transition-colors border border-amber-200 shadow-sm text-sm sm:text-lg"
         >
           👁️ Watch guide
         </button>

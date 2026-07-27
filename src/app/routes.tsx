@@ -13,6 +13,8 @@ import { GameScreen } from "./screens/GameScreen";
 import { TracingScreen } from "./screens/TracingScreen";
 import { RewardScreen } from "./screens/RewardScreen";
 import { TransitionScreen } from "./screens/TransitionScreen";
+import { LetterRoadmapScreen } from "./screens/LetterRoadmapScreen";
+import { MemoryGameScreen } from "./screens/MemoryGameScreen";
 import { HomeRedirect } from "./screens/HomeRedirect";
 import { ProgressScreen } from "./screens/ProgressScreen";
 import { ParentDashboardScreen } from "./screens/ParentDashboardScreen";
@@ -21,6 +23,14 @@ export const router = createBrowserRouter([
   {
     path: "/",
     Component: HomeRedirect,
+  },
+  {
+    path: "/roadmap",
+    Component: LetterRoadmapScreen,
+  },
+  {
+    path: "/memory",
+    Component: MemoryGameScreen,
   },
   {
     path: "/welcome",

@@ -42,11 +42,9 @@ export function ExampleWordsScreen() {
         </div>
 
         <AksharaButton
-          onClick={() =>
-            navigate(levelConfig.input_mode === "trace" ? "/tracing" : "/game")
-          }
+          onClick={() => navigate("/tracing")}
         >
-          {levelConfig.input_mode === "trace" ? "Trace the Letter" : "Play Game"}
+          Trace the Letter ✍️
         </AksharaButton>
       </div>
     </div>

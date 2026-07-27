@@ -15,13 +15,20 @@ const STATE_LABEL: Record<string, string> = {
   visual_mastery:       "Mastered ✓",
 };
 
-const LETTER_COLOR: Record<string, { bg: string; border: string; text: string }> = {
-  "म": { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C" },
-  "ग": { bg: "#F0FDF4", border: "#4ADE80", text: "#16A34A" },
-  "घ": { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB" },
-  "ध": { bg: "#FDF4FF", border: "#C084FC", text: "#9333EA" },
-  "ब": { bg: "#FFF1F2", border: "#FB7185", text: "#E11D48" },
-};
+const PALETTES = [
+  { bg: "#FFF7ED", border: "#FED7AA", text: "#EA580C" }, // Amber/Orange
+  { bg: "#F0FDF4", border: "#BBF7D0", text: "#16A34A" }, // Green
+  { bg: "#EFF6FF", border: "#BFDBFE", text: "#2563EB" }, // Blue
+  { bg: "#FDF4FF", border: "#F5D0FE", text: "#9333EA" }, // Purple
+  { bg: "#FFF1F2", border: "#FECDD3", text: "#E11D48" }, // Red
+  { bg: "#ECFDF5", border: "#A7F3D0", text: "#059669" }, // Teal
+  { bg: "#FFFBEB", border: "#FEF3C7", text: "#D97706" }, // Yellow
+];
+
+function getLetterColors(letter: string) {
+  const code = letter.charCodeAt(0) % PALETTES.length;
+  return PALETTES[code];
+}
 
 function TrendBadge({ trend }: { trend: LetterStat["trend"] }) {
   const cfg = {
@@ -70,7 +77,7 @@ function LetterPanel({
   stat: LetterStat;
   insight?: string;
 }) {
-  const col = LETTER_COLOR[letter] ?? { bg: "#F9FAFB", border: "#D1D5DB", text: "#374151" };
+  const col = getLetterColors(letter);
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -191,78 +198,90 @@ export function ProgressScreen() {
   const practicedLetters = LETTER_SEQUENCE.filter((l) => letter_stats[l]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FFF8F0] via-[#FAFAFA] to-[#F0F4FF] overflow-y-auto">
+    <div className="min-h-screen bg-gradient-to-tr from-[#FFF8F0] via-[#FAF9F6] to-[#EEF5FF] overflow-y-auto relative pb-10">
+      
+      {/* Decorative background fluid blobs */}
+      <div className="absolute top-20 right-5 w-80 h-80 bg-orange-100/40 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-20 left-5 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl pointer-events-none" />
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-gray-100 px-6 py-4 flex items-center gap-4">
+      {/* ── Sticky Premium Header ─────────────────────────────────────────── */}
+      <div className="sticky top-0 z-20 bg-white/70 backdrop-blur-md border-b border-gray-200/50 px-6 py-4 flex items-center gap-4">
         <button
           onClick={() => navigate("/resume")}
-          className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+          className="p-2.5 rounded-2xl hover:bg-gray-100/80 hover:scale-105 active:scale-95 transition-all text-gray-600 border border-transparent hover:border-gray-200"
         >
-          <ArrowLeft size={24} className="text-gray-600" />
+          <ArrowLeft size={20} />
         </button>
-        <h1 className="text-2xl font-bold text-gray-800 tracking-wide">
-          Learning Report
-        </h1>
-        <span className="ml-auto text-sm text-gray-400">
-          {total_sessions} sessions total
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent tracking-wide">
+            Learning Report
+          </h1>
+        </div>
+        <span className="ml-auto text-xs sm:text-sm font-bold bg-white border border-gray-200 px-3 py-1.5 rounded-full text-gray-500 shadow-sm">
+          📊 {total_sessions} sessions total
         </span>
       </div>
 
-      <div className="max-w-2xl mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-2xl mx-auto px-6 py-8 space-y-8 relative z-10">
 
-        {/* ── Hero card ────────────────────────────────────────────────────── */}
+        {/* ── Hero Console Card ────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-amber-400 to-orange-400 rounded-3xl p-6 text-white shadow-xl"
+          transition={{ type: "spring", stiffness: 100 }}
+          className="bg-gradient-to-br from-amber-400 via-orange-400 to-rose-400 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-orange-300/30 relative overflow-hidden"
         >
-          <div className="flex items-center gap-4 mb-4">
+          {/* Subtle light reflections */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-white/10 pointer-events-none" />
+          
+          <div className="flex items-center gap-4 mb-6">
             <motion.div
-              animate={{ rotate: [0, 8, -8, 0] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="text-6xl"
+              animate={{ rotate: [0, 6, -6, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="text-6xl sm:text-7xl filter drop-shadow-md select-none"
             >
               {avatarEmoji}
             </motion.div>
             <div>
-              <p className="text-white/80 text-sm uppercase tracking-widest font-medium">
+              <p className="text-white/80 text-xs sm:text-sm uppercase tracking-widest font-black">
                 Hey {report.display_name}!
               </p>
-              <p className="text-2xl font-bold leading-snug mt-1">
+              <p className="text-xl sm:text-2xl font-black leading-snug mt-1 drop-shadow-sm">
                 {ai_insights.encouragement}
               </p>
             </div>
           </div>
 
           {/* Mastery progress bar */}
-          <div className="bg-white/20 rounded-2xl p-4">
+          <div className="bg-white/15 backdrop-blur-md rounded-2xl p-5 border border-white/10 shadow-inner">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-white font-semibold">Letters mastered</span>
-              <span className="text-white font-bold text-xl">
-                {letters_mastered} / {LETTER_SEQUENCE.length}
+              <span className="text-white text-sm sm:text-base font-extrabold uppercase tracking-wider">Letters mastered</span>
+              <span className="text-white font-black text-xl sm:text-2xl drop-shadow-sm">
+                {letters_mastered} <span className="text-white/60 text-sm">/ {LETTER_SEQUENCE.length}</span>
               </span>
             </div>
-            <div className="h-3 bg-white/30 rounded-full overflow-hidden">
+            <div className="h-3.5 bg-white/20 rounded-full overflow-hidden p-0.5 border border-white/5">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${masteryPct}%` }}
-                transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
-                className="h-full bg-white rounded-full"
+                transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+                className="h-full bg-white rounded-full shadow-md"
               />
             </div>
-            <div className="flex justify-between mt-2">
+            <div className="flex justify-between mt-3 gap-1">
               {LETTER_SEQUENCE.map((l) => (
                 <span
                   key={l}
-                  className="text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full"
+                  className="text-xs sm:text-sm font-black w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all border border-transparent"
                   style={{
                     background: letter_stats[l]?.mastered
-                      ? "rgba(255,255,255,0.9)"
+                      ? "rgba(255,255,255,0.95)"
                       : letter_stats[l]
                         ? "rgba(255,255,255,0.4)"
-                        : "rgba(255,255,255,0.15)",
+                        : "rgba(255,255,255,0.12)",
                     color: letter_stats[l]?.mastered ? "#EA580C" : "white",
+                    border: letter_stats[l]?.mastered ? "1px solid #F59E0B" : "none",
+                    boxShadow: letter_stats[l]?.mastered ? "0 2px 4px rgba(0,0,0,0.1)" : "none",
                   }}
                 >
                   {l}
@@ -277,14 +296,14 @@ export function ProgressScreen() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100"
+          className="bg-white/70 backdrop-blur-md rounded-3xl p-6 shadow-md border border-white/60"
         >
           <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={20} className="text-amber-500" />
-            <h2 className="text-lg font-bold text-gray-700">AI Summary</h2>
-            <span className="text-xs text-gray-400 ml-auto">For parents & teachers</span>
+            <Sparkles size={18} className="text-amber-500 fill-amber-500 animate-pulse" />
+            <h2 className="text-base sm:text-lg font-black text-gray-700">AI Summary</h2>
+            <span className="text-[10px] sm:text-xs font-bold text-gray-400 ml-auto uppercase tracking-wider">Parents & Teachers Guide</span>
           </div>
-          <p className="text-gray-600 leading-relaxed text-base">
+          <p className="text-gray-600 leading-relaxed text-sm sm:text-base font-medium">
             {ai_insights.overall_message}
           </p>
         </motion.div>
@@ -295,16 +314,16 @@ export function ProgressScreen() {
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-green-50 rounded-3xl p-5 border border-green-200"
+            className="bg-emerald-50/60 backdrop-blur-sm rounded-3xl p-5 border border-emerald-200/60 shadow-sm"
           >
             <div className="flex items-center gap-2 mb-3">
-              <Star size={18} className="text-green-600" />
-              <h3 className="font-bold text-green-700">Going well</h3>
+              <Star size={16} className="text-emerald-600 fill-emerald-600" />
+              <h3 className="font-black text-emerald-800 text-sm sm:text-base">Going Well</h3>
             </div>
             <ul className="space-y-2">
               {ai_insights.strengths.map((s, i) => (
-                <li key={i} className="flex items-start gap-2 text-green-700 text-sm leading-snug">
-                  <span className="mt-0.5 text-green-500 font-bold">✓</span>
+                <li key={i} className="flex items-start gap-2 text-emerald-800 text-xs sm:text-sm leading-snug font-medium">
+                  <span className="mt-0.5 text-emerald-500 font-black">✓</span>
                   {s}
                 </li>
               ))}
@@ -315,16 +334,16 @@ export function ProgressScreen() {
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.25 }}
-            className="bg-amber-50 rounded-3xl p-5 border border-amber-200"
+            className="bg-amber-50/60 backdrop-blur-sm rounded-3xl p-5 border border-amber-200/60 shadow-sm"
           >
             <div className="flex items-center gap-2 mb-3">
-              <Target size={18} className="text-amber-600" />
-              <h3 className="font-bold text-amber-700">Focus on</h3>
+              <Target size={16} className="text-amber-600 fill-amber-600" />
+              <h3 className="font-black text-amber-800 text-sm sm:text-base">Focus Areas</h3>
             </div>
             <ul className="space-y-2">
               {ai_insights.focus_areas.map((f, i) => (
-                <li key={i} className="flex items-start gap-2 text-amber-700 text-sm leading-snug">
-                  <span className="mt-0.5 text-amber-500 font-bold">→</span>
+                <li key={i} className="flex items-start gap-2 text-amber-800 text-xs sm:text-sm leading-snug font-medium">
+                  <span className="mt-0.5 text-amber-500 font-black">→</span>
                   {f}
                 </li>
               ))}
@@ -338,32 +357,36 @@ export function ProgressScreen() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
+            className="space-y-4"
           >
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp size={20} className="text-blue-500" />
-              <h2 className="text-lg font-bold text-gray-700">Letter by Letter</h2>
+            <div className="flex items-center gap-2">
+              <TrendingUp size={18} className="text-blue-500" />
+              <h2 className="text-base sm:text-lg font-black text-gray-700">Practice Analysis</h2>
             </div>
 
-            {/* Letter selector pills */}
-            <div className="flex gap-3 mb-4 flex-wrap">
+            {/* Letter selector pills with 3D keycap effect */}
+            <div className="flex gap-3 mb-2 flex-wrap select-none">
               {practicedLetters.map((l) => {
-                const col = LETTER_COLOR[l] ?? { border: "#D1D5DB", text: "#374151", bg: "#F9FAFB" };
+                const col = getLetterColors(l);
                 const isSelected = selectedLetter === l;
                 return (
-                  <button
+                  <motion.button
                     key={l}
                     onClick={() => setSelectedLetter(l)}
-                    className="w-14 h-14 rounded-2xl text-2xl font-bold transition-all"
+                    whileHover={{ y: -2 }}
+                    whileTap={{ y: 2 }}
+                    className="w-14 h-14 rounded-2xl text-2xl font-black transition-all duration-100 flex items-center justify-center"
                     style={{
-                      background: isSelected ? col.border : col.bg,
-                      border: `2px solid ${col.border}`,
+                      background: isSelected ? col.border : "rgba(255,255,255,0.7)",
+                      border: isSelected ? `2px solid ${col.text}` : `2px solid ${col.border}40`,
                       color: isSelected ? "white" : col.text,
-                      transform: isSelected ? "scale(1.1)" : "scale(1)",
-                      boxShadow: isSelected ? `0 4px 16px ${col.border}60` : "none",
+                      boxShadow: isSelected 
+                        ? `0 10px 20px -5px ${col.border}, inset 0 -4px 0 rgba(0,0,0,0.15)` 
+                        : `0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03), inset 0 -4px 0 ${col.border}40`,
                     }}
                   >
                     {l}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
@@ -371,22 +394,28 @@ export function ProgressScreen() {
             {/* Selected letter panel */}
             <AnimatePresence mode="wait">
               {selectedLetter && letter_stats[selectedLetter] && (
-                <div key={selectedLetter}>
+                <motion.div
+                  key={selectedLetter}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
                   <LetterPanel
                     letter={selectedLetter}
                     stat={letter_stats[selectedLetter]}
                     insight={ai_insights.letter_insights?.[selectedLetter]}
                   />
                   {ai_insights.letter_insights?.[selectedLetter] && (
-                    <motion.p
+                    <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="mt-3 text-sm text-gray-500 italic px-1"
+                      className="mt-3 text-xs sm:text-sm text-gray-500 font-bold italic px-3 py-2.5 bg-white/40 border border-gray-200/50 rounded-2xl backdrop-blur-sm shadow-sm"
                     >
-                      💬 {ai_insights.letter_insights[selectedLetter]}
-                    </motion.p>
+                      💬 Parent Tip: {ai_insights.letter_insights[selectedLetter]}
+                    </motion.div>
                   )}
-                </div>
+                </motion.div>
               )}
             </AnimatePresence>
           </motion.div>
@@ -398,19 +427,20 @@ export function ProgressScreen() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="bg-gray-50 rounded-3xl p-5 border border-gray-200"
+            className="bg-gray-100/50 backdrop-blur-sm rounded-3xl p-5 border border-gray-200/50 shadow-sm"
           >
-            <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Coming up next
+            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+              Upcoming Letters
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               {LETTER_SEQUENCE.filter((l) => !letter_stats[l]).map((l, i) => (
                 <motion.div
                   key={l}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.4 + i * 0.08 }}
-                  className="w-14 h-14 rounded-2xl bg-white border-2 border-dashed border-gray-300 flex items-center justify-center text-2xl text-gray-400 font-bold"
+                  transition={{ delay: 0.4 + i * 0.06 }}
+                  className="w-14 h-14 rounded-2xl bg-white/50 border-2 border-dashed border-gray-300 flex items-center justify-center text-2xl text-gray-400 font-black"
+                  style={{ boxShadow: "inset 0 -4px 0 rgba(0,0,0,0.04)" }}
                 >
                   {l}
                 </motion.div>
@@ -418,9 +448,6 @@ export function ProgressScreen() {
             </div>
           </motion.div>
         )}
-
-        {/* ── Footer spacer ─────────────────────────────────────────────────── */}
-        <div className="h-8" />
       </div>
     </div>
   );

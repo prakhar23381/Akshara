@@ -19,7 +19,7 @@ export function useLetterAudio(
     }
 
     const audio = new Audio(src);
-    audio.playbackRate = slowMode ? 0.6 : 1.0;
+    audio.playbackRate = slowMode ? 0.8 : 1.0;
 
     if (onEnded) {
       audio.addEventListener("ended", onEnded, { once: true });

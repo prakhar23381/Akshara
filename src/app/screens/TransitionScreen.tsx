@@ -68,10 +68,6 @@ export function TransitionScreen() {
           💡 Did you know? Learning one new letter every day is better than rushing!
         </p>
       </motion.div>
-
-      <div className="absolute top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm">
-        12. Transition Screen
-      </div>
     </div>
   );
 }

@@ -67,19 +67,8 @@ export function ResumeScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, progressLoaded]);
 
-  async function handleContinue() {
-    setLoading(true);
-    const result = await analyzeSession({
-      user_id: user!.id,
-      target_alphabet: currentLetter,
-      session_id: `sess_${Date.now()}`,
-      session_number: sessionNumber,
-      avg_latency_ms: lastAvgLatencyMs,
-      consecutive_fails_peak: 0,
-      attempts: [],
-    });
-    setLevelConfig(result.level_config);
-    navigate("/animation");
+  function handleContinue() {
+    navigate("/roadmap");
   }
 
   const displayName =
@@ -145,9 +134,6 @@ export function ResumeScreen() {
         </div>
       </div>
 
-      <div className="absolute top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm">
-        {user?.email}
-      </div>
     </div>
   );
 }

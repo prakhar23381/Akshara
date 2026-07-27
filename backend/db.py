@@ -152,6 +152,7 @@ def save_session(
     avg_latency_ms: float,
     confused_pairs: list,
     provider_used: str,
+    reasoning: str,
     user_jwt: str,
 ) -> None:
     """Persist a completed session to Supabase."""
@@ -165,7 +166,10 @@ def save_session(
             "scaffold_intensity": scaffold_intensity,
             "error_rate_pct":     error_rate_pct,
             "avg_latency_ms":     avg_latency_ms,
-            "confused_pairs":     {"confused_pairs": confused_pairs},
+            "confused_pairs":     {
+                "confused_pairs": confused_pairs,
+                "reasoning":      reasoning
+            },
             "provider_used":      provider_used,
         }).execute()
     except Exception as e:
