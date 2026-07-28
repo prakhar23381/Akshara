@@ -123,7 +123,7 @@ export function GameScreen() {
             setConsecutiveFails(0);
             setAudioSlowMode(false);
           } else {
-            navigate("/reward");
+            navigate("/word-fill");
           }
         }, 1500);
       }
@@ -169,7 +169,7 @@ export function GameScreen() {
           setConsecutiveFails(0);
           setAudioSlowMode(false);
         } else {
-          navigate("/reward");
+          navigate("/word-fill");
         }
       }, 1500);
     } else {
@@ -201,7 +201,7 @@ export function GameScreen() {
               setConsecutiveFails(0);
               setAudioSlowMode(false);
             } else {
-              navigate("/reward");
+              navigate("/word-fill");
             }
           }, 1500);
         } else {

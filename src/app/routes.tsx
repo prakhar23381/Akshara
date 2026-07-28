@@ -15,6 +15,8 @@ import { RewardScreen } from "./screens/RewardScreen";
 import { TransitionScreen } from "./screens/TransitionScreen";
 import { LetterRoadmapScreen } from "./screens/LetterRoadmapScreen";
 import { MemoryGameScreen } from "./screens/MemoryGameScreen";
+import { WordFillBlankScreen } from "./screens/WordFillBlankScreen";
+import { WordSpellingScreen } from "./screens/WordSpellingScreen";
 import { HomeRedirect } from "./screens/HomeRedirect";
 import { ProgressScreen } from "./screens/ProgressScreen";
 import { ParentDashboardScreen } from "./screens/ParentDashboardScreen";
@@ -75,6 +77,14 @@ export const router = createBrowserRouter([
   {
     path: "/game",
     Component: GameScreen,
+  },
+  {
+    path: "/word-fill",
+    Component: WordFillBlankScreen,
+  },
+  {
+    path: "/word-spelling",
+    Component: WordSpellingScreen,
   },
   {
     path: "/tracing",
