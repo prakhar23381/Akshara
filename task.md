@@ -1,7 +1,7 @@
-# Implementation Task Checklist - Easy & Strict Letter Tracing Models
+# Implementation Task Checklist - Guest Supabase Sync & Letter 'Ka' Fix
 
-- [x] Create `src/app/utils/tracingEvaluator.ts` containing both `evaluateStrictModel` and `evaluateEasyModel`
-- [x] Update `src/app/components/TracingCanvas.tsx` to use `evaluateEasyModel` as the active default drawing model
-- [x] Run build verification (`npm run build`)
-- [x] Commit changes with descriptive git message
-- [x] Re-deploy to Vercel and verify live URL
+- [x] Redesign letter "क" (Ka) stroke geometry in `src/app/data/letterPaths.ts` for clean Devanagari typography
+- [x] Integrate Guest Explorer with Supabase in `src/app/contexts/AuthContext.tsx` and `src/app/lib/supabase.ts`
+- [x] Verify build clean (`npm run build`)
+- [x] Commit git changes
+- [x] Redeploy to Vercel and verify live production URL

@@ -6,8 +6,8 @@ export interface StrokePath {
 export const LETTER_STROKES: Record<string, StrokePath[]> = {
   "क": [
     { path: "M 200 120 L 200 330", duration: 0.8 },
-    { path: "M 200 200 C 130 200 130 260 200 260 C 270 260 270 200 200 200", duration: 1.2 },
-    { path: "M 200 200 C 260 200 280 270 230 310", duration: 0.9 },
+    { path: "M 200 180 C 120 180 120 270 200 270 Z", duration: 1.0 },
+    { path: "M 200 210 C 265 210 275 260 235 305", duration: 0.9 },
     { path: "M 100 120 L 300 120", duration: 0.6 }
   ],
   "ख": [

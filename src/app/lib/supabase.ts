@@ -101,6 +101,19 @@ class MockQueryBuilder {
     };
     data.push(newRow);
     localStorage.setItem(`akshara_db_${this.table}`, JSON.stringify(data));
+
+    // Also sync to live Supabase backend when online
+    try {
+      realSupabase
+        .from(this.table)
+        .insert(newRow)
+        .then(({ error }) => {
+          if (error) console.warn(`[SupabaseSync] Guest insert failed for ${this.table}:`, error.message);
+          else console.log(`[SupabaseSync] Guest insert synced to Supabase for ${this.table}`);
+        })
+        .catch(() => {});
+    } catch {}
+
     return { data: newRow, error: null };
   }
 
@@ -124,6 +137,19 @@ class MockQueryBuilder {
       data.push(updatedRow);
     }
     localStorage.setItem(`akshara_db_${this.table}`, JSON.stringify(data));
+
+    // Also sync to live Supabase backend when online
+    try {
+      realSupabase
+        .from(this.table)
+        .upsert(updatedRow)
+        .then(({ error }) => {
+          if (error) console.warn(`[SupabaseSync] Guest upsert failed for ${this.table}:`, error.message);
+          else console.log(`[SupabaseSync] Guest upsert synced to Supabase for ${this.table}`);
+        })
+        .catch(() => {});
+    } catch {}
+
     return { data: updatedRow, error: null };
   }
 }
