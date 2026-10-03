@@ -1,9 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY as string;
+const rawUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const rawKey = import.meta.env.VITE_SUPABASE_KEY as string | undefined;
 
-// Initialize the real supabase client
+const isValidUrl = (url?: string) => {
+  try {
+    return Boolean(url && new URL(url));
+  } catch {
+    return false;
+  }
+};
+
+const supabaseUrl = isValidUrl(rawUrl) ? (rawUrl as string) : "https://placeholder.supabase.co";
+const supabaseKey = rawKey && rawKey.trim() !== "" ? rawKey : "placeholder-anon-key";
+
+// Initialize the real supabase client safely
 const realSupabase = createClient(supabaseUrl, supabaseKey);
 
 // Define a Mock Query Builder for offline sandbox mode
