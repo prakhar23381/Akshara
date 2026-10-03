@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { LETTER_STROKES, StrokePath } from "../data/letterPaths";
 import { playSuccessSound, playErrorSound } from "../utils/soundEffects";
+import { evaluateDrawing, ACTIVE_TRACING_MODEL } from "../utils/tracingEvaluator";
 
 interface TracingCanvasProps {
   letter: string;
@@ -202,19 +203,22 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
     let updated = false;
     let minDistance = Infinity;
 
+    const hitRadius = ACTIVE_TRACING_MODEL === "easy" ? 42 : 28;
+    const strayThreshold = ACTIVE_TRACING_MODEL === "easy" ? 45 : 30;
+
     guideDots.forEach((dot, index) => {
       const dist = Math.hypot(x - dot.x, y - dot.y);
       if (dist < minDistance) {
         minDistance = dist;
       }
-      if (dist < 28 && !visitedRef.current.has(index)) {
+      if (dist < hitRadius && !visitedRef.current.has(index)) {
         visitedRef.current.add(index);
         updated = true;
       }
     });
 
     totalPointsRef.current += 1;
-    if (minDistance > 30) { // 30px stray distance threshold (slightly above 28px hit radius)
+    if (minDistance > strayThreshold) {
       strayPointsRef.current += 1;
     }
 
@@ -255,54 +259,34 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
     const targetCells = targetGridRef.current;
     const userCells = userGridRef.current;
 
-    if (targetCells.size === 0 || userCells.size === 0) {
-      setScore(0);
-      setEvaluation("fail");
-      playErrorSound();
-      if (onComplete) onComplete(0, false);
-      return;
-    }
+    // Evaluate drawing using active model (Easy Model by default)
+    const result = evaluateDrawing(
+      {
+        guideDots,
+        visitedNodesCount: visitedRef.current.size,
+        targetCells,
+        userCells,
+        totalDrawnPoints: totalPointsRef.current,
+        strayPointsCount: strayPointsRef.current,
+      },
+      ACTIVE_TRACING_MODEL
+    );
 
-    let tp = 0; // True Positives
-    let fp = 0; // False Positives
-    let fn = 0; // False Negatives
+    console.log(
+      `[TracingCanvas checkDrawing] Model=${result.modelName}, Score=${result.score}%, Passed=${result.passed}, Details=`,
+      result.details
+    );
 
-    // Evaluate true positives and false negatives
-    targetCells.forEach((cell) => {
-      if (userCells.has(cell)) {
-        tp++;
-      } else {
-        fn++;
-      }
-    });
+    setScore(result.score);
 
-    // Evaluate false positives (off-path drawing)
-    userCells.forEach((cell) => {
-      if (!targetCells.has(cell)) {
-        fp++;
-      }
-    });
-
-    // Weighted Jaccard Similarity: penalize FP (drawing wrong paths) more than missing some path (FN)
-    const penaltyWeightFP = 1.5;
-    const penaltyWeightFN = 1.0;
-
-    const denominator = tp + penaltyWeightFP * fp + penaltyWeightFN * fn;
-    const similarity = denominator > 0 ? tp / denominator : 0;
-    const finalScore = Math.max(0, Math.round(similarity * 100));
-
-    console.log(`[TracingCanvas checkDrawing] TP=${tp}, FP=${fp}, FN=${fn}, JaccardScore=${finalScore}%`);
-
-    setScore(finalScore);
-
-    if (finalScore >= 75) { // 75% master threshold adjusted for grid checks
+    if (result.passed) {
       setEvaluation("success");
       playSuccessSound();
-      if (onComplete) onComplete(finalScore, true);
+      if (onComplete) onComplete(result.score, true);
     } else {
       setEvaluation("fail");
       playErrorSound();
-      if (onComplete) onComplete(finalScore, false);
+      if (onComplete) onComplete(result.score, false);
     }
   };
 

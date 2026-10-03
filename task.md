@@ -1,6 +1,7 @@
-# Implementation Task Checklist - Vercel White Screen Fix
+# Implementation Task Checklist - Easy & Strict Letter Tracing Models
 
-- [x] Create `vercel.json` with SPA rewrite rules (`/index.html`)
-- [x] Safeguard `src/app/lib/supabase.ts` against missing/invalid Supabase environment variables
-- [x] Run build check (`npm run build`)
-- [x] Redeploy to Vercel and verify live production URL
+- [x] Create `src/app/utils/tracingEvaluator.ts` containing both `evaluateStrictModel` and `evaluateEasyModel`
+- [x] Update `src/app/components/TracingCanvas.tsx` to use `evaluateEasyModel` as the active default drawing model
+- [x] Run build verification (`npm run build`)
+- [x] Commit changes with descriptive git message
+- [x] Re-deploy to Vercel and verify live URL
