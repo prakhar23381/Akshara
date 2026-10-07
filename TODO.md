@@ -87,14 +87,37 @@ Walkthrough with values pre-filled: [docs/08_AUTH_SETUP.md](docs/08_AUTH_SETUP.m
       on an account the team does not control, replace it. It is off every
       critical path, so losing it costs the hosted app nothing.
 
-## Deploy
+## Deploy  — blocked on GitHub auth
 
-- [ ] **D1 · Push and redeploy.** 14 commits sit on local `main`, unpushed, and
-      production is serving a build made **before** today's cleanup — verified
-      byte-identical to this session's pre-cleanup baseline
-      (`index-DaMLZmhl.js`, 712,890 B / `index-BzKSVV-R.css`, 103,889 B).
-      Shipping the cleanup would cut the production CSS from 103,889 to 37,265
-      bytes (−64%). Nothing has been pushed because it was never requested.
+- [ ] **D1 · Push 14 commits, then redeploy.** Attempted 2026-10-07; **push
+      failed.** `origin/main` is at `6f6da86`, 14 commits behind local `main`.
+
+      *Why it failed:* no working GitHub credential on this machine.
+      - `gh` CLI not installed
+      - `credential.helper = osxkeychain` is configured but its stored
+        credential is rejected (`Invalid username or token`) — almost certainly
+        a saved password, which GitHub stopped accepting in 2021
+      - no SSH keys exist (`~/.ssh` has no `*.pub`); `ssh -T git@github.com`
+        returns `Permission denied (publickey)`
+
+      *Ways out, cheapest first:*
+      1. `ssh-keygen -t ed25519`, add the public key at GitHub → Settings → SSH
+         keys, then `git remote set-url origin git@github.com:prakhar23381/Akshara.git`
+      2. Install `gh` and run `gh auth login` (browser flow)
+      3. Replace the keychain entry with a Personal Access Token (repo write)
+
+      *Risk while this sits:* production already serves code that is not on
+      GitHub, and `origin` is 14 commits behind — **this laptop is the only copy
+      of the P1–P6 refactor and the whole structure cleanup.**
+
+- [ ] **D2 · Ship the cleanup to production.** Deferred by choice 2026-10-07.
+      `akshara-tau.vercel.app` serves assets byte-identical to this session's
+      pre-cleanup baseline (`index-DaMLZmhl.js` 712,890 B /
+      `index-BzKSVV-R.css` 103,889 B). Deploying would cut production CSS to
+      37,265 bytes (−64%). The Vercel CLI is installed and authenticated as
+      `prakhar23381-9369`, so `vercel --prod` works without GitHub — but it
+      would deploy from the working tree, widening the gap between production
+      and the repo.
 
 ## Verification
 *No browser in the agent environment — these are yours to run.*

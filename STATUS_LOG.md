@@ -22,6 +22,23 @@ current state and recovery context in
   or row access that the anon key does not have. `backend/migrations/README.md`
   now carries the two SQL-editor queries that check them.
 
+### Push attempted and failed; deploy deferred
+* `git push origin main` was approved and attempted. It failed: GitHub rejected
+  the osxkeychain credential (`Invalid username or token` — password auth has
+  not been supported since 2021), `gh` is not installed, and no SSH keys exist
+  on the machine. Nothing here can authenticate to GitHub.
+* Before attempting it, the 14 commits were scanned for credential material:
+  no JWT-, `AIza`-, `sb_secret_`- or Postgres-URL-shaped strings in any tracked
+  file, and the live anon key appears in none of them. The only hits were prose,
+  placeholders, and warnings about what not to store. `.env.local` and
+  `backend/.env` are untracked; both `.env.example` files are tracked.
+* Deploying via the Vercel CLI (installed, authenticated) was offered as a way
+  around it and declined for now, so production still serves the pre-cleanup
+  build. Tracked as D1 and D2.
+* **Standing risk:** `origin/main` is 14 commits behind at `6f6da86`, and
+  production runs code that is not on GitHub either. This machine is the only
+  copy of the P1–P6 refactor and the structure cleanup.
+
 ### P7 verified against live services
 * **7.4 / 7.5 — done.** `GET /auth/v1/settings` on the live project reports
   enabled providers `['email', 'google']` and `external.google: true`, and
