@@ -1,5 +1,11 @@
 # Akshara-Flow — Adaptive Learning Engine
 
+> [!NOTE]
+> **The engine described here is current and runs in two places.** The Python
+> agents are in `backend/IP/agents/`; `src/app/lib/adaptiveEngine.ts` mirrors
+> them on the device, and `tests/engine.test.ts` verifies the two agree. Screen
+> screen names have been updated to the step files that replaced them.
+
 ## Overview
 
 The adaptive learning engine is the intellectual core of Akshara-Flow. It operates as a continuous observation-diagnosis-response loop: after every session the system re-evaluates the child's cognitive state and reconfigures the next session accordingly. The child never knows this is happening — from their perspective, they just keep tapping letters.
@@ -100,7 +106,7 @@ The hard distractor pool specifically includes letters the child has been histor
 - Hesitation triggers calibrated to child's response baseline (no lengthening)
 
 **When `letter_mastered: true` is returned:**
-The RewardScreen shows 🏆 and offers to advance to the next letter.
+The reward step (`play/steps/RewardStep.tsx`) shows 🏆 and offers to advance to the next letter.
 
 **Dyslexia rationale:**
 Mastery for a dyslexic child means **consistent correct performance at the hardest challenge level, without any visual scaffolding**. At VISUAL_MASTERY, the child's phonological–orthographic mapping is stable. Maintaining hard distractors during this stage provides consolidation and prevents regression, which is especially important in dyslexia where gains can be fragile without continued practice.

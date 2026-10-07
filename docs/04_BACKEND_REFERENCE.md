@@ -1,11 +1,23 @@
 # Akshara-Flow — Backend Reference
 
-All backend code lives in `backend/`. The entry point is `app.py`. Everything else is under `IP/` (the core intelligence package).
+*Corrected 2026-10-07. Two sections described code that no longer runs:
+`save_session` was deleted and `GET /progress_report` is no longer registered.
+Both are marked below rather than removed, because the reasons matter.*
+
+All backend code lives in `backend/`. The entry point is `app.py`. Everything
+else is under `IP/` (the core intelligence package).
+
+**The backend is stateless.** It exposes exactly `POST /analyze_session` and
+`GET /health`, reads no database and writes none. `db.py` and
+`IP/routes/progress.py` are on disk but unreachable from a running server.
 
 ```
 backend/
 ├── app.py                        Flask application + blueprint registration
-├── db.py                         Supabase client + all DB helper functions
+├── db.py                         Supabase helpers — RETIRED, imported only by progress.py
+├── migrations/                   000_init.sql (applied) · 001_session_model.sql (NOT applied)
+├── smoke/live_api.py             manual smoke script; needs a running server
+├── tests/test_pipeline.py        6 diagnosis cases — a script with main(), not a pytest suite
 ├── requirements.txt              Python dependencies
 ├── .env                          Environment variables (not committed)
 └── IP/
@@ -18,8 +30,8 @@ backend/
     ├── models/
     │   └── session.py            Dataclasses: SessionPayload, LevelConfig, enums
     └── routes/
-        ├── analyze.py            POST /analyze_session
-        └── progress.py           GET /progress_report
+        ├── analyze.py            POST /analyze_session   (registered)
+        └── progress.py           GET /progress_report    (RETIRED, not registered)
 ```
 
 ---
@@ -31,22 +43,23 @@ backend/
 The root Flask application. Responsibilities:
 - Loads `.env` file
 - Configures logging (INFO level, timestamped)
-- Registers both route blueprints
+- Registers **one** route blueprint
 - Applies global CORS headers (allows any origin, all methods, Content-Type + Authorization headers)
 - Exposes `/health` endpoint
 
 ```python
 from IP.routes.analyze import analyze_bp
-from IP.routes.progress import progress_bp
 
 app.register_blueprint(analyze_bp)
-app.register_blueprint(progress_bp)
+
+# IP.routes.progress is deliberately not registered. See the note at the end
+# of this document.
 ```
 
 **Running:**
 ```bash
 cd backend
-python app.py          # development, port 5050, debug=True
+./.venv/bin/python app.py   # development, port 5050, debug=True
 gunicorn app:app --workers 2 --timeout 30   # production
 ```
 
@@ -55,9 +68,15 @@ Applied via `@app.after_request`. In development this is `*`. In production, res
 
 ---
 
-## `db.py` — Database Helpers
+## `db.py` — Database Helpers  *(RETIRED)*
 
 **Path:** `backend/db.py`
+
+> **Not reachable from a running server.** Every function here is imported only
+> by `IP/routes/progress.py`, which is not registered. The client is now the
+> single writer of session rows and supplies `prior_cognitive_state` in the
+> request body, so `/analyze_session` needs neither a database nor a verified
+> JWT. Kept as reference; documented below as it stands.
 
 Central module for all Supabase interactions. Uses two distinct client patterns:
 
@@ -113,10 +132,18 @@ Returns all `letter_progress` rows for a user, ordered by `letter_index ASC`. Re
 
 Used by `progress.py` to determine mastery status per letter.
 
-#### `save_session(user_id, letter, session_number, cognitive_state, distractor_pool, scaffold_intensity, error_rate_pct, avg_latency_ms, confused_pairs, provider_used, user_jwt) → None`
-Inserts a new row into `learning_sessions`. Called from `analyze.py` after level generation.
+#### `save_session(...)` — **DELETED**
+This function no longer exists.
 
-`confused_pairs` is stored as `{"confused_pairs": [[target, selected], ...]}` JSONB.
+It inserted a row into `learning_sessions` at the end of `/analyze_session`. The
+client calls that endpoint **twice** per letter — once to initialise with zero
+attempts, once at the end — and each call ran the INSERT, so a single sitting
+produced two server rows without a `session_id`, on top of the row the client
+wrote itself: three rows for one session, two of them unidentifiable.
+
+The client is now the single writer. It owns the session id, writes through at
+every activity rather than once at the end, and therefore keeps a record for a
+child who quits half-way. See `src/app/lib/sessionStore.ts`.
 
 ---
 
@@ -379,18 +406,23 @@ Constructs the per-session user message containing:
 
 **Required fields:** `user_id`, `target_alphabet`, `session_id`
 
-**Processing order:**
-1. Parse and validate request JSON
-2. `_get_db()` — lazy import DB functions (handles missing Supabase gracefully)
-3. Verify JWT from `Authorization` header
-4. `_parse_payload()` — build `SessionPayload` dataclass
-5. `load_user_history()` — fetch letter-specific history for LLM
-6. `diagnosis_agent.diagnose(session)` — classify cognitive state
-7. Cross-letter carry-forward logic (if INSUFFICIENT_DATA + prior history)
-8. `level_agent.generate(session, state, reasoning, user_history)` — build LevelConfig
-9. `save_session()` — persist to Supabase (if authenticated)
-10. Serialise `LevelConfig` to dict, convert enums to `.value` strings
-11. Return response JSON
+**Processing order** (a pure function of the request body — no DB, no JWT):
+1. `OPTIONS` → 204
+2. Reject a missing or unparseable JSON body → 400
+3. Require `user_id`, `target_alphabet`, `session_id` → 400 if any is missing
+4. `_parse_payload()` — build the `SessionPayload` dataclass → 422 on bad shape
+5. `diagnosis_agent.diagnose(session)` — classify the cognitive state
+6. Carry-forward: if the state is `INSUFFICIENT_DATA` (zero attempts, so this is
+   a letter the child is opening) and the body carries
+   `prior_cognitive_state`, adopt it — capped by `_NEW_LETTER_STATE_CAP` — and
+   rewrite `reasoning` to say so. This used to be a SELECT per level
+7. `level_agent.generate(...)` with `user_history` taken from the body
+   (an empty list simply means the prompt carries no cross-session colour)
+8. Serialise `LevelConfig`, converting enums to `.value`
+9. Return `{status, level_config, letter_mastered, debug}`
+
+`letter_mastered` is `state == VISUAL_MASTERY`. The `debug` block carries
+`total_attempts`, `error_rate_pct`, `cognitive_state` and `carried_forward`.
 
 **`_NEW_LETTER_STATE_CAP`:**
 ```python
@@ -402,11 +434,27 @@ When a new letter starts with INSUFFICIENT_DATA, the prior state is carried forw
 
 ---
 
-## `IP/routes/progress.py` — Progress Report Endpoint
+## `IP/routes/progress.py` — Progress Report Endpoint  *(RETIRED)*
 
 **Path:** `backend/IP/routes/progress.py`
 
-### `GET /progress_report`
+> **Not registered; this route does not exist on a running server.**
+>
+> Two things made it the wrong place for the report. The report is the artifact a
+> specialist reads, so every figure has to be traceable to a recorded attempt —
+> generated prose cannot carry that guarantee. And it needed a server, a
+> database and an API key to be reachable at all, while the hosted app has none
+> of the three.
+>
+> `src/app/api/client.ts → buildProgressReport()` now assembles it on the device
+> from stored sessions, and `src/app/screens/ReportScreen.tsx` renders it. The
+> long-form text that used to be the LLM's job is a print view over the same
+> data. Registering this blueprint again would give the UI two sources of truth
+> for the same numbers.
+>
+> The description below is kept for reference.
+
+### `GET /progress_report`  *(retired)*
 
 **Headers:** `Authorization: Bearer <supabase_jwt>` (required)
 

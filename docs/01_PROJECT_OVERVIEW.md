@@ -1,5 +1,15 @@
 # Akshara-Flow — Project Overview
 
+> [!NOTE]
+> **Screen names in this document predate the 2026-10 refactor.** The nine
+> per-activity screens (`AnimationScreen`, `PronunciationScreen`,
+> `ExampleWordsScreen`, `TracingScreen`, `MemoryGameScreen`, `GameScreen`,
+> `WordFillBlankScreen`, `WordSpellingScreen`, `RewardScreen`) are now steps of
+> one `/play` route, in `src/app/screens/play/steps/`, and `ProgressScreen` plus
+> `ParentDashboardScreen` are merged into `/report`. `useSessionTracker` is
+> replaced by `SessionContext`. The *product* description here is current; the
+> file names are not. See [05_FRONTEND_REFERENCE.md](05_FRONTEND_REFERENCE.md).
+
 ## What is Akshara-Flow?
 
 Akshara-Flow is an **adaptive Hindi letter-learning app specifically designed for children with dyslexia**. It teaches five foundational Devanagari consonants (म ग घ ध ब) through audio-first identification tasks backed by a real-time AI system that silently adapts difficulty, scaffolding, and visual support to each child's exact cognitive profile.
@@ -67,7 +77,7 @@ The system tracks response latency (time from audio end to tap). If the child do
 This eliminates the possibility of a child becoming stuck or frustrated.
 
 ### 5. Letter Tracing (GROSS_SHAPE_BLINDNESS)
-When the diagnosis indicates the child cannot identify the basic shape, they are routed through a **TracingScreen** before the tapping game. Drawing the letter activates motor memory and multi-sensory encoding — a well-established intervention for dyslexic learners.
+When the diagnosis indicates the child cannot identify the basic shape, the session includes a **tracing step** before the tapping game — `buildStepOrder()` adds it when `levelConfig.input_mode === "trace"`. Drawing the letter activates motor memory and multi-sensory encoding — a well-established intervention for dyslexic learners.
 
 ### 6. Cross-Letter Learning Profile
 When a child starts a new letter, the system does not cold-start them. It reads their **most recent cognitive state** from any previously learned letter and seeds the new letter at that level, capped at FEATURE_NEGLECT (because every letter's specific distinguishing features are new and must be learned fresh).
@@ -148,30 +158,40 @@ Supabase's Row Level Security (RLS) enforces data isolation at the database laye
 ## Learning Flow (Full Journey)
 
 ```
-Login (Google OAuth)
+Login (Google OAuth)  or  Guest
       ↓
 HomeRedirect → checks user_profiles.profile_complete
-      ↓ (first time)                    ↓ (returning)
+      ↓ (first time)                        ↓ (returning)
 Welcome → UserType → Name → Age → Avatar    ResumeScreen
                          ↓                        ↓
-                    ResumeScreen           "Continue Learning"
+                    /roadmap   ←──────────  "Continue Learning"
+                         ↓  (tap an unlocked letter)
+                  startSession()  — mints session_id up front
+                  analyzeSession (0 attempts → initial config)
                          ↓
-                  analyzeSession (empty attempts → init)
+                      /play        ONE url for the whole sequence
+                         │
+                         │  currentStep = the first step with no completed_at,
+                         │  over buildStepOrder(levelConfig):
+                         │
+                         ├── intro           3s letter intro      (dwell_ms)
+                         ├── pronunciation   sound + hint         (dwell_ms)
+                         ├── example_words   3 vocabulary words   (dwell_ms)
+                         ├── tracing         only if input_mode == "trace"
+                         │                   (score, passed, tries, model)
+                         ├── memory          (moves, pairs, duration_ms)
+                         ├── identify        4-choice ID  → diagnosis
+                         ├── word_fill       → diagnosis
+                         ├── word_spelling   → diagnosis
+                         └── reward          endSession()
                          ↓
-              AnimationScreen (3s letter intro)
+                  mastered?  →  next letter unlocks on /roadmap
+                  not yet?   →  the same letter, re-levelled
                          ↓
-              PronunciationScreen (sound + hint)
-                         ↓
-              ExampleWordsScreen (3 vocabulary words)
-                         ↓
-           input_mode == "trace"?
-              ↓ yes            ↓ no
-         TracingScreen      GameScreen (4-choice identification)
-                                ↓
-                          RewardScreen
-                   ↓ mastered        ↓ not mastered
-             Next letter →       Practice more →
-             AnimationScreen       GameScreen
+                     /roadmap
+
+A refresh anywhere inside /play resumes the same step on the same letter.
+Quitting marks the session `abandoned`, which is kept as data, not lost.
 ```
 
 ---
@@ -179,20 +199,24 @@ Welcome → UserType → Name → Age → Avatar    ResumeScreen
 ## Session Data Pipeline
 
 ```
-GameScreen (attempts recorded in-memory)
-      ↓ tracker.endLevel()
-useSessionTracker → POST /analyze_session
+Each assessed step (identify · word_fill · word_spelling)
+      ↓ recordAttempt() — live, one attempt at a time
+SessionContext → sessionStore.upsertSession()
+      ↓ localStorage is the source of truth, written through at EVERY activity
+      ↓ Supabase upsert is a best-effort mirror and never blocks
       ↓
-DiagnosisAgent.diagnose(session)
+RewardStep → endSession()
+      ↓ computeSessionMetrics()
+      ↓ analyzeSession(payload + prior_cognitive_state)
+      │
+      ├── backend reachable → POST /analyze_session  (stateless; writes nothing)
+      │        DiagnosisAgent.diagnose()
+      │        [new letter + prior state] → carry-forward, capped by
+      │                                     NEW_LETTER_STATE_CAP
+      │        LevelGeneratorAgent.generate()  → LLM, with hard-coded fallback
+      │
+      └── backend unreachable → lib/adaptiveEngine.ts → analyzeLocally()
+                                 the same diagnosis, on the device
       ↓
-[if new letter + prior history] → carry_forward_profile()
-      ↓
-LevelGeneratorAgent.generate(session, state, history)
-      ↓ LLM call
-LevelConfig JSON
-      ↓ persisted to Supabase (learning_sessions + letter_progress)
-      ↓ returned to frontend
-RewardScreen displays result
-      ↓
-setLevelConfig → GameScreen uses new config next session
+LevelConfig → stored on the session row and used for the next session
 ```

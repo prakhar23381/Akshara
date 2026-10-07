@@ -1,363 +1,371 @@
 # Akshara-Flow — System Architecture
 
-## High-Level Architecture
+*Rewritten 2026-10-07 against the code. The previous version described the
+pre-refactor system: nine activity routes, an in-memory session tracker, a
+server-rendered parent report and a backend that wrote to the database. All four
+are gone. Where this document and the code disagree, the code is right.*
+
+## The one-paragraph version
+
+Akshara-Flow is a **client-owned** application. A child plays one letter through
+a sequence of activities at a single URL; the browser owns the session, writes it
+to `localStorage` at every step, and mirrors it to Supabase on a best-effort
+basis. The adaptive engine and the parent report both run on the device. The
+Flask backend is one stateless endpoint that personalises distractors with an
+LLM — useful, never required. Pull the plug on the server, the key and the
+network, and the app still teaches and still reports.
+
+## High-level architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         CLIENT (Browser / PWA)                       │
-│                                                                       │
-│   React 18 + TypeScript + Vite                                       │
-│                                                                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
-│  │  AuthContext  │  │LevelConfig   │  │  ProfileSetupContext      │  │
-│  │  (Supabase   │  │  Provider    │  │  (onboarding state)       │  │
-│  │   OAuth)     │  │  (session +  │  │                           │  │
-│  │              │  │  letter      │  │                           │  │
-│  │              │  │  progression)│  │                           │  │
-│  └──────────────┘  └──────────────┘  └──────────────────────────┘  │
-│                                                                       │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │                    React Router v7 (15 routes)                  │  │
-│  │  /  /welcome  /user-type  /profile/*  /resume                  │  │
-│  │  /animation  /pronunciation  /example-words                    │  │
-│  │  /game  /tracing  /reward  /progress  /transition              │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-│                                                                       │
-│  ┌─────────────────────┐       ┌─────────────────────────────────┐  │
-│  │  useSessionTracker  │       │  Supabase Client (direct DB)    │  │
-│  │  (in-memory attempt │       │  - user_profiles                │  │
-│  │   recording)        │       │  - letter_progress              │  │
-│  │                     │       │  (client reads these directly)  │  │
-│  └─────────────────────┘       └─────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────┬──────────┘
-                                                            │ HTTP
-                                                            │ (Bearer JWT)
-┌───────────────────────────────────────────────────────────▼──────────┐
-│                      BACKEND (Flask / Python)                         │
-│                           port 5050                                   │
-│                                                                       │
-│  ┌────────────────────────────┐  ┌──────────────────────────────┐   │
-│  │  POST /analyze_session     │  │  GET /progress_report        │   │
-│  │  (analyze.py blueprint)    │  │  (progress.py blueprint)     │   │
-│  └────────────┬───────────────┘  └──────────────┬───────────────┘   │
-│               │                                  │                    │
-│  ┌────────────▼───────────┐    ┌────────────────▼──────────────┐    │
-│  │   DiagnosisAgent       │    │  _build_letter_stats()         │    │
-│  │   (rule-based,         │    │  (aggregates per-letter        │    │
-│  │    deterministic)      │    │   error trends, confusion)     │    │
-│  └────────────┬───────────┘    └────────────────┬──────────────┘    │
-│               │                                  │                    │
-│  ┌────────────▼───────────┐    ┌────────────────▼──────────────┐    │
-│  │   LevelGeneratorAgent  │    │  Progress LLM prompt           │    │
-│  │   (LLM-powered,        │    │  (parent-facing insights)      │    │
-│  │    personalised)       │    │                                │    │
-│  └────────────┬───────────┘    └────────────────┬──────────────┘    │
-│               │                                  │                    │
-│  ┌────────────▼──────────────────────────────────▼──────────────┐    │
-│  │                    LLMProviderRouter                          │    │
-│  │  1. VertexAI (gemini-2.0-flash, enterprise, GCP)             │    │
-│  │  2. GeminiAPI (gemini-3.1-flash-lite-preview, free tier)     │    │
-│  │  3. GeminiAPI (gemini-2.5-flash-lite, fallback)              │    │
-│  │  4. GeminiAPI (gemini-2.0-flash, last resort)                │    │
-│  │  5. Hard-coded fallback (never crashes)                      │    │
-│  └───────────────────────────────────────────────────────────────┘    │
-│                                                                       │
-│  ┌───────────────────────────────────────────────────────────────┐    │
-│  │                       db.py helpers                           │    │
-│  │  verify_jwt | load_user_history | get_latest_cognitive_state  │    │
-│  │  load_all_sessions | load_letter_progress | save_session      │    │
-│  └───────────────────────────────┬───────────────────────────────┘    │
-└───────────────────────────────────┼───────────────────────────────────┘
-                                    │ Supabase REST (PostgREST)
-                                    │ (user JWT → RLS enforced)
-┌───────────────────────────────────▼───────────────────────────────────┐
-│                        Supabase (PostgreSQL)                           │
-│                                                                        │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────────┐   │
-│  │  user_profiles   │  │ learning_sessions │  │  letter_progress  │   │
-│  │  - id (PK→auth)  │  │  - user_id (FK→  │  │  - user_id (FK→   │   │
-│  │  - display_name  │  │    user_profiles) │  │    user_profiles) │   │
-│  │  - age           │  │  - letter         │  │  - letter         │   │
-│  │  - avatar        │  │  - session_number │  │  - letter_index   │   │
-│  │  - profile_      │  │  - cognitive_     │  │  - mastered       │   │
-│  │    complete      │  │    state          │  │  - sessions_count │   │
-│  └──────────────────┘  │  - distractor_    │  │  - last_cognitive │   │
-│                         │    pool           │  │    _state         │   │
-│  RLS: auth.uid() = id  │  - scaffold_      │  │  - last_avg_      │   │
-│                         │    intensity      │  │    latency_ms     │   │
-│                         │  - error_rate_pct │  └───────────────────┘   │
-│                         │  - avg_latency_ms │                          │
-│                         │  - confused_pairs │  RLS: auth.uid() =       │
-│                         │  - provider_used  │       user_id            │
-│                         └──────────────────┘                          │
-│                                                                        │
-│  FK chain: user_profiles.id ← learning_sessions.user_id               │
-│            user_profiles.id ← letter_progress.user_id                 │
-│  (Cascade delete: deleting user_profiles row removes both)            │
-└────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          CLIENT (browser)                                │
+│                    React 18 · TypeScript · Vite 6                        │
+│                                                                           │
+│  Provider tree (outermost first)                                         │
+│  AuthProvider → ProfileSetupProvider → SessionProvider                   │
+│                 → LevelConfigProvider → RouterProvider                   │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────┐ │
+│  │  react-router 7 — onboarding · /roadmap · /play · /report           │ │
+│  │  ONE activity URL: /play. The step is derived from the session.      │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                           │
+│  ┌──────────────────────┐   ┌────────────────────────────────────────┐   │
+│  │  SessionContext      │   │  lib/adaptiveEngine.ts                 │   │
+│  │  startSession        │   │  diagnose() · carryForward()           │   │
+│  │  beginActivity       │   │  analyzeLocally() — the full engine,   │   │
+│  │  completeActivity    │   │  on the device, mirroring the backend  │   │
+│  │  recordAttempt       │   └────────────────────────────────────────┘   │
+│  │  endSession          │   ┌────────────────────────────────────────┐   │
+│  │  abandonSession      │   │  api/client.ts                         │   │
+│  └──────────┬───────────┘   │  analyzeSession() → backend or local   │   │
+│             │                │  buildProgressReport() — on-device     │   │
+│  ┌──────────▼───────────┐   └────────────────────┬───────────────────┘   │
+│  │  lib/sessionStore.ts │                        │                        │
+│  │  localStorage is the │   ┌────────────────────▼───────────────────┐   │
+│  │  SOURCE OF TRUTH     │──▶│  Supabase JS client                    │   │
+│  │  write-through at    │   │  best-effort mirror of learning_sessions│   │
+│  │  every activity      │   │  + user_profiles / letter_progress     │   │
+│  └──────────────────────┘   └────────────────────┬───────────────────┘   │
+└───────────────────────────────┬───────────────────┼───────────────────────┘
+                 HTTP, optional │                   │ PostgREST, RLS enforced
+┌───────────────────────────────▼──────────┐        │
+│        BACKEND (Flask, port 5050)        │        │
+│                STATELESS                 │        │
+│                                          │        │
+│  POST /analyze_session   GET /health     │        │
+│  (analyze.py)                            │        │
+│       │                                  │        │
+│  ┌────▼─────────────┐                    │        │
+│  │ DiagnosisAgent   │ deterministic,     │        │
+│  │                  │ no LLM, no I/O     │        │
+│  └────┬─────────────┘                    │        │
+│  ┌────▼─────────────┐                    │        │
+│  │ LevelGenerator   │ LLM: personalised  │        │
+│  │ Agent            │ distractors        │        │
+│  └────┬─────────────┘                    │        │
+│  ┌────▼─────────────────────────────────┐│        │
+│  │ LLMProviderRouter — priority chain   ││        │
+│  │ with a hard-coded final fallback     ││        │
+│  └──────────────────────────────────────┘│        │
+│                                          │        │
+│  NOT registered: GET /progress_report    │        │
+│  (progress.py), and db.py with it        │        │
+└──────────────────────────────────────────┘        │
+┌───────────────────────────────────────────────────▼───────────────────────┐
+│                         Supabase (PostgreSQL)                              │
+│   user_profiles      learning_sessions         letter_progress             │
+│   RLS on all three: auth.uid() = id / user_id                              │
+│   FK cascade: deleting a user_profiles row removes the other two           │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Frontend Architecture
+## Frontend architecture
 
-### Context Layer
-Three React Contexts manage global state, wrapped from outermost to innermost:
+### Routes
+
+There are 15 route entries, but only **one activity URL**.
+
+| Path | Screen |
+|---|---|
+| `/` | `HomeRedirect` |
+| `/welcome` `/user-type` `/profile/name` `/profile/age` `/profile/avatar` `/assessment` | onboarding |
+| `/resume` `/roadmap` | home |
+| **`/play`** | **`PlayScreen` — the entire activity sequence for one letter** |
+| `/my-progress` | `ChildProgressScreen` — effort and letters earned, never an error rate |
+| `/report` | `ReportScreen` — the adult/clinical view, behind the parent math gate |
+| `/progress` `/parent-dashboard` | redirect → `/report` |
+| `*` | redirect → `/roadmap` |
+
+`/animation`, `/pronunciation`, `/example-words`, `/tracing`, `/memory`, `/game`,
+`/word-fill`, `/word-spelling` and `/reward` **no longer exist**. Each had
+hardcoded the next with a `navigate()` call while the state that made them
+coherent lived in unpersisted React context, so a refresh mid-letter reset the
+child to a different letter than the roadmap showed.
+
+### The step machine
+
+`PlayScreen` renders one step at a time. It does not know the order; it asks the
+session.
+
+```
+buildStepOrder(levelConfig)        types/session.ts
+  intro → pronunciation → example_words
+        → [tracing, only if levelConfig.input_mode === "trace"]
+        → memory → identify → word_fill → word_spelling
+
+nextStep(session) = the first step in that order with no completed_at
+```
+
+Two consequences worth stating plainly:
+
+- **Refresh resumes.** The current step is a function of recorded state, not of
+  which component happens to be mounted.
+- **Tracing is conditional.** `STATE_RULES` sets `input_mode: "trace"` only for
+  `gross_shape_blindness` and `insufficient_data`, where motor tracing is the
+  intervention. A child already discriminating fine features is not sent back to it.
+
+Every step receives the same props (`StepProps`: `letter`, `levelConfig`,
+`onComplete`) and reports an outcome. No step knows what follows it.
+
+### Context layer
 
 ```
 App
-└── AuthProvider           — Supabase session, user object, login/logout
-    └── ProfileSetupProvider — Temporary onboarding state (name/age/avatar)
-        └── LevelConfigProvider — Current letter, session number, level config
-            └── RouterProvider — All screen components
+└── AuthProvider            Supabase session, user, login/logout
+    └── ProfileSetupProvider  ephemeral onboarding state (name/age/avatar)
+        └── SessionProvider     the live LearningSession
+            └── LevelConfigProvider  current letter + config
+                └── RouterProvider
 ```
 
-**Why three separate contexts instead of one?**
-- `AuthContext` has lifecycle (auth state changes, token refresh) independent of everything else
-- `ProfileSetupContext` is ephemeral — only needed during onboarding, discarded afterward
-- `LevelConfigProvider` is the most frequently updated — isolating it prevents auth-state changes from re-rendering every screen
+`SessionProvider` is the one that replaced `useSessionTracker`. Its API is
+deliberately activity-shaped rather than screen-shaped:
 
-### Hook Architecture
+| Method | Does |
+|---|---|
+| `startSession({userId, letter, sessionNumber, levelConfig})` | Mints the `session_id` **at the start** and snapshots the config that drove the session |
+| `beginActivity(type)` / `completeActivity(type, outcome?)` | Opens and closes one activity, with its outcome |
+| `recordAttempt(type, attempt)` | One question attempt, recorded live |
+| `endSession()` | Computes metrics, diagnoses, returns `{letterMastered, nextConfig}` |
+| `abandonSession()` | Marks `abandoned` — drop-off is data, not an error |
 
-**`useSessionTracker`**
-This is the most critical hook. It is the bridge between individual question answers (GameScreen) and the backend analysis pipeline.
+### Persistence: localStorage is the source of truth
 
-```
-GameScreen
-  ├── recordAttempt() → stores in-memory QuestionAttempt
-  ├── recordGuidedWin() → stores guided win attempt
-  ├── markAudioEnd() → timestamps audio completion
-  └── getConsecutiveFails() → tracks fail streak
+`lib/sessionStore.ts` owns two keys:
 
-RewardScreen
-  └── endLevel() → serialises all attempts → POST /analyze_session → returns LevelConfig
-```
+| Key | Holds |
+|---|---|
+| `akshara_db_learning_sessions` | every session row |
+| `akshara_active_session_id` | pointer to the session in progress |
 
-The hook key pattern `${userId}::${targetAlphabet}::${sessionNumber}` ensures that each distinct session has its own tracker state, preventing cross-contamination when letters advance.
+It writes through on every activity, then mirrors the row to
+`supabase.from("learning_sessions").upsert(...)`. The mirror is **best effort and
+never blocking**: a failed network call cannot lose a session in progress.
 
-### State Flow: Session Lifecycle
+`sweepStaleSessions()` runs on boot. A session left `in_progress` for more than
+`STALE_SESSION_HOURS` (6) is marked `abandoned` and the active pointer cleared;
+anything newer resumes.
 
-```
-ResumeScreen
-  └── handleContinue()
-        POST /analyze_session (attempts: [], initialisation call)
-        → receives LevelConfig for current cognitive state
-        → navigate('/animation')
+### The session object
 
-AnimationScreen (3s) → PronunciationScreen → ExampleWordsScreen
-        → (input_mode === 'trace') ? '/tracing' : '/game'
+`LearningSession` (`types/session.ts`, `schema_version: 2`) holds
+`session_id`, `user_id`, `letter`, `session_number`, `status`
+(`in_progress | completed | abandoned`), `started_at`, `ended_at`, the
+`level_config` snapshot, an `activities[]` array, computed `metrics`, and the
+diagnosed `cognitive_state` with its `reasoning`.
 
-GameScreen
-  ├── useMemo: shuffle correct + 3 distractors from distractor_pool
-  ├── useEffect: hesitation timers (stage1, stage2, stage3)
-  ├── handleOptionClick: recordAttempt / recordGuidedWin
-  └── correct answer → navigate('/reward')
+Activities are typed by what they produce, which is what makes the report
+auditable:
 
-RewardScreen
-  └── useEffect (once, apiCalled guard)
-        tracker.endLevel()
-          → POST /analyze_session (real attempts)
-          → returns LevelConfig + letter_mastered
-        save to learning_sessions (Supabase direct)
-        upsert to letter_progress (Supabase direct)
-        → set nextConfigReady = true
-        → show mastery choice or practice button
-```
+| Activity kind | Outcome recorded |
+|---|---|
+| passive (`intro`, `pronunciation`, `example_words`) | `{ kind: "viewed", dwell_ms }` — so "seen" is distinguishable from "skipped" |
+| `tracing` | `{ score, passed, tries, model }` |
+| `memory` | `{ moves, pairs, duration_ms }` |
+| assessed (`identify`, `word_fill`, `word_spelling`) | `{ attempts: QuestionAttempt[] }` |
+
+Only `ASSESSED_ACTIVITIES` feed the diagnosis.
+
+### The adaptive engine runs on the device
+
+`lib/adaptiveEngine.ts` is a full TypeScript implementation of the diagnosis and
+carry-forward logic, mirroring the Python agents: `diagnose()`,
+`carryForward()`, `analyzeLocally()`, `DISTRACTOR_POOLS`, `FEATURE_BY_LETTER`,
+`NEW_LETTER_STATE_CAP`.
+
+`api/client.ts → analyzeSession()` attaches `prior_cognitive_state` itself — so
+no call site can forget it — then tries the backend and falls back to
+`analyzeLocally()`. `tests/engine.test.ts` pins the two implementations together:
+its 6 diagnosis cases mirror `backend/tests/test_pipeline.py`, and carry-forward
+is verified identical on both sides for all 5 prior states.
+
+### The report is built on the device
+
+`buildProgressReport()` in `api/client.ts` assembles the parent report from
+stored sessions; `ReportScreen` renders it. This is a deliberate reversal of the
+original design, for two reasons: the report is the artifact a specialist reads,
+so every figure must be traceable to a recorded attempt — generated prose cannot
+carry that guarantee — and a server-side report needs a server, a database and an
+API key to be reachable at all, while the hosted app has none of the three.
 
 ---
 
-## Backend Architecture
+## Backend architecture
 
-### Agent Pattern
+The backend is **one stateless endpoint plus a health check**. It reads no
+database and writes none.
 
-The backend uses a two-agent pipeline. The agents are independent classes with clear single responsibilities:
+```python
+app.register_blueprint(analyze_bp)   # POST /analyze_session
+@app.route("/health")
+```
+
+### Why it is stateless
+
+The client calls `/analyze_session` twice per letter — once to initialise with
+zero attempts, once at the end — and each call used to run an INSERT. One sitting
+therefore produced two server rows without a `session_id`, on top of the row the
+client wrote itself: three rows for one session. `save_session` was deleted and
+the client made the single writer. `prior_cognitive_state` now arrives in the
+request body, which was the only thing the endpoint needed a query for.
+
+### The agent pipeline
 
 ```
 SessionPayload
       ↓
-┌─────────────────────┐
-│  DiagnosisAgent     │  ← Pure function: data in, CognitiveState out
-│  (diagnosis_agent.py)│  ← No LLM, no I/O, fully deterministic
-└──────────┬──────────┘
-           │ (state, reasoning)
-           ↓
-┌─────────────────────┐
-│  LevelGeneratorAgent│  ← LLM call: personalises distractor pool,
-│  (level_generator.py)│    feature_to_highlight, scaffold intensity
-└──────────┬──────────┘
-           │ LevelConfig
-           ↓
-        Response
+DiagnosisAgent        pure function, no LLM, no I/O, fully deterministic
+      ↓ (state, reasoning)
+LevelGeneratorAgent   LLM: personalised distractor pool, feature to highlight,
+      ↓                scaffold intensity
+LevelConfig  →  response
 ```
 
-### LLM Abstraction (llm_provider.py)
+**Diagnosis is never done by an LLM.** It is deterministic rule-based
+classification, and that is non-negotiable for reliability.
 
-The `LLMProviderRouter` implements a **priority chain with graceful degradation**:
+### LLM abstraction
+
+`LLMProviderRouter` is a priority chain with graceful degradation:
 
 ```
-Try: VertexAIProvider (GCP enterprise, no rate limits)
-  Fail? Try: GeminiAPIProvider("gemini-3.1-flash-lite-preview")
-    Fail? Try: GeminiAPIProvider("gemini-2.5-flash-lite")
-      Fail? Try: GeminiAPIProvider("gemini-2.0-flash")
-        Fail? → Hard-coded fallback (never raises exception)
+VertexAI (gemini-2.0-flash, GCP, no rate limits)
+  ↓ fail
+GeminiAPI gemini-3.1-flash-lite-preview
+  ↓ fail
+GeminiAPI gemini-2.5-flash-lite
+  ↓ fail
+GeminiAPI gemini-2.0-flash
+  ↓ fail
+hard-coded FALLBACK_DISTRACTORS — never raises
 ```
 
-Both providers use `temperature=0.2` and `response_mime_type="application/json"` to force structured, consistent output. Low temperature is critical here because the output (distractor pool, feature key) must be precisely valid, not creative.
+Both providers use `temperature=0.2` and
+`response_mime_type="application/json"`. Low temperature matters because the
+output must be precisely valid, not creative.
 
-### Route Blueprints
+### Retired, still on disk
 
-Both routes are registered as Flask Blueprints:
+`IP/routes/progress.py` (`GET /progress_report`) is not registered, and `db.py`
+is imported only by it — so both are unreachable from a running server, along
+with `verify_jwt`, `load_user_history`, `get_latest_cognitive_state`,
+`load_all_sessions` and `load_letter_progress`. Both files carry docstrings
+explaining the retirement. Treat them as reference, not as live code.
 
-```python
-app.register_blueprint(analyze_bp)   # POST /analyze_session
-app.register_blueprint(progress_bp)  # GET /progress_report
-```
-
-CORS headers are applied globally via `@app.after_request`, allowing any origin. In production this would be restricted to the specific frontend domain.
-
-### Database Access Pattern (db.py)
-
-Two client types are used:
-
-1. **`_get_base()`** — Anon client used only for `verify_jwt()`. Uses the public anon key.
-2. **`_authed(user_jwt)`** — Per-request client with `postgrest.auth(user_jwt)`. This makes PostgreSQL's `auth.uid()` resolve to the correct user, so Supabase RLS policies enforce data isolation automatically.
-
-Every DB query that reads or writes user data uses `_authed()`. This means even if the backend has a bug and tries to read another user's data, Supabase's RLS policy will return an empty result.
+CORS is applied globally via `@app.after_request` with `Allow-Origin: *`. In
+production this should be narrowed to the frontend domain.
 
 ---
 
-## Data Model
+## Data model
 
-### `user_profiles`
-One row per authenticated user. Stores onboarding data separately from Supabase auth metadata because Google OAuth re-login can overwrite `raw_user_meta_data`.
+The tables are defined in `backend/migrations/000_init.sql` (applied) and
+extended by `001_session_model.sql` (**not applied**). See
+`backend/migrations/README.md` for applied state and
+`docs/06_DATABASE_SCHEMA.md` for the full column list.
 
-```sql
-CREATE TABLE user_profiles (
-  id               UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  display_name     TEXT,
-  age              INT,
-  avatar           TEXT,
-  profile_complete BOOLEAN DEFAULT FALSE,
-  created_at       TIMESTAMPTZ DEFAULT NOW(),
-  updated_at       TIMESTAMPTZ DEFAULT NOW()
-);
-```
+- **`user_profiles`** — one row per authenticated user. Onboarding data is kept
+  here rather than in Supabase auth metadata, because a Google OAuth re-login can
+  overwrite `raw_user_meta_data`.
+- **`learning_sessions`** — one row per session. `000_init.sql` gives it the
+  aggregate columns (`cognitive_state`, `distractor_pool`, `error_rate_pct`,
+  `avg_latency_ms`, `confused_pairs`, …); `001` adds the session model proper
+  (`session_id`, `status`, `started_at`, `ended_at`, `duration_ms`, `activities`,
+  `metrics`, `level_config`, `schema_version`).
+- **`letter_progress`** — one row per (user, letter), `UNIQUE(user_id, letter)`
+  so it can be upserted. Drives `ResumeScreen`.
 
-### `learning_sessions`
-One row per completed learning session. This is the primary data source for AI personalisation — the `LevelGeneratorAgent` reads the last 5 sessions per letter before generating a new config.
-
-```sql
-CREATE TABLE learning_sessions (
-  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id             UUID REFERENCES user_profiles(id) ON DELETE CASCADE NOT NULL,
-  letter              TEXT NOT NULL,
-  session_number      INT  NOT NULL DEFAULT 1,
-  cognitive_state     TEXT NOT NULL,
-  distractor_pool     TEXT[] NOT NULL DEFAULT '{}',
-  scaffold_intensity  FLOAT NOT NULL DEFAULT 0.5,
-  error_rate_pct      FLOAT NOT NULL DEFAULT 0.0,
-  avg_latency_ms      FLOAT NOT NULL DEFAULT 0.0,
-  confused_pairs      JSONB NOT NULL DEFAULT '[]',
-  provider_used       TEXT  DEFAULT 'fallback',
-  created_at          TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-### `letter_progress`
-One row per (user, letter). Used by the ResumeScreen to restore the child's last-known position. The `UNIQUE(user_id, letter)` constraint allows upsert-based updates.
-
-```sql
-CREATE TABLE letter_progress (
-  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id                 UUID REFERENCES user_profiles(id) ON DELETE CASCADE NOT NULL,
-  letter                  TEXT  NOT NULL,
-  letter_index            INT   NOT NULL,
-  mastered                BOOLEAN DEFAULT FALSE,
-  sessions_count          INT   DEFAULT 0,
-  last_cognitive_state    TEXT  DEFAULT 'insufficient_data',
-  last_scaffold_intensity FLOAT DEFAULT 0.55,
-  last_avg_latency_ms     FLOAT DEFAULT 6000,
-  updated_at              TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, letter)
-);
-```
+> **Live gap.** Until `001` is applied, `session_id` does not exist in the
+> database. The client mints one regardless, so the mirror cannot store it and
+> sessions live in `localStorage` only. This is the project's one open blocker.
 
 ---
 
-## Security Model
+## Security model
 
-### Row Level Security (RLS)
-Every table has RLS enabled. Policies ensure users can only access their own data:
-
-```sql
--- user_profiles
-CREATE POLICY "users_own_profile" ON user_profiles
-  FOR ALL USING (auth.uid() = id);
-
--- learning_sessions
-CREATE POLICY "users_own_sessions" ON learning_sessions
-  FOR ALL USING (auth.uid() = user_id);
-
--- letter_progress
-CREATE POLICY "users_own_progress" ON letter_progress
-  FOR ALL USING (auth.uid() = user_id);
-```
-
-### Backend JWT Verification
-The Flask backend verifies every JWT via Supabase's `auth.get_user(token)` before performing any database operations. If verification fails, all DB calls use the `verified_user_id = None` path (no persistence).
-
-### Cascade Delete
-Deleting a `user_profiles` row automatically cascades to `learning_sessions` and `letter_progress` via foreign key constraints with `ON DELETE CASCADE`. This ensures GDPR-compliant data deletion.
+- **RLS on every table**, `auth.uid() = id` / `auth.uid() = user_id`. Since the
+  client is the writer, RLS is not a backstop here — it is the enforcement.
+  Verified: an anonymous insert returns `42501` and writes nothing.
+- **Cascade delete** from `user_profiles` removes that user's sessions and letter
+  progress, which is what makes deletion requests answerable.
+- **The backend needs no JWT**, because it touches no data. Nothing it returns
+  depends on who is asking.
+- **Only `VITE_`-prefixed variables reach the browser.** Anything else in
+  `.env.local` is inert as far as the client is concerned.
 
 ---
 
-## Fallback Strategy
+## Degradation
 
-The system has three levels of fallback, ensuring the app always works even if the backend or LLM is unavailable:
+Four layers, each independent:
 
-### Level 1: LLM fallback (backend)
-If all Gemini providers fail, `LevelGeneratorAgent._hard_fallback()` returns hardcoded distractor pools from `FALLBACK_DISTRACTORS` dict, appropriate for the current cognitive state.
+| Layer | When it fires | Result |
+|---|---|---|
+| LLM fallback (backend) | every Gemini provider fails | `FALLBACK_DISTRACTORS` for the diagnosed state |
+| Local engine (client) | backend unreachable or slow | `analyzeLocally()` — the same diagnosis, on-device |
+| Offline queue | Supabase write fails | `lib/offline_sync.ts` queues and replays |
+| localStorage | no network at all | the session, the engine and the report all still work |
 
-### Level 2: API fallback (frontend)
-If the backend is unreachable, `analyzeSession()` in `client.ts` returns `makeFallbackResponse()` — a static `LevelConfig` based on the last-known target alphabet and `insufficient_data` state.
-
-### Level 3: Auth fallback
-If JWT verification fails, the backend still processes the session using the `user_id` from the request body (unauthenticated mode). The session is analysed and a level config returned, but nothing is persisted to Supabase.
-
-This means a child can continue learning even in offline/degraded mode — they just won't have their progress saved.
-
----
-
-## Environment Variables
-
-### Backend (`backend/.env`)
-```
-SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_KEY=eyJ...  (anon key)
-GEMINI_API_KEY=AIza... (from aistudio.google.com)
-GOOGLE_CLOUD_PROJECT=your-gcp-project  (optional, Vertex AI)
-GOOGLE_CLOUD_LOCATION=us-central1      (optional, Vertex AI)
-```
-
-### Frontend (`src/.env` or `.env.local`)
-```
-VITE_API_URL=http://localhost:5050  (or production backend URL)
-VITE_SUPABASE_URL=https://xxxx.supabase.co
-VITE_SUPABASE_KEY=eyJ...
-```
+A child can complete a letter, be correctly re-levelled, and have a parent read
+the report, with the backend switched off.
 
 ---
 
-## Key Architectural Invariants
+## Environment variables
 
-1. **Diagnosis is never done by LLM.** It is deterministic rule-based classification. This is non-negotiable for reliability.
+Exactly two files hold configuration, each with a template beside it.
 
-2. **LevelConfig is the single source of truth for a session.** Every screen reads from `useLevelConfig()`. Nothing is duplicated.
+| Edit | From | Read by | Names that matter |
+|---|---|---|---|
+| `.env.local` | `.env.example` | the browser | `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`, `VITE_API_URL` |
+| `backend/.env` | `backend/.env.example` | Python | `SUPABASE_URL`, `SUPABASE_KEY`, `GEMINI_API_KEY` |
 
-3. **Session tracking is entirely in-memory until `endLevel()`.** Intermediate attempts are never persisted. Only the complete session is sent to the backend.
+`vercel env pull` writes about fifteen further variables into `.env.local`
+(`SUPABASE_*`, `NEXT_PUBLIC_*`, `POSTGRES_*`). None is read by anything: Vite
+exposes only `VITE_`-prefixed variables to client code. A pull also
+**overwrites** the file and drops the `VITE_` lines, since Vercel holds none — if
+local Supabase stops working right after a pull, that is why.
 
-4. **The frontend never writes directly to `learning_sessions`.** It calls the backend, which validates and writes. However, `letter_progress` is written directly by the frontend (RewardScreen) for latency reasons — the backend also writes it for consistency.
+Credentials and the Google OAuth client: [08_AUTH_SETUP.md](08_AUTH_SETUP.md).
 
-5. **Every LLM call has a hard-coded fallback.** The app never crashes due to API unavailability.
+---
 
-6. **RLS is the last line of defence.** Even if the application code has a data-access bug, Supabase's RLS prevents cross-user data leakage.
+## Architectural invariants
+
+1. **Diagnosis is never done by an LLM.** Deterministic rule-based classification.
+2. **The client is the single writer of session rows.** The backend writes nothing.
+3. **localStorage is the source of truth**; Supabase is a best-effort mirror.
+4. **The session is written through at every activity**, not once at the end, so a
+   child who quits half-way still leaves a record — and drop-off is itself
+   clinically interesting data.
+5. **The step order is derived from `levelConfig`**, in one place
+   (`buildStepOrder`), never from a `navigate()` call in a screen.
+6. **Every figure in the report traces to a recorded attempt.** Nothing in it is
+   generated prose.
+7. **Every LLM call has a hard-coded fallback.** The app never crashes on API
+   unavailability.
+8. **The app works with no server, no key and no network.**

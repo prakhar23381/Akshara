@@ -1,5 +1,6 @@
 # Akshara-Flow — Dyslexia Science & Design Rationale
 
+
 ## Why This App Exists
 
 Standard Hindi learning apps present letters, ask children to memorise them, and test recognition. For typically developing children this works. For children with dyslexia it frequently fails — not because the child lacks intelligence or effort, but because dyslexia involves specific differences in how the brain processes written symbols.

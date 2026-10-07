@@ -7,10 +7,11 @@
 | [01_PROJECT_OVERVIEW.md](01_PROJECT_OVERVIEW.md) | What the app does, target users, full feature list, tech stack, design decisions, learning flow diagram |
 | [02_ARCHITECTURE.md](02_ARCHITECTURE.md) | System architecture diagrams, frontend/backend/DB layers, data flow, security model, environment variables |
 | [03_ADAPTIVE_LEARNING_ENGINE.md](03_ADAPTIVE_LEARNING_ENGINE.md) | All four cognitive states, diagnosis engine, level generator, scaffold system, hesitation detection, cross-letter carry-forward |
-| [04_BACKEND_REFERENCE.md](04_BACKEND_REFERENCE.md) | Every Python file explained: app.py, db.py, all agents, all routes — function signatures, constants, algorithms |
-| [05_FRONTEND_REFERENCE.md](05_FRONTEND_REFERENCE.md) | Every React file explained: contexts, hooks, all 15 screens, all components — state, props, key logic |
+| [04_BACKEND_REFERENCE.md](04_BACKEND_REFERENCE.md) | Every Python file explained: app.py, the agents, `/analyze_session` — signatures, constants, algorithms. Marks the retired `db.py` and `/progress_report` |
+| [05_FRONTEND_REFERENCE.md](05_FRONTEND_REFERENCE.md) | Every React file explained: contexts, hooks, the `/play` step machine, all 12 screens, all 11 components |
 | [06_DATABASE_SCHEMA.md](06_DATABASE_SCHEMA.md) | Full table definitions, RLS policies, foreign keys, cascade delete, migration SQL, Supabase setup |
 | [07_DYSLEXIA_SCIENCE.md](07_DYSLEXIA_SCIENCE.md) | Research backing for every design decision: why each adaptation specifically helps children with dyslexia |
+| [archive/](archive/) | Superseded planning documents, kept for their reasoning |
 | [08_AUTH_SETUP.md](08_AUTH_SETUP.md) | Owning the credentials: creating the Google Cloud OAuth client, enabling the Supabase provider, the two redirect allowlists, which env vars the frontend can actually read |
 
 ## Quick Reference
@@ -26,9 +27,9 @@ npm run dev
 
 # Backend — optional, only if you want Gemini-personalised distractors.
 cd backend
-pip install -r requirements.txt
+python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 cp .env.example .env           # SUPABASE_URL, SUPABASE_KEY, GEMINI_API_KEY
-python app.py
+./.venv/bin/python app.py
 ```
 
 Exactly two files hold configuration, and each has a template beside it:
@@ -48,11 +49,17 @@ Credentials, allowlists and the Google OAuth client: [08_AUTH_SETUP.md](08_AUTH_
 
 ### API Endpoints
 
+A running server exposes exactly two endpoints. The backend is stateless: it
+reads no database and writes none.
+
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | GET | `/health` | None | Backend health check |
-| POST | `/analyze_session` | Optional JWT | Analyse session, return next level config |
-| GET | `/progress_report` | Required JWT | AI-generated progress report |
+| POST | `/analyze_session` | None needed | Analyse a session payload, return the next level config |
+
+`GET /progress_report` is **retired and not registered**. The parent report is
+built on the device by `src/app/api/client.ts → buildProgressReport()`, so every
+figure traces to a recorded attempt and the report works with no server.
 
 ### Cognitive State Quick Reference
 
@@ -75,4 +82,8 @@ Credentials, allowlists and the Google OAuth client: [08_AUTH_SETUP.md](08_AUTH_
 | Error thresholds | `backend/IP/agents/diagnosis_agent.py` → `ERROR_THRESHOLD_FAIL`/`MASTERY` |
 | Example words | `src/app/data/letterContent.ts` → `LETTER_CONTENT` |
 | LLM model | `backend/IP/agents/llm_provider.py` → `LLMProviderRouter` constructor |
-| DB schema | `backend/migrations/000_init.sql` |
+| DB schema | `backend/migrations/000_init.sql` (applied) |
+| Pending migration | `backend/migrations/001_session_model.sql` — **not applied**; see `backend/migrations/README.md` |
+| Activity order | `src/app/types/session.ts` → `buildStepOrder()` |
+| Session persistence | `src/app/lib/sessionStore.ts` |
+| On-device engine | `src/app/lib/adaptiveEngine.ts` |
