@@ -112,9 +112,21 @@ current state and recovery context in
 * **Not run:** V1–V4 device verification. No browser here.
 * **Not pushed:** 10 commits on local `main`.
 
-### Held for a second confirmation (rule 11)
-* Trimming `.env.local` from 18 keys to 2 — it is a live env file.
-* `rm -rf ../.venv` (231 MB, broken) — rule 11 names `rm -rf`.
+### Confirmed and completed afterwards
+* **`.env.local` trimmed** from 18 keys to the two the app reads. The 16 removed
+  were `vercel env pull` residue and included `SUPABASE_SERVICE_ROLE_KEY`,
+  `SUPABASE_SECRET_KEY`, `POSTGRES_PASSWORD` and `VERCEL_OIDC_TOKEN`. Verified
+  afterwards that the live Supabase host still inlines into `dist/` and the
+  deleted project `hlanjunsrwxslfmubpcx` appears nowhere in the bundle.
+* **`../.venv` deleted** — 231 MB of unusable virtualenv whose interpreter
+  symlink pointed at a Homebrew python3.13 that no longer exists. `backend/.venv`
+  on python3.12 replaces it.
+* **`.agents/` moved into the repo**, so the rules are versioned with the code.
+  `.claude/` stays in the parent folder because that is the session root and
+  moving it would break settings discovery — which means
+  `.claude/agents/akshara.md` is a local, unversioned file. A copy in both places
+  was rejected: that is precisely what produced the `custom_agent.md` divergence
+  this cleanup removed.
 
 ---
 

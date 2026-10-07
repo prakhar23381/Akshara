@@ -12,32 +12,9 @@
 `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` dropped
 
 Mark an item `[x]` only long enough to carry it into `STATUS_LOG.md`, then delete
-the line. P1–P6, L1–L8, C1–C5 and cleanup phases C0, C2, C3, C4, C6 are all in
-the log.
+the line. P1–P6, L1–L8, C1–C5 and cleanup phases C0–C6 are all in the log.
 
 ---
-
-## Blocked on you — two confirmations and one question
-
-- [ ] **A1 · Trim `.env.local`** from 18 keys to the 2 the app reads
-      (`VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`). The other 16 are `vercel env
-      pull` residue — `NEXT_PUBLIC_*` for a Next app this is not, `POSTGRES_*`
-      for a Prisma setup this does not use — and they include
-      `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SECRET_KEY`, `POSTGRES_PASSWORD`
-      and `VERCEL_OIDC_TOKEN`.
-      *Held: rule 11 protects live `.env` files and wants a second confirmation.
-      All of it is recoverable via `vercel env pull` or the Supabase dashboard.*
-- [ ] **A2 · Delete the broken `../.venv`** (231 MB, outside the repo). Its
-      `bin/python` points at `/opt/homebrew/opt/python@3.13/bin/python3.13`,
-      which no longer exists. Replaced by `backend/.venv` on python3.12.
-      *Held: rule 11 wants a second confirmation for `rm -rf`.*
-- [ ] **A3 · Where do you launch Claude Code from?** It decides C6.3 below.
-      `.claude/` and `.agents/` currently sit in the **parent** folder, outside
-      the repo, so a clone gets none of them and `akshara2.md` is one `rm` from
-      unrecoverable. But moving them only helps if the session root is the repo;
-      if you launch from the parent, moving breaks discovery of your settings
-      and permissions.
-- [ ] **C6.3** Move `.agents/` and `.claude/` into the repo root — gated on A3
 
 ## Decisions found during the cleanup
 
@@ -71,6 +48,9 @@ the log.
       It still opens "Nothing here is built yet", which is false for P1–P6
 
 ### Deliberately not doing
+- [-] Moving `.claude/` into the repo — the parent folder is the session root, so
+      moving it breaks settings and permission discovery. `.agents/rules/` is in
+      the repo; `.claude/agents/akshara.md` stays a local file
 - [-] Flattening the `Akshara/Akshara` nesting — costs a Vercel project change
       and every config path; buys tidiness only
 - [-] Deleting `.legacy/` — stays until V1–V4 pass on a real device
