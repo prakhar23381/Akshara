@@ -22,6 +22,33 @@ current state and recovery context in
   or row access that the anon key does not have. `backend/migrations/README.md`
   now carries the two SQL-editor queries that check them.
 
+### P7 verified against live services
+* **7.4 / 7.5 — done.** `GET /auth/v1/settings` on the live project reports
+  enabled providers `['email', 'google']` and `external.google: true`, and
+  `/auth/v1/authorize?provider=google` hands off to `accounts.google.com` with a
+  real `client_id` ending `.apps.googleusercontent.com`. A Google OAuth client
+  exists and its credentials are pasted into Supabase. The "owned by the current
+  team" half of 7.4 is not checkable by API.
+* **7.6 — not verifiable, and the obvious probe is misleading.** Every
+  `redirect_to` is accepted at the authorize step, including a deliberately
+  bogus domain. The reason: Google is always handed Supabase's *own*
+  `/auth/v1/callback` as `redirect_uri`, and the app-level `redirect_to` travels
+  in `state` to be validated when the provider calls back. Confirmed by diffing
+  the two authorize redirects — only `redirect_to` and `state` differ. Left as a
+  dashboard check, with the failure symptom recorded in TODO.
+* **7.7 — done.** `https://akshara-tau.vercel.app` serves a bundle with the live
+  Supabase host and anon key inlined, and no reference to the deleted project.
+  The vars are set in Vercel and a redeploy has happened.
+* **7.9 — key is live, ownership unknown.** `models.list` returns 200 and sees
+  `gemini-2.5-flash`. No API reveals which account issued a key, so the question
+  7.9 actually asks cannot be answered from here. The 2026-10-06 backup held the
+  same key, so it was not rotated during the Supabase repointing.
+* **Production is on the pre-cleanup build.** Its assets are byte-identical to
+  this session's baseline — `index-DaMLZmhl.js` at 712,890 B and
+  `index-BzKSVV-R.css` at 103,889 B, same Vite content hashes. So production
+  already runs the P1–P6 refactor, but not the cleanup: deploying it would cut
+  production CSS by 64%. Tracked as TODO D1.
+
 ### Corrected
 The stale "not applied" claim had spread to eight places across six files —
 `TODO.md`, `.agent_recovery_context.md`, `.agents/rules/akshara2.md`,

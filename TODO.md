@@ -57,27 +57,44 @@ the line. P1–P6, L1–L8, C1–C5 and cleanup phases C0–C6 are all in the lo
 
 ---
 
-## P7 · Google authentication  ⏸ deferred
-*Parked on request. Nothing else depends on it: the app runs guest-only on local
-device storage, and the adaptive engine and report are both on-device.*
+## P7 · Google authentication  — mostly verified done (2026-10-07)
+*7.1–7.3 and 7.8 are logged. 7.4, 7.5 and 7.7 verified live this session.*
 
 Walkthrough with values pre-filled: [docs/08_AUTH_SETUP.md](docs/08_AUTH_SETUP.md).
-7.1–7.3 are done and logged.
 
-- [ ] **7.4** New Google Cloud project + OAuth client, owned by the current team
-      *(console only — no CLI can create a web OAuth client)*
-- [ ] **7.5** Enable the Google provider in Supabase; paste Client ID + secret.
-      Blank now: provider config never transfers between projects
-- [ ] **7.6** Supabase redirect allowlist — bare origin *and* `/**`, because the
-      code passes `window.location.origin` with no trailing path
-- [ ] **7.7** Set the two `VITE_*` vars in Vercel and **redeploy**. Production
-      still has zero of them; Vite inlines at build time, so dashboard changes do
-      nothing until the next build
-- [ ] **7.9** Replace `GEMINI_API_KEY`: it still answers, but on an account the
-      team does not control. Off every critical path now, so losing it costs the
-      hosted app nothing
+- [ ] **7.6 · Confirm the redirect allowlist in the Supabase dashboard.**
+      **Not verifiable from here, by design:** `/auth/v1/authorize` hands Google
+      Supabase's *own* callback as `redirect_uri` and carries the app-level
+      `redirect_to` in `state`, which is validated when the provider calls
+      **back**. So a bogus domain is accepted at the authorize step too — the
+      probe cannot discriminate and proves nothing either way.
+      Authentication → URL Configuration must list both the bare origin **and**
+      `/**`, because the code passes `window.location.origin` with no trailing
+      path:
+      ```
+      https://akshara-tau.vercel.app
+      https://akshara-tau.vercel.app/**
+      https://akshara-tau-*.vercel.app/**
+      http://localhost:5173/**
+      ```
+      The symptom if it is wrong: sign-in completes at Google and then lands on
+      the Site URL instead of where it started.
+- [ ] **7.9 · Confirm who owns `GEMINI_API_KEY`.** The key is live —
+      `models.list` returns 200 and sees `gemini-2.5-flash`. **Ownership cannot
+      be checked by API:** no endpoint reveals which account or project issued a
+      key. What is known is that the backup taken during the 2026-10-06
+      repointing held the *same* key, so it was not rotated then. If it is still
+      on an account the team does not control, replace it. It is off every
+      critical path, so losing it costs the hosted app nothing.
 
----
+## Deploy
+
+- [ ] **D1 · Push and redeploy.** 14 commits sit on local `main`, unpushed, and
+      production is serving a build made **before** today's cleanup — verified
+      byte-identical to this session's pre-cleanup baseline
+      (`index-DaMLZmhl.js`, 712,890 B / `index-BzKSVV-R.css`, 103,889 B).
+      Shipping the cleanup would cut the production CSS from 103,889 to 37,265
+      bytes (−64%). Nothing has been pushed because it was never requested.
 
 ## Verification
 *No browser in the agent environment — these are yours to run.*
