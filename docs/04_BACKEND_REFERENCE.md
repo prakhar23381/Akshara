@@ -15,7 +15,7 @@ else is under `IP/` (the core intelligence package).
 backend/
 ├── app.py                        Flask application + blueprint registration
 ├── db.py                         Supabase helpers — RETIRED, imported only by progress.py
-├── migrations/                   000_init.sql (applied) · 001_session_model.sql (NOT applied)
+├── migrations/                   000_init.sql · 001_session_model.sql  (both applied)
 ├── smoke/live_api.py             manual smoke script; needs a running server
 ├── tests/test_pipeline.py        6 diagnosis cases — a script with main(), not a pytest suite
 ├── requirements.txt              Python dependencies

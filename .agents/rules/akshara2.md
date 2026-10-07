@@ -70,7 +70,7 @@ git add . && git commit -m "feat/fix: <descriptive-message>"
 │   │   ├── agents/      diagnosis_agent · level_generator · llm_provider · prompts
 │   │   ├── models/      session.py
 │   │   └── routes/      analyze.py (registered) · progress.py (RETIRED, not registered)
-│   ├── migrations/      000_init.sql (applied) · 001_session_model.sql (NOT applied) · README.md
+│   ├── migrations/      000_init.sql · 001_session_model.sql (both applied) · README.md
 │   ├── smoke/           live_api.py — needs a live server, deliberately outside tests/
 │   ├── tests/           test_pipeline.py — a script, not a pytest suite (see §7)
 │   ├── app.py  db.py  requirements.txt  .env  .env.example  .venv/

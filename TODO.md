@@ -73,10 +73,6 @@ Walkthrough with values pre-filled: [docs/08_AUTH_SETUP.md](docs/08_AUTH_SETUP.m
 - [ ] **7.7** Set the two `VITE_*` vars in Vercel and **redeploy**. Production
       still has zero of them; Vite inlines at build time, so dashboard changes do
       nothing until the next build
-- [ ] **7.8** Apply `backend/migrations/001_session_model.sql` — **not applied**,
-      so `session_id` does not exist and no session row can be written
-      server-side. This is the one live blocker in the project.
-      State is tracked in `backend/migrations/README.md`
 - [ ] **7.9** Replace `GEMINI_API_KEY`: it still answers, but on an account the
       team does not control. Off every critical path now, so losing it costs the
       hosted app nothing

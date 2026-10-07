@@ -283,9 +283,9 @@ production this should be narrowed to the frontend domain.
 
 ## Data model
 
-The tables are defined in `backend/migrations/000_init.sql` (applied) and
-extended by `001_session_model.sql` (**not applied**). See
-`backend/migrations/README.md` for applied state and
+The tables are defined in `backend/migrations/000_init.sql` and extended by
+`001_session_model.sql`. **Both are applied** (verified 2026-10-07). See
+`backend/migrations/README.md` for applied state and how to re-check it, and
 `docs/06_DATABASE_SCHEMA.md` for the full column list.
 
 - **`user_profiles`** — one row per authenticated user. Onboarding data is kept
@@ -299,9 +299,10 @@ extended by `001_session_model.sql` (**not applied**). See
 - **`letter_progress`** — one row per (user, letter), `UNIQUE(user_id, letter)`
   so it can be upserted. Drives `ResumeScreen`.
 
-> **Live gap.** Until `001` is applied, `session_id` does not exist in the
-> database. The client mints one regardless, so the mirror cannot store it and
-> sessions live in `localStorage` only. This is the project's one open blocker.
+> `session_id` and the rest of the session model exist in the database as of
+> 001, so the best-effort mirror can now store a full session row rather than
+> dropping its identity. `localStorage` remains the source of truth — the mirror
+> is still best effort and still never blocks.
 
 ---
 

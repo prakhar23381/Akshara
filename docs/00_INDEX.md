@@ -83,7 +83,7 @@ figure traces to a recorded attempt and the report works with no server.
 | Example words | `src/app/data/letterContent.ts` → `LETTER_CONTENT` |
 | LLM model | `backend/IP/agents/llm_provider.py` → `LLMProviderRouter` constructor |
 | DB schema | `backend/migrations/000_init.sql` (applied) |
-| Pending migration | `backend/migrations/001_session_model.sql` — **not applied**; see `backend/migrations/README.md` |
+| Session-model migration | `backend/migrations/001_session_model.sql` — applied; state tracked in `backend/migrations/README.md` |
 | Activity order | `src/app/types/session.ts` → `buildStepOrder()` |
 | Session persistence | `src/app/lib/sessionStore.ts` |
 | On-device engine | `src/app/lib/adaptiveEngine.ts` |

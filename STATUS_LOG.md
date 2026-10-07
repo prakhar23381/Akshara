@@ -4,6 +4,34 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-07  (later)
+
+### Verified
+* **Migration `001_session_model.sql` is applied.** Prakhar had already run it;
+  the project had been carrying it as "the one live blocker" since the P6 work.
+  Checked against the live project `glmouztenswmwohnoarf` with the anon key:
+  all nine columns (`session_id`, `status`, `started_at`, `ended_at`,
+  `duration_ms`, `activities`, `metrics`, `level_config`, `schema_version`)
+  return `200`, and filters on `status` and `schema_version` work.
+  A negative control confirmed the method discriminates — a fabricated column
+  returns `42703 column ... does not exist`, because PostgREST validates the
+  select list *before* RLS is evaluated, which is what makes an anon-key check
+  conclusive even though RLS returns `[]`.
+* **Not verified:** the two indexes (`idx_sessions_session_id`,
+  `idx_sessions_user_started`) and the `started_at` backfill. Both need catalog
+  or row access that the anon key does not have. `backend/migrations/README.md`
+  now carries the two SQL-editor queries that check them.
+
+### Corrected
+The stale "not applied" claim had spread to eight places across six files —
+`TODO.md`, `.agent_recovery_context.md`, `.agents/rules/akshara2.md`,
+`.claude/agents/akshara.md`, `backend/migrations/README.md`, `docs/00_INDEX.md`,
+`docs/02_ARCHITECTURE.md` and `docs/04_BACKEND_REFERENCE.md`. All corrected, and
+the README now documents how to re-verify rather than just asserting a state.
+The project has **no open blocker**; what remains of P7 is console work.
+
+---
+
 ## 2026-10-07
 
 ### Changes Completed
