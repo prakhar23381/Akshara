@@ -75,4 +75,4 @@ Credentials, allowlists and the Google OAuth client: [08_AUTH_SETUP.md](08_AUTH_
 | Error thresholds | `backend/IP/agents/diagnosis_agent.py` → `ERROR_THRESHOLD_FAIL`/`MASTERY` |
 | Example words | `src/app/data/letterContent.ts` → `LETTER_CONTENT` |
 | LLM model | `backend/IP/agents/llm_provider.py` → `LLMProviderRouter` constructor |
-| DB schema | `backend/supabase_schema.sql` |
+| DB schema | `backend/migrations/000_init.sql` |

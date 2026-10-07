@@ -156,7 +156,7 @@ nothing, because every policy is `auth.uid() = user_id`.
 
 In the Supabase SQL editor, in order:
 
-1. `backend/supabase_schema.sql` — tables, RLS policies, indexes
+1. `backend/migrations/000_init.sql` — tables, RLS policies, indexes
 2. `backend/migrations/001_session_model.sql` — the session columns
 
 Both are idempotent. On `glmouztenswmwohnoarf` as of 2026-10-06, step 1 has run
@@ -208,7 +208,7 @@ curl -s -X POST "$VITE_SUPABASE_URL/rest/v1/learning_sessions" \
 
 That refusal is the result you want, and nothing is written. A success would mean
 RLS is off and the table is world-writable with a key that ships in the browser
-bundle — stop and run `supabase_schema.sql` before going further.
+bundle — stop and run `migrations/000_init.sql` before going further.
 
 **Has migration 001 been applied?** Expect `[]`:
 

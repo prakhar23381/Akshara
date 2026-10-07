@@ -1,6 +1,6 @@
 -- Akshara — migration 001: the session model
 --
--- Run AFTER supabase_schema.sql, in the Supabase SQL editor.
+-- Run AFTER migrations/000_init.sql, in the Supabase SQL editor.
 -- Safe to run more than once.
 --
 -- Why this exists

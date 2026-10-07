@@ -15,7 +15,9 @@ const consonants = {
     "श": "sha", "ष": "ssha", "स": "sa", "ह": "ha"
 };
 
-const outputDir = path.join(__dirname, "public", "audio");
+// The script lives in scripts/, so public/ is one level up. Resolved from
+// __dirname rather than cwd, so it works whatever directory you run it from.
+const outputDir = path.join(__dirname, "..", "public", "audio");
 if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
 }

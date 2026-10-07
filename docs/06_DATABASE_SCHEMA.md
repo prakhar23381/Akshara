@@ -4,7 +4,7 @@
 
 Akshara-Flow uses Supabase (PostgreSQL) for all persistent storage. Three tables store user data, with Row Level Security (RLS) enforcing complete isolation between users at the database layer.
 
-The full schema is in `backend/supabase_schema.sql`.
+The full schema is in `backend/migrations/000_init.sql`.
 
 ---
 
@@ -297,7 +297,7 @@ The Supabase JS client stores the session in `localStorage`. On app reload, `sup
 ## Environment Setup (Supabase Dashboard)
 
 1. **Create project** at supabase.com
-2. **Run schema** from `backend/supabase_schema.sql` in SQL Editor
+2. **Run schema** from `backend/migrations/000_init.sql` in SQL Editor
 3. **Enable Google OAuth** in Authentication → Providers
 4. **Copy credentials:**
    - `Project URL` → `SUPABASE_URL` (backend) and `VITE_SUPABASE_URL` (frontend)
