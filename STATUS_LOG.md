@@ -35,6 +35,87 @@ current state and recovery context in
 * Backend pytest **not run**: the venv's interpreter symlink is dead and `python`
   is not on PATH. Carried as TODO C5.4/C5.6.
 
+### Structure cleanup executed (C0–C6)
+7 commits. Gates run at each phase.
+
+* **C0 · Safety point.** The 50-file P1–P6 refactor committed while typecheck was
+  clean and tests 21/21, then `.legacy/` committed separately — it was untracked,
+  and its 11 screens differ from every committed version because the L1–L8 fixes
+  were applied before the move, so git had held no copy of them.
+* **C1 · Secrets.** Deleted `.env.local.bak.20261006191017` and
+  `backend/.env.bak.20261006191025`. **Correction to the diagnosis:** they were
+  not duplicates. Same byte count, but they differ in exactly the keys repointed
+  during P7.3, and both reference the deleted Supabase project
+  `hlanjunsrwxslfmubpcx` — useless as rollback while still holding a service-role
+  key and a Postgres password. `.pytest_cache/` added to `.gitignore`, which had
+  covered `__pycache__` but not it.
+* **C2 · Dead weight.** Deleted `src/app/components/ui/` (48 files),
+  `ImageWithFallback`, `WireframeIndex`, `TransitionScreen`, `guidelines/`,
+  `ml/`, `postcss.config.mjs`, and 9 `.DS_Store` files — two of which were being
+  copied into `dist/`. `package.json`: 57 dependencies → 9, renamed off
+  `@figma/my-make-file`, and the `peerDependencies` / `peerDependenciesMeta` /
+  `pnpm.overrides` blocks dropped. `vite.config.ts`: `figmaAssetResolver` removed
+  (it resolved into a `src/assets` that does not exist) along with the `.csv`
+  entry in `assetsInclude`.
+  **Two traps caught by running the gate rather than trusting the scan:**
+  `react` and `react-dom` sat in `peerDependencies` marked *optional*, so npm
+  never installed them directly — they were arriving as transitive peers of Radix
+  and MUI, and pruning those would have broken the build; and `tw-animate-css` is
+  imported by `src/styles/tailwind.css`, which a TS-only import scan does not
+  see, so removing it failed the build immediately. The prune is therefore 50,
+  not 51.
+  Result: CSS 103,889 → 37,265 bytes (−64%, because Tailwind generates from
+  source scanning and there are 48 fewer files to scan); JS 712,890 → 714,656
+  (+0.25%). **That the JS did not drop is the point** — it confirms the dead
+  folder was already being tree-shaken, so this removed install weight and
+  confusion rather than shipped bytes. `node_modules` 427 MB → 148 MB.
+* **C3 · Documentation.** `02_ARCHITECTURE.md` and `05_FRONTEND_REFERENCE.md`
+  rewritten against the code; every path named in 05 verified to exist. Two of
+  02's stated "invariants" were the exact opposite of current behaviour — that
+  session tracking stays in memory until `endLevel()`, and that the frontend
+  never writes `learning_sessions`. `04_BACKEND_REFERENCE.md` corrected
+  (`save_session` marked DELETED with the three-rows-per-session bug that caused
+  it; `db.py` and `/progress_report` marked RETIRED; the `/analyze_session`
+  processing order replaced with what the handler does). `00_INDEX.md` endpoint
+  table and key-files table corrected. 01 and 03 swept, both flow diagrams
+  redrawn around `/play`; 07 needed no change. `docs/archive/` created, with the
+  word-level-games plan moved in from outside the repo.
+* **C4 · Bookkeeping.** Three files, three jobs, enforced in
+  `.claude/agents/akshara.md` and §10 of the rules. Deleted `custom_agent.md`
+  (a stale duplicate that diverged on the approval clause) and `task.md`.
+* **C5 · Backend.** `supabase_schema.sql` → `migrations/000_init.sql` with a
+  `README.md` recording applied state; `tests/test_live_api.py` →
+  `smoke/live_api.py`; venv rebuilt at `backend/.venv` on python3.12.
+* **C6 · Scripts and rules.** Three gTTS implementations collapsed into
+  `scripts/generate-audio.js`; moving it broke its own `__dirname` path, fixed to
+  resolve one level up. `.agents/rules/akshara2.md` rebuilt — it had duplicated
+  frontmatter, described a vanilla HTML/CSS + Express stack, and sketched a
+  `src/{components,pages,services}` layout this project has never used.
+
+### Found during the cleanup, not acted on
+* **`backend/db.py` and `IP/routes/progress.py` are a dead island** —
+  `progress.py` is unregistered and nothing else imports `db.py`. Marked RETIRED
+  in the docs; the delete/move decision is open (TODO B2).
+* **`backend/tests/test_pipeline.py` is a script, not a pytest suite.** Bare
+  `pytest` collects nothing, so the backend has no automated tests. Run directly
+  it passes 6/6 — the first verified backend result in this cleanup (TODO B3).
+* **Two pre-existing high-severity advisories:** `react-router` 7.13.0 (12
+  advisories; the `<Link>`/`useNavigate` open redirect applies to this SPA) and
+  `vite` 6.4.2 (Windows-only). Both fixes are outside the stated ranges, so they
+  were kept out of the cleanup commits (TODO B1).
+* **A fresh install floated the caret ranges**, taking `@supabase/supabase-js`
+  2.105.1 → 2.117.2. Both drifted packages were pinned back so the cleanup
+  carries no library upgrade (TODO B4).
+
+### Verification
+* `tsc --noEmit` 0 errors · frontend 21/21 · build clean · backend 6/6 as a script.
+* **Not run:** V1–V4 device verification. No browser here.
+* **Not pushed:** 10 commits on local `main`.
+
+### Held for a second confirmation (rule 11)
+* Trimming `.env.local` from 18 keys to 2 — it is a live env file.
+* `rm -rf ../.venv` (231 MB, broken) — rule 11 names `rm -rf`.
+
 ---
 
 ## 2026-10-06  (P1–P6, L1–L8, C1–C5, P7.1–7.3)
