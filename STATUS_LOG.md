@@ -1,5 +1,186 @@
 # Daily Status Log
 
+Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
+current state and recovery context in
+[.agent_recovery_context.md](.agent_recovery_context.md).
+
+## 2026-10-07
+
+### Changes Completed
+* **Full-tree structure diagnosis.** Verified against the tree, not the docs:
+  48 unimported files in `src/app/components/ui/`; 51 of 57 runtime dependencies
+  reachable only through them (12 imported nowhere at all); two `.bak` files
+  duplicating live service-role secrets; three implementations of one audio
+  script, with `package.json` pointing at the worst; an empty `ml/` tree;
+  an untouched Figma Make `guidelines/` template; a no-op `postcss.config.mjs`;
+  a `figmaAssetResolver` resolving into a non-existent `src/assets`; a broken
+  231 MB venv outside the repo; and six overlapping bookkeeping files.
+* **Bookkeeping convention established.** `TODO.md` rewritten to
+  outstanding-work-only; `.agent_recovery_context.md` rebuilt as pruned working
+  memory with an anti-hallucination facts section; this log made the permanent
+  record. `.claude/agents/akshara.md` updated to enforce the split.
+* **Cleanup plan C0–C6 approved** — safety commit, secrets, dead weight, docs,
+  bookkeeping, backend hygiene, scripts and agent config.
+
+### Issues Resolved
+* `.agent_recovery_context.md` had been actively misleading since 2026-07-05: its
+  "Current State" described edits to `GameScreen.tsx`, `TracingScreen.tsx` and
+  `RewardScreen.tsx`, three files that no longer exist at those paths. Trusting
+  it sent work at dead code. Rebuilt around facts that are easy to get wrong.
+* Established that nothing in the project reads 16 of the 18 keys in
+  `.env.local`, and that `vercel env pull` overwrites the two that matter.
+
+### Verification
+* `tsc --noEmit` — 0 errors. `node scripts/run-tests.mjs` — 21 passed, 0 failed.
+* Backend pytest **not run**: the venv's interpreter symlink is dead and `python`
+  is not on PATH. Carried as TODO C5.4/C5.6.
+
+---
+
+## 2026-10-06  (P1–P6, L1–L8, C1–C5, P7.1–7.3)
+
+Three months of work landed as one 50-file change: +1,309 / −3,736 across
+50 tracked files plus ~20 new ones. Reasoning in
+[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+
+### P1 · Layout primitives
+* `ChildScreen.tsx` — three fixed slots: fluid header, `flex-1 min-h-0` body that
+  never scrolls, one footer CTA always in the same place.
+* Tokens in `styles/fonts.css`: `--tap-min` (44px), `--control-h`, `--card-radius`.
+* `AksharaButton` rewritten — it had `px-16 py-6` (128px of horizontal padding)
+  and no `max-width`, which is why every CTA was enormous on a phone.
+* `OptionGrid.tsx` — columns derived from option count, tiles sized from the
+  available box. Replaced four separate implementations.
+* `TopBar` rewritten — it was fixed `px-8 py-6` with a 64px close button and a
+  `w-64` progress bar, none of it fluid.
+* Console overflow assertion (`lib/devOverflowCheck.ts`) so layout regressions
+  are caught mechanically, exposed as `window.__aksharaOverflow()`.
+
+### P2 · Session core
+* `types/session.ts` — `LearningSession`, `ActivityRecord`, `ActivityType`,
+  `schema_version: 2`.
+* `lib/sessionStore.ts` — write-through to `localStorage`, best-effort mirror to
+  Supabase. `contexts/SessionContext.tsx` — start/begin/complete/record/end/
+  abandon/resume.
+* `session_id` now minted at session **start**, not lazily at step 6 of 9.
+* Stale-session sweep on boot: `in_progress` older than N hours → `abandoned`.
+* Retired the module-level `Map` in `useSessionTracker`.
+
+### P3 · Navigation collapsed to one URL
+* `/play` plus a step machine; current step = first incomplete activity in
+  `STEP_ORDER`, derived from `levelConfig` rather than hardcoded `navigate()`
+  calls across nine files.
+* Refresh resilience: booting on `/play` resumes. Fixed the bug where a refresh
+  reset to म while the roadmap said क.
+* Back/close → confirm → `abandonSession()`.
+* The 9 old routes deleted; catch-all → `/roadmap`. The 9 screens plus
+  `ProgressScreen` and `ParentDashboardScreen` were **moved** to `.legacy/`, not
+  deleted — reachability was checked from `main.tsx` rather than by eye, and all
+  11 were unreferenced. Moving keeps the V1–V4 rollback path.
+
+### P4 · Capture what was being discarded
+* Tracing persists `score`, `passed`, `tries`, `model` (`handleComplete` had been
+  dropping `score`). Memory persists `moves`, `pairs`, `duration_ms`. Passive
+  steps record `dwell_ms`, so "seen" is no longer indistinguishable from
+  "skipped". All question attempts route through the session.
+
+### P5 · Reports
+* `ParentDashboardScreen` (480 lines) + `ProgressScreen` (419) merged into one
+  `/report` with Overview · Sessions · Letters segments.
+* The Sessions segment — per session: date, letter, duration, activities
+  completed, accuracy, stage, completed/abandoned, expandable to per-activity
+  detail — did not exist before.
+* Section accents from the validated categorical palette; stage keeps the status
+  palette with icon+label. Error magnitude stays single-hue by bar length, since
+  there are no validated cut-off scores.
+* "Download full report" → long-form print document. Legacy rows shown as
+  "recorded by an earlier version", not dashes.
+
+### P6 · Schema and backend
+* Migration SQL written (`migrations/001_session_model.sql`).
+* TypeScript + React types installed; `npm test` now runs `tsc --noEmit` first.
+  The codebase had never been type-checked; brought to 0 errors.
+* **Double writer removed.** It was worse than one spare row: the client calls
+  `/analyze_session` twice per letter (init with 0 attempts, then at the end) and
+  *each* call ran an INSERT, so one sitting wrote two session_id-less server rows
+  on top of the client's own. `save_session` deleted from `backend/db.py`; the
+  client is the single writer.
+* `carryForward()` in `adaptiveEngine.ts` with `NEW_LETTER_STATE_CAP` mirroring
+  the backend. `analyzeSession()` attaches `prior_cognitive_state` itself, so no
+  call site can forget it.
+* **Backend made stateless.** `/analyze_session` is a pure function of its body —
+  no reads, no writes, no JWT needed to do arithmetic. `/progress_report` is no
+  longer registered: the report is built on-device, where every figure stays
+  traceable to a recorded attempt. The running app exposes exactly
+  `/analyze_session` and `/health`.
+* `tests/engine.test.ts` — 24 checks. The 6 diagnosis cases mirror
+  `backend/tests/test_pipeline.py`; carry-forward verified identical on both
+  sides for all 5 prior states, including that a session *with* attempts ignores
+  a stale prior.
+
+### L1–L8 · Child-view layout defects
+* **L1 ResumeScreen** — three `size="small"` buttons in a `flex gap-4` with no
+  `flex-wrap`, each `px-8` → overflow. Dropped the dead "🏆 Rewards" button.
+* **L2 LetterRoadmapScreen** — six defects: a `progress={0}` bar that could never
+  move; "⚙️ Parents" at `absolute top-6 right-32` landing on the close button; a
+  stray `<Sparkles>` in the `<h1>`; a title wrapping to two lines; a
+  `justify-between` pager stranding each arrow against an opposite edge and
+  off-centring the dots; a "Not started" label wider than its 70px card.
+* **L3 PronunciationScreen** — `w-48` beside `w-64` in a non-wrapping flex =
+  448px on a 375px screen.
+* **L4 TracingScreen** — board at `min(400px, 58vmin)` ≈ 226px while the CTA was
+  enormous; three button rows against one CTA elsewhere; pointer fixed at 32px
+  ≈ 14% of the board.
+* **L5 WordFillBlankScreen** — four `w-24` tiles plus gaps exceeded 375px, so the
+  fourth wrapped alone.
+* **L6 WordSpellingScreen** — content exceeded the viewport and `overflow-hidden`
+  clipped the fourth option.
+* **L7 RewardScreen** — 33 letter circles wrapped to 6 rows in a fixed-height
+  `justify-center` box, clipped top *and* bottom. Now shows mastered +
+  in-progress + next two.
+* **L8 GameScreen nudge dot** — `FEATURE_HIGHLIGHT_POSITIONS` applied with no
+  `translate(-50%,-50%)`, so the percentage placed the dot's top-left corner, and
+  it was measured against the padded `OptionCard` rather than the glyph.
+
+### C1–C5 · Consistency sweeps
+* **C1** Header rule, written down in `TopBar.tsx`: if a child is on it and it is
+  not onboarding, it gets a `TopBar`. `ChildProgressScreen` had hand-rolled its
+  own header; it uses `TopBar` now via a new `title` slot.
+* **C2** CTA wording unified. **C3** Stage progress derived from `STEP_ORDER`
+  instead of hardcoded per screen (10/20/30/40/70/80).
+* **C4** One audio control, `components/AudioButton.tsx`. There had been six — a
+  blue pill, a bare unstyled icon, two `size={16}` icons labelled with a word's
+  *meaning*, a "🔊 Listen carefully…" caption that was not tappable at all, and a
+  `size={40}` speaker on the assessment that **played nothing**. Two were
+  outright broken and both are fixed: `IntroStep` autoplays and now has a replay
+  control, and the assessment's speaker actually plays क. `Volume2` now appears
+  in exactly one file.
+* **C5** Per-question dots made consistent in presence and position.
+
+### P7.1–7.3 · Authentication groundwork
+* `signInWithGoogle` surfaces failures. `signInWithOAuth` reports a disabled
+  provider or an unlisted redirect URL by *returning* `{ error }` rather than
+  throwing, so `LoginScreen`'s try/catch never fired and the child sat on
+  "Redirecting…" forever — exactly what a fresh Google project hits before both
+  allowlists are right.
+* A prior guest session routed `supabase.auth` to the local mock, whose
+  `signInWithOAuth` is a silent no-op, so anyone who tapped "Start Learning"
+  first could never sign in afterwards. Cleared first now.
+* `VITE_SUPABASE_URL` / `VITE_SUPABASE_KEY` repointed at the live project. They
+  had pointed at `hlanjunsrwxslfmubpcx`, deleted, using a key that project
+  issued — while a key valid for the live project sat in the same file under
+  `SUPABASE_PUBLISHABLE_KEY`. Verified: tables exist, RLS is enforced
+  (anonymous insert → `42501`, nothing written).
+
+### Outstanding after this day
+* `migrations/001_session_model.sql` unapplied — `session_id` does not exist, so
+  no session row can be written server-side.
+* P7.4–7.9 (Google Cloud console, Supabase provider, Vercel vars, Gemini key).
+* V1–V4 device verification: three viewports, full play-through, mid-session
+  refresh, mid-session quit.
+
+---
+
 ## 2026-07-07
 ### Changes Completed
 * **Aesthetic Reward Screen Redesign:**
