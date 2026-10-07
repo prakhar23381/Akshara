@@ -50,12 +50,12 @@ export function ProfileAvatarScreen() {
   }
 
   return (
-    <div className="h-screen bg-[#F7F6F2] flex flex-col items-center justify-center gap-16 overflow-hidden p-8">
-      <h1 className="text-5xl font-bold text-gray-800 tracking-wide text-center">
+    <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col items-center justify-center gap-[var(--gap-screen)] overflow-hidden p-[var(--pad-screen)]">
+      <h1 className="t-3 font-bold text-gray-800 tracking-wide text-center">
         Choose your friend
       </h1>
 
-      <div className="grid grid-cols-4 gap-8 max-w-4xl">
+      <div className="grid grid-cols-4 gap-[var(--gap-screen)] max-w-4xl">
         {avatars.map((emoji) => (
           <AvatarCircle
             key={emoji}

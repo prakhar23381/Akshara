@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useLevelConfig } from "../hooks/useLevelConfig";
+import { useSession } from "../contexts/SessionContext";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { LETTER_SEQUENCE } from "../types/levelConfig";
 import { analyzeSession } from "../api/client";
 import { TopBar } from "../components/TopBar";
-import { Lock, Trophy, Sparkles, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Lock, Trophy, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 
 interface ProgressData {
   mastered: boolean;
   last_cognitive_state: string;
+  sessions_count: number;
 }
 
 const LETTERS_PER_PAGE = 10;
@@ -22,6 +24,7 @@ export function LetterRoadmapScreen() {
   const { user } = useAuth();
   const userId = user?.id ?? "offline";
   const { setLevelConfig, jumpToLetterIndex, setLastAvgLatencyMs } = useLevelConfig();
+  const { startSession } = useSession();
 
   const [progressMap, setProgressMap] = useState<Record<string, ProgressData>>({});
   const [loading, setLoading] = useState(true);
@@ -38,7 +41,7 @@ export function LetterRoadmapScreen() {
       try {
         const { data, error } = await supabase
           .from("letter_progress")
-          .select("letter, mastered, last_cognitive_state")
+          .select("letter, mastered, last_cognitive_state, sessions_count")
           .eq("user_id", user!.id);
 
         if (error) {
@@ -49,6 +52,7 @@ export function LetterRoadmapScreen() {
             mapping[row.letter] = {
               mastered: row.mastered ?? false,
               last_cognitive_state: row.last_cognitive_state ?? "insufficient_data",
+              sessions_count: row.sessions_count ?? 0,
             };
           });
           setProgressMap(mapping);
@@ -119,18 +123,32 @@ export function LetterRoadmapScreen() {
 
     try {
       jumpToLetterIndex(index);
+
+      // Ask for the level config for this letter, then open a session that
+      // every activity in the sequence writes into. The id is minted here —
+      // before the first activity — rather than part-way through the flow.
       const response = await analyzeSession({
         user_id: userId,
         target_alphabet: letter,
-        session_id: `sess_${Date.now()}`,
+        session_id: `init_${Date.now()}`,
         session_number: 1,
         avg_latency_ms: 6000,
         consecutive_fails_peak: 0,
         attempts: [],
       });
       setLevelConfig(response.level_config);
-      setLastAvgLatencyMs(response.level_config.hesitation_trigger_stage1_ms - 8000 || 6000);
-      navigate("/animation");
+      setLastAvgLatencyMs(
+        response.level_config.hesitation_trigger_stage1_ms - 8000 || 6000,
+      );
+
+      const prior = progressMap[letter]?.sessions_count ?? 0;
+      startSession({
+        userId,
+        letter,
+        sessionNumber: prior + 1,
+        levelConfig: response.level_config,
+      });
+      navigate("/play");
     } catch (err) {
       console.error("[Roadmap] Failed to start letter journey:", err);
       setStartingLetter(null);
@@ -139,7 +157,7 @@ export function LetterRoadmapScreen() {
 
   if (loading) {
     return (
-      <div className="h-screen bg-[#F7F6F2] flex flex-col items-center justify-center gap-4">
+      <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col items-center justify-center gap-4 overflow-hidden">
         <div className="flex gap-1">
           {[0, 1, 2].map((i) => (
             <motion.div
@@ -164,43 +182,52 @@ export function LetterRoadmapScreen() {
   const activeLetters = LETTER_SEQUENCE.slice(startIndex, endIndex);
 
   return (
-    <div className="h-screen bg-[#F7F6F2] flex flex-col overflow-hidden relative">
-      <TopBar avatarEmoji={user?.user_metadata?.avatar ?? "🐻"} progress={0} onExit={() => navigate("/resume")} />
+    <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col overflow-hidden relative">
+      <TopBar
+        avatarEmoji={user?.user_metadata?.avatar ?? "🐻"}
+        progress={null}
+        onExit={() => navigate("/resume")}
+        action={
+          <button
+            onClick={() => navigate("/user-type")}
+            className="t--1 shrink-0 bg-white border-2 border-gray-300 rounded-full font-bold text-gray-600 hover:text-[#4A90E2] hover:border-[#4A90E2] transition-all px-3"
+            style={{ minHeight: "var(--tap-min)" }}
+          >
+            ⚙️ Parents
+          </button>
+        }
+      />
 
-      {/* Parent Console shortcut */}
-      <button
-        onClick={() => navigate("/user-type")}
-        className="absolute top-6 right-32 h-16 px-6 bg-white border-2 border-gray-300 rounded-full font-bold text-base text-gray-600 hover:text-[#4A90E2] hover:border-[#4A90E2] hover:shadow-md transition-all flex items-center gap-2 z-20"
-      >
-        ⚙️ Parents
-      </button>
-
-      <div className="flex-1 flex flex-col overflow-y-auto px-12 py-6 items-center gap-6">
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden items-center" style={{ gap: "var(--gap-screen)", padding: "var(--pad-screen)" }}>
         <div className="text-center max-w-2xl">
-          <h1 className="text-4xl font-extrabold text-gray-800 tracking-wide mb-1 flex items-center justify-center gap-3">
-            Devanagari Letters Roadmap <Sparkles className="text-amber-400" size={32} />
+          <h1 className="t-2 font-extrabold text-gray-800 tracking-wide">
+            My letters
           </h1>
-          <p className="text-xl text-gray-500 tracking-wide">
+          <p className="t-0 text-gray-500 tracking-wide">
             Progress on Page {currentPage + 1}: <span className="font-bold text-gray-700">{getPageAverageScore(currentPage)}%</span> average
           </p>
         </div>
 
         {/* Paginated Navigation Slider Bar */}
-        <div className="flex items-center gap-8 w-full max-w-5xl justify-between px-4">
+        {/* Centred as one group rather than justify-between across the full
+            width: at tablet size that stranded each arrow against an opposite
+            edge, a long way from the dots they act on. */}
+        <div className="shrink-0 flex items-center justify-center gap-[var(--gap-screen)]">
           <button
             onClick={handlePrevPage}
             disabled={currentPage === 0}
-            className={`p-4 rounded-full border-4 shadow-sm transition-all ${
+            style={{ width: "var(--tap-min)", height: "var(--tap-min)" }}
+            className={`shrink-0 grid place-items-center rounded-full border-4 transition-all ${
               currentPage > 0
                 ? "bg-white border-[#4A90E2] text-[#4A90E2] hover:bg-blue-50 active:scale-95"
                 : "bg-gray-100 border-gray-200 text-gray-300 cursor-not-allowed"
             }`}
           >
-            <ChevronLeft size={28} />
+            <ChevronLeft size={20} />
           </button>
 
           {/* Page Indicators */}
-          <div className="flex gap-4 items-center">
+          <div className="flex gap-2 items-center">
             {Array.from({ length: TOTAL_PAGES }).map((_, i) => {
               const pageActive = i === currentPage;
               const pageOpen = isPageUnlocked(i);
@@ -211,7 +238,8 @@ export function LetterRoadmapScreen() {
                 >
                   <div
                     onClick={() => pageOpen && setCurrentPage(i)}
-                    className={`w-12 h-12 rounded-full border-4 flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-300 ${
+                    style={{ width: "var(--tap-min)", height: "var(--tap-min)" }}
+                    className={`grid place-items-center rounded-full border-4 font-bold t--1 cursor-pointer transition-all duration-300 ${
                       pageActive
                         ? "bg-[#4A90E2] border-[#4A90E2] text-white scale-110 shadow-md ring-4 ring-blue-100"
                         : pageOpen
@@ -229,22 +257,23 @@ export function LetterRoadmapScreen() {
           <button
             onClick={handleNextPage}
             disabled={!nextUnlocked}
-            className={`p-4 rounded-full border-4 shadow-sm transition-all ${
+            style={{ width: "var(--tap-min)", height: "var(--tap-min)" }}
+            className={`shrink-0 grid place-items-center rounded-full border-4 transition-all ${
               nextUnlocked
                 ? "bg-white border-[#4A90E2] text-[#4A90E2] hover:bg-blue-50 active:scale-95"
                 : "bg-gray-100 border-gray-200 text-gray-300 cursor-not-allowed"
             }`}
           >
             {currentPage < TOTAL_PAGES - 1 && !nextUnlocked ? (
-              <Lock size={28} className="text-gray-300" />
+              <Lock size={20} className="text-gray-300" />
             ) : (
-              <ChevronRight size={28} />
+              <ChevronRight size={20} />
             )}
           </button>
         </div>
 
         {/* 10-Letter Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 max-w-5xl w-full pb-16">
+        <div className="flex-1 min-h-0 grid grid-cols-5 gap-2 sm:gap-3 md:gap-4 max-w-5xl w-full content-center overflow-hidden">
           {activeLetters.map((letter, idx) => {
             const index = startIndex + idx;
             const score = getCompletionScore(letter);
@@ -256,7 +285,7 @@ export function LetterRoadmapScreen() {
                 whileHover={pageUnlocked && !isStarting ? { scale: 1.05 } : {}}
                 whileTap={pageUnlocked && !isStarting ? { scale: 0.95 } : {}}
                 onClick={() => handleCardClick(letter, index)}
-                className={`relative rounded-3xl border-4 p-6 flex flex-col items-center justify-between gap-4 h-48 transition-all cursor-pointer ${
+                className={`relative rounded-2xl border-4 p-2 flex flex-col items-center justify-center gap-1.5 min-h-0 transition-all cursor-pointer ${
                   pageUnlocked
                     ? score === 100
                       ? "bg-emerald-50 border-emerald-300 shadow-md hover:shadow-lg"
@@ -275,7 +304,8 @@ export function LetterRoadmapScreen() {
 
                 {/* Big Devanagari Glyph */}
                 <span
-                  className={`text-6xl font-black transition-colors select-none ${
+                  style={{ fontSize: "clamp(1.5rem, 5.5vmin, 3rem)", lineHeight: 1 }}
+                  className={`letter-glyph font-black transition-colors select-none ${
                     pageUnlocked
                       ? score === 100
                         ? "text-emerald-600"
@@ -289,7 +319,7 @@ export function LetterRoadmapScreen() {
                 {/* Progress Text */}
                 <div className="text-center w-full">
                   {score === 100 ? (
-                    <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full">
+                    <span className="t--1 font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full whitespace-nowrap">
                       Mastered ✓
                     </span>
                   ) : (
@@ -300,8 +330,8 @@ export function LetterRoadmapScreen() {
                           style={{ width: `${score}%` }}
                         />
                       </div>
-                      <span className="text-xs font-semibold text-gray-500">
-                        {score === 0 ? "Not started" : `${score}% Complete`}
+                      <span className="t--1 font-semibold text-gray-500 whitespace-nowrap">
+                        {score === 0 ? "—" : `${score}%`}
                       </span>
                     </div>
                   )}

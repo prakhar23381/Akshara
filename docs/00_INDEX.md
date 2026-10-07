@@ -11,24 +11,40 @@
 | [05_FRONTEND_REFERENCE.md](05_FRONTEND_REFERENCE.md) | Every React file explained: contexts, hooks, all 15 screens, all components — state, props, key logic |
 | [06_DATABASE_SCHEMA.md](06_DATABASE_SCHEMA.md) | Full table definitions, RLS policies, foreign keys, cascade delete, migration SQL, Supabase setup |
 | [07_DYSLEXIA_SCIENCE.md](07_DYSLEXIA_SCIENCE.md) | Research backing for every design decision: why each adaptation specifically helps children with dyslexia |
+| [08_AUTH_SETUP.md](08_AUTH_SETUP.md) | Owning the credentials: creating the Google Cloud OAuth client, enabling the Supabase provider, the two redirect allowlists, which env vars the frontend can actually read |
 
 ## Quick Reference
 
 ### Running the App
 
 ```bash
-# Backend
+# Frontend — this is the whole app. Adaptation and the progress report both run
+# on-device, so it needs no server.
+npm install
+cp .env.example .env.local     # then fill in the two VITE_ values
+npm run dev
+
+# Backend — optional, only if you want Gemini-personalised distractors.
 cd backend
 pip install -r requirements.txt
-cp .env.example .env  # fill in SUPABASE_URL, SUPABASE_KEY, GEMINI_API_KEY
+cp .env.example .env           # SUPABASE_URL, SUPABASE_KEY, GEMINI_API_KEY
 python app.py
-
-# Frontend
-cd Akshara  # (root with package.json)
-npm install
-# create .env.local with VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_API_URL
-npm run dev
 ```
+
+Exactly two files hold configuration, and each has a template beside it:
+
+| Edit | From | Read by | Names that matter |
+|---|---|---|---|
+| `.env.local` | `.env.example` | the browser | `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`, `VITE_API_URL` |
+| `backend/.env` | `backend/.env.example` | Python | `SUPABASE_URL`, `SUPABASE_KEY`, `GEMINI_API_KEY` |
+
+`vercel env pull` writes about fifteen further variables into `.env.local`
+(`SUPABASE_*`, `NEXT_PUBLIC_*`, `POSTGRES_*`). None of them is read by anything:
+Vite exposes only `VITE_`-prefixed variables to client code. A pull also
+**overwrites** the file and drops the `VITE_` lines, since Vercel holds none —
+if local Supabase stops working right after a pull, that is why.
+
+Credentials, allowlists and the Google OAuth client: [08_AUTH_SETUP.md](08_AUTH_SETUP.md).
 
 ### API Endpoints
 

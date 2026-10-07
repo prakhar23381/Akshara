@@ -34,7 +34,7 @@ export function HomeRedirect() {
   if (!checking) return null;
 
   return (
-    <div className="h-screen bg-[#F7F6F2] flex items-center justify-center">
+    <div className="h-[100dvh] bg-[#F7F6F2] flex items-center justify-center overflow-hidden">
       <div className="flex gap-2">
         {[0, 1, 2].map((i) => (
           <div

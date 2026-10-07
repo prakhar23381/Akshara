@@ -3,9 +3,22 @@
   <html lang="en">
     <head>
       <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Wireframe for Akshara-Flow</title>
-      <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
+      <title>Akshara — Learn Hindi Letters</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+      <style>
+        /* The app is a fixed-viewport experience: a child should never have to
+           scroll to reach a button. 100dvh (not 100vh) tracks the visible area
+           as mobile browser chrome shows and hides, which is what cut the
+           bottom off screens on phones. */
+        html, body { height: 100dvh; margin: 0; overflow: hidden; overscroll-behavior: none; }
+        #root { height: 100dvh; overflow: hidden; }
+        @supports not (height: 100dvh) {
+          html, body, #root { height: 100vh; }
+        }
+        @media print {
+          html, body, #root { height: auto; overflow: visible; }
+        }
+      </style>
     </head>
 
     <body>

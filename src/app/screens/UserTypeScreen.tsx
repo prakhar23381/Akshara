@@ -22,7 +22,7 @@ export function UserTypeScreen() {
     e.preventDefault();
     if (parseInt(userAnswer, 10) === mathProblem.answer) {
       setShowMathGate(false);
-      navigate("/parent-dashboard");
+      navigate("/report");
     } else {
       setGateError("Oops! That's incorrect. Try again! 🧐");
       setUserAnswer("");
@@ -51,20 +51,20 @@ export function UserTypeScreen() {
         dominant ? "col-span-2" : ""
       }`}
     >
-      <div className={dominant ? "text-8xl" : "text-6xl"}>{emoji}</div>
-      <div className={`${dominant ? "text-4xl" : "text-3xl"} font-medium tracking-wide`}>
+      <div className={dominant ? "t-5" : "t-4"}>{emoji}</div>
+      <div className={`${dominant ? "t-3" : "t-2"} font-medium tracking-wide`}>
         {label}
       </div>
     </motion.button>
   );
 
   return (
-    <div className="h-screen bg-[#F7F6F2] flex flex-col items-center justify-center gap-12 overflow-hidden p-8 relative">
-      <h1 className="text-5xl font-bold text-gray-800 tracking-wide">
+    <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col items-center justify-center gap-[var(--gap-screen)] overflow-hidden p-[var(--pad-screen)] relative">
+      <h1 className="t-3 font-bold text-gray-800 tracking-wide">
         Who is using Akshara-Flow?
       </h1>
 
-      <div className="grid grid-cols-2 gap-8 max-w-4xl w-full">
+      <div className="grid grid-cols-2 gap-[var(--gap-screen)] max-w-4xl w-full">
         <UserTypeButton
           emoji="🧒"
           label="Child"
@@ -96,18 +96,18 @@ export function UserTypeScreen() {
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6 border border-gray-100"
+              className="bg-white rounded-3xl p-[var(--pad-screen)] max-w-md w-full shadow-2xl space-y-6 border border-gray-100"
             >
               <div className="text-center">
-                <span className="text-5xl">🔐</span>
-                <h2 className="text-3xl font-extrabold text-gray-800 mt-3">Adults Only!</h2>
+                <span className="t-3">🔐</span>
+                <h2 className="t-2 font-extrabold text-gray-800 mt-3">Adults Only!</h2>
                 <p className="text-gray-500 mt-2">
                   Please solve this simple arithmetic problem to verify you are a parent or teacher:
                 </p>
               </div>
 
               <form onSubmit={handleVerify} className="space-y-4">
-                <div className="text-center text-4xl font-black text-[#4A90E2] tracking-wider py-4 bg-blue-50 rounded-2xl">
+                <div className="text-center t-3 font-black text-[#4A90E2] tracking-wider py-4 bg-blue-50 rounded-2xl">
                   {mathProblem.num1} + {mathProblem.num2} = ?
                 </div>
 
@@ -117,7 +117,7 @@ export function UserTypeScreen() {
                   placeholder="Your answer"
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
-                  className="w-full text-center text-2xl font-bold p-4 bg-gray-50 border-2 border-gray-300 rounded-2xl focus:border-[#4A90E2] focus:outline-none transition-colors"
+                  className="w-full text-center t-2 font-bold p-4 bg-gray-50 border-2 border-gray-300 rounded-2xl focus:border-[#4A90E2] focus:outline-none transition-colors"
                 />
 
                 {gateError && (

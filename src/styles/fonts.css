@@ -1,7 +1,86 @@
-/* Import Lexend font for dyslexia-friendly reading */
+/* ── Latin UI face ────────────────────────────────────────────────────────────
+   Lexend is used for all interface text. It was designed to reduce visual
+   crowding and is widely used in reading-support contexts.                   */
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
 
-/* Apply globally */
-* {
-  font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+/* ── Devanagari letter face ───────────────────────────────────────────────────
+   Lexend covers only latin, latin-ext and vietnamese — it has NO Devanagari
+   glyphs. Without an explicit Devanagari face every Hindi letter fell back to
+   whatever the operating system supplied (Devanagari Sangam MN on macOS,
+   Nirmala UI on Windows, Noto on Android).
+
+   That is unacceptable here: the whole teaching premise is that a specific
+   feature distinguishes one letter from another — the knot on घ versus the open
+   arch on ध, the right-hand bar on भ versus the plain arch on म. Those exact
+   features are drawn differently by each of those fallback fonts, so the
+   feature a child learned on one device could be absent on the next.
+
+   Noto Sans Devanagari is pinned so every learner sees identical letterforms.
+   To trial a different face (Tiro Devanagari Hindi has more traditional,
+   textbook-style forms; Baloo 2 is rounder and more child-like) change the
+   import and --font-devanagari together.                                     */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-ui: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-devanagari: 'Noto Sans Devanagari', 'Nirmala UI', 'Devanagari Sangam MN', serif;
 }
+
+/* The browser resolves fonts per character, so Latin text takes Lexend and
+   Devanagari characters take Noto Sans Devanagari from the same stack. */
+* {
+  font-family: var(--font-ui), var(--font-devanagari);
+}
+
+/* Large single letters shown for identification or tracing. Kerning and
+   ligature substitution are left on — Devanagari needs them to form conjuncts
+   and to place the shirorekha correctly. */
+.letter-glyph {
+  font-family: var(--font-devanagari), var(--font-ui);
+  font-feature-settings: normal;
+  font-variant-ligatures: normal;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Fluid scale ──────────────────────────────────────────────────────────────
+   The app must fit the viewport on a 360px phone and a 1440px desktop without
+   scrolling, so type and spacing interpolate with the viewport rather than
+   stepping at breakpoints. Screens use these instead of fixed text-* sizes
+   wherever the content is at risk of overflowing.                            */
+:root {
+  --step--1: clamp(0.78rem, 0.72rem + 0.30vw, 0.92rem);
+  --step-0:  clamp(0.90rem, 0.82rem + 0.40vw, 1.08rem);
+  --step-1:  clamp(1.05rem, 0.92rem + 0.65vw, 1.40rem);
+  --step-2:  clamp(1.25rem, 1.02rem + 1.15vw, 1.95rem);
+  --step-3:  clamp(1.50rem, 1.10rem + 2.00vw, 2.75rem);
+  --step-4:  clamp(1.85rem, 1.15rem + 3.50vw, 4.00rem);
+  /* Large Devanagari display glyphs scale with the smaller viewport axis so
+     they stay inside the screen in landscape as well as portrait. */
+  --glyph-lg: clamp(2.5rem, 12vmin, 6rem);
+  --glyph-md: clamp(1.75rem, 7vmin, 3.25rem);
+  --gap-screen: clamp(0.5rem, 1.8vmin, 1.5rem);
+  --pad-screen: clamp(0.75rem, 2.5vmin, 2rem);
+
+  /* Controls. --tap-min is the WHO/WCAG-ish 44px floor for a touch target;
+     children with coordination difficulty need at least that. Everything that
+     can be tapped is sized from these rather than from fixed Tailwind widths,
+     which is what pushed buttons off the side of a 375px screen. */
+  --tap-min: 2.75rem;
+  --control-h: clamp(2.75rem, 7vmin, 3.5rem);
+  --control-px: clamp(1rem, 5vw, 3rem);
+  --control-px-sm: clamp(0.75rem, 3vw, 1.5rem);
+  --card-radius: clamp(0.75rem, 2vmin, 1.5rem);
+  /* A CTA must never span a tablet edge-to-edge, nor overflow a phone. */
+  --cta-max: min(28rem, 92vw);
+}
+
+.t--1 { font-size: var(--step--1); }
+.t-0  { font-size: var(--step-0); }
+.t-1  { font-size: var(--step-1); }
+.t-2  { font-size: var(--step-2); }
+.t-3  { font-size: var(--step-3); }
+.t-4  { font-size: var(--step-4); line-height: 1.1; }
+.glyph-lg { font-size: var(--glyph-lg); line-height: 1; }
+.glyph-md { font-size: var(--glyph-md); line-height: 1; }
+.t-5 { font-size: var(--glyph-lg); line-height: 1; }

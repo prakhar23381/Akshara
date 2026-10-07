@@ -20,3 +20,11 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+.vercel
+.env*
+
+# ── Env ───────────────────────────────────────────────────
+# `.env*` above also catches .env.example, which defeats the point of having a
+# template. Negations must come after the pattern they undo.
+!.env.example
+!backend/.env.example

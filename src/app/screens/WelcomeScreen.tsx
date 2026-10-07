@@ -6,7 +6,7 @@ export function WelcomeScreen() {
   const navigate = useNavigate();
 
   return (
-    <div className="h-screen bg-[#F7F6F2] flex flex-col items-center justify-center gap-16 overflow-hidden">
+    <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col items-center justify-center gap-[var(--gap-screen)] overflow-hidden">
       {/* Mascot / Friendly Visual */}
       <motion.div
         initial={{ scale: 0 }}
@@ -14,21 +14,21 @@ export function WelcomeScreen() {
         transition={{ duration: 0.5, type: "spring" }}
         className="relative"
       >
-        <div className="text-9xl">🌟</div>
+        <div className="t-5">🌟</div>
         <motion.div
           animate={{ y: [0, -10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="absolute -top-8 -right-8 text-6xl"
+          className="absolute -top-8 -right-8 t-4"
         >
           ✨
         </motion.div>
       </motion.div>
 
       <div className="text-center">
-        <h1 className="text-6xl font-bold text-gray-800 mb-4 tracking-wide">
+        <h1 className="t-4 font-bold text-gray-800 mb-4 tracking-wide">
           Akshara-Flow
         </h1>
-        <p className="text-3xl text-gray-600 tracking-wide">
+        <p className="t-2 text-gray-600 tracking-wide">
           Let's learn together!
         </p>
       </div>

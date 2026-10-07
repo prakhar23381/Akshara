@@ -1,15 +1,35 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { useAuth } from "../contexts/AuthContext";
+import { isSupabaseConfigured } from "../lib/supabase";
 
 export function LoginScreen() {
   const { signInWithGoogle, signInOffline } = useAuth();
   const [loading, setLoading] = useState(false);
 
+  const [authError, setAuthError] = useState<string | null>(null);
+
   async function handleGoogleLogin() {
     setLoading(true);
-    await signInWithGoogle();
-    // Page will redirect — no need to reset loading
+    setAuthError(null);
+    try {
+      const failure = await signInWithGoogle();
+      if (failure) {
+        // A returned error, not a thrown one: the provider is disabled, or this
+        // origin is not on Supabase's redirect allowlist. Either way no redirect
+        // is coming, so never leave the child on a spinner — play locally.
+        console.warn("[Auth] Google sign-in refused, falling back to local:", failure);
+        setAuthError("Sign-in is unavailable right now — continuing on this device.");
+        await signInOffline();
+        return;
+      }
+      // On success the browser navigates away, so loading stays true.
+    } catch (err) {
+      // The auth host itself was unreachable.
+      console.warn("[Auth] Google sign-in unavailable, falling back to local:", err);
+      setAuthError("Sign-in is unavailable right now — continuing on this device.");
+      await signInOffline();
+    }
   }
 
   async function handleOfflineLogin() {
@@ -18,7 +38,7 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="h-screen bg-[#F7F6F2] flex flex-col items-center justify-center gap-12 p-8">
+    <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col items-center justify-center gap-[var(--gap-screen)] p-[var(--pad-screen)] overflow-hidden">
       {/* Logo / branding */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -29,14 +49,14 @@ export function LoginScreen() {
         <motion.div
           animate={{ rotate: [0, 5, -5, 0] }}
           transition={{ duration: 3, repeat: Infinity }}
-          className="text-8xl mb-6"
+          className="t-5 mb-6"
         >
           📖
         </motion.div>
-        <h1 className="text-6xl font-bold text-gray-800 tracking-wide mb-3">
+        <h1 className="t-4 font-bold text-gray-800 tracking-wide mb-3">
           Akshara
         </h1>
-        <p className="text-2xl text-gray-500 tracking-wide">
+        <p className="t-2 text-gray-500 tracking-wide">
           Learn Hindi letters — one step at a time
         </p>
       </motion.div>
@@ -49,9 +69,12 @@ export function LoginScreen() {
         className="bg-white rounded-3xl shadow-lg px-10 py-8 flex flex-col items-center gap-6 w-full max-w-sm"
       >
         <p className="text-xl text-gray-600 text-center">
-          Sign in to save your progress
+          {isSupabaseConfigured
+            ? "Sign in to save your progress"
+            : "Progress is saved on this device"}
         </p>
 
+        {isSupabaseConfigured && (
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
@@ -78,20 +101,27 @@ export function LoginScreen() {
           </svg>
           {loading ? "Redirecting…" : "Continue with Google"}
         </button>
+        )}
 
-        <div className="w-full flex items-center justify-between gap-3 text-xs text-gray-400 uppercase tracking-widest my-1">
-          <span className="h-[1px] bg-gray-200 flex-1"></span>
-          <span>or</span>
-          <span className="h-[1px] bg-gray-200 flex-1"></span>
-        </div>
+        {isSupabaseConfigured && (
+          <div className="w-full flex items-center justify-between gap-3 text-xs text-gray-400 tracking-widest my-1">
+            <span className="h-[1px] bg-gray-200 flex-1"></span>
+            <span>or</span>
+            <span className="h-[1px] bg-gray-200 flex-1"></span>
+          </div>
+        )}
 
         <button
           onClick={handleOfflineLogin}
           disabled={loading}
           className="w-full flex items-center justify-center gap-3 bg-[#4A90E2] hover:bg-[#3b80d2] text-white rounded-2xl px-6 py-4 text-lg font-bold transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? "Opening Sandbox…" : "Play Offline (Sandbox Mode)"}
+          {loading ? "Getting ready…" : "Start Learning  →"}
         </button>
+
+        {authError && (
+          <p className="text-sm text-amber-600 text-center">{authError}</p>
+        )}
 
         <p className="text-sm text-gray-400 text-center">
           Your learning data is private and only used to personalise your lessons.

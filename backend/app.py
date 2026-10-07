@@ -30,11 +30,21 @@ if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
 
 from IP.routes.analyze import analyze_bp
-from IP.routes.progress import progress_bp
 
 app = Flask(__name__)
 app.register_blueprint(analyze_bp)
-app.register_blueprint(progress_bp)
+
+# IP.routes.progress is deliberately not registered.
+#
+# /progress_report built the parent report here: it read every session from
+# Supabase and asked an LLM for the prose. The report is now assembled on the
+# device from the sessions the client already holds, which means it works with
+# no server, no key and no network, and every figure stays traceable to a
+# recorded attempt. Registering it again would give the UI two sources of truth
+# for the same numbers.
+#
+# What is left is one stateless endpoint: POST /analyze_session, a pure function
+# of its body. The backend holds no state and touches no database.
 
 
 @app.after_request

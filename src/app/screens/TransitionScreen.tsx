@@ -15,7 +15,7 @@ export function TransitionScreen() {
   }, [navigate]);
 
   return (
-    <div className="h-screen bg-[#F7F6F2] flex flex-col items-center justify-center gap-16 overflow-hidden">
+    <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col items-center justify-center gap-[var(--gap-screen)] overflow-hidden">
       {/* Loading Animation */}
       <motion.div
         animate={{
@@ -27,13 +27,13 @@ export function TransitionScreen() {
           repeat: Infinity,
           ease: "easeInOut",
         }}
-        className="text-9xl"
+        className="t-5"
       >
         🌟
       </motion.div>
 
       <div className="text-center">
-        <h2 className="text-4xl font-bold text-gray-800 mb-4 tracking-wide">
+        <h2 className="t-3 font-bold text-gray-800 mb-4 tracking-wide">
           Getting next lesson ready...
         </h2>
         
@@ -64,7 +64,7 @@ export function TransitionScreen() {
         transition={{ delay: 0.5 }}
         className="bg-white px-8 py-6 rounded-2xl border-4 border-gray-300 max-w-2xl"
       >
-        <p className="text-2xl text-gray-700 text-center tracking-wide">
+        <p className="t-2 text-gray-700 text-center tracking-wide">
           💡 Did you know? Learning one new letter every day is better than rushing!
         </p>
       </motion.div>

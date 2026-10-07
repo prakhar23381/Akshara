@@ -4,13 +4,14 @@ import { LevelConfigProvider } from "./hooks/useLevelConfig";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LoginScreen } from "./screens/LoginScreen";
 import { ProfileSetupProvider } from "./contexts/ProfileSetupContext";
+import { SessionProvider } from "./contexts/SessionContext";
 
 function AppContent() {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="h-screen bg-[#F7F6F2] flex items-center justify-center">
+      <div className="h-[100dvh] bg-[#F7F6F2] flex items-center justify-center">
         <div className="flex gap-2">
           {[0, 1, 2].map((i) => (
             <div
@@ -31,7 +32,9 @@ function AppContent() {
   return (
     <ProfileSetupProvider>
       <LevelConfigProvider>
-        <RouterProvider router={router} />
+        <SessionProvider>
+          <RouterProvider router={router} />
+        </SessionProvider>
       </LevelConfigProvider>
     </ProfileSetupProvider>
   );

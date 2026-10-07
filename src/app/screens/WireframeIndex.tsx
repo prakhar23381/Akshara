@@ -19,13 +19,13 @@ export function WireframeIndex() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F7F6F2] p-12">
+    <div className="h-[100dvh] bg-[#F7F6F2] p-12 overflow-hidden">
       <div className="max-w-6xl mx-auto">
         <div className="mb-12">
-          <h1 className="text-6xl font-bold text-gray-800 mb-4">
+          <h1 className="t-4 font-bold text-gray-800 mb-4">
             Akshara-Flow Wireframes
           </h1>
-          <p className="text-2xl text-gray-600 mb-6 tracking-wide">
+          <p className="t-2 text-gray-600 mb-6 tracking-wide">
             Educational app for dyslexic children (ages 5-10) learning Hindi reading and writing
           </p>
           <div className="flex gap-4 text-lg text-gray-600">
@@ -46,10 +46,10 @@ export function WireframeIndex() {
             <Link
               key={screen.path}
               to={screen.path}
-              className="bg-white p-8 rounded-2xl border-2 border-gray-300 hover:border-[#4A90E2] hover:shadow-lg transition-all group"
+              className="bg-white p-[var(--pad-screen)] rounded-2xl border-2 border-gray-300 hover:border-[#4A90E2] hover:shadow-lg transition-all group"
             >
               <div className="text-sm text-gray-500 mb-2">Screen {index + 1}</div>
-              <h2 className="text-2xl font-medium text-gray-800 tracking-wide group-hover:text-[#4A90E2] transition-colors">
+              <h2 className="t-2 font-medium text-gray-800 tracking-wide group-hover:text-[#4A90E2] transition-colors">
                 {screen.name}
               </h2>
             </Link>
@@ -57,34 +57,34 @@ export function WireframeIndex() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-8 bg-white rounded-2xl border-2 border-gray-300">
-            <h3 className="text-3xl font-bold text-gray-800 mb-6">Design Principles</h3>
+          <div className="p-[var(--pad-screen)] bg-white rounded-2xl border-2 border-gray-300">
+            <h3 className="t-2 font-bold text-gray-800 mb-6">Design Principles</h3>
             <ul className="space-y-4 text-xl text-gray-700">
               <li className="flex items-start gap-3">
-                <span className="text-2xl">✓</span>
+                <span className="t-2">✓</span>
                 <span>No scrolling - everything fits in viewport</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-2xl">✓</span>
+                <span className="t-2">✓</span>
                 <span>One screen = one task</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-2xl">✓</span>
+                <span className="t-2">✓</span>
                 <span>Maximum 2 interactive elements per screen</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-2xl">✓</span>
+                <span className="t-2">✓</span>
                 <span>Large elements with clear hierarchy</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-2xl">✓</span>
+                <span className="t-2">✓</span>
                 <span>Minimal cognitive load for dyslexic learners</span>
               </li>
             </ul>
           </div>
 
-          <div className="p-8 bg-white rounded-2xl border-2 border-gray-300">
-            <h3 className="text-3xl font-bold text-gray-800 mb-6">Design System</h3>
+          <div className="p-[var(--pad-screen)] bg-white rounded-2xl border-2 border-gray-300">
+            <h3 className="t-2 font-bold text-gray-800 mb-6">Design System</h3>
             <div className="space-y-4">
               <div>
                 <p className="text-lg font-medium text-gray-700 mb-2">Colors</p>
@@ -124,8 +124,8 @@ export function WireframeIndex() {
           </div>
         </div>
 
-        <div className="mt-8 p-8 bg-[#4A90E2] text-white rounded-2xl">
-          <h3 className="text-3xl font-bold mb-4">Key Features</h3>
+        <div className="mt-8 p-[var(--pad-screen)] bg-[#4A90E2] text-white rounded-2xl">
+          <h3 className="t-2 font-bold mb-4">Key Features</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-lg">
             <div>• Multisensory learning (visual + audio + touch)</div>
             <div>• Automatic progression and hints</div>

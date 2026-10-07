@@ -1,5 +1,11 @@
 """
-Supabase client and database helpers for Akshara-Flow backend.
+Supabase client and database helpers.
+
+Used only by IP.routes.progress, which app.py no longer registers. The live
+backend -- POST /analyze_session -- is stateless and imports nothing from here.
+
+The writer that used to live in this module is gone. See save_session's absence
+explained at the foot of the file.
 """
 import os
 import logging
@@ -141,36 +147,15 @@ def load_letter_progress(user_id: str, user_jwt: str) -> list[dict]:
         return []
 
 
-def save_session(
-    user_id: str,
-    letter: str,
-    session_number: int,
-    cognitive_state: str,
-    distractor_pool: list[str],
-    scaffold_intensity: float,
-    error_rate_pct: float,
-    avg_latency_ms: float,
-    confused_pairs: list,
-    provider_used: str,
-    reasoning: str,
-    user_jwt: str,
-) -> None:
-    """Persist a completed session to Supabase."""
-    try:
-        _authed(user_jwt).from_("learning_sessions").insert({
-            "user_id":            user_id,
-            "letter":             letter,
-            "session_number":     session_number,
-            "cognitive_state":    cognitive_state,
-            "distractor_pool":    distractor_pool,
-            "scaffold_intensity": scaffold_intensity,
-            "error_rate_pct":     error_rate_pct,
-            "avg_latency_ms":     avg_latency_ms,
-            "confused_pairs":     {
-                "confused_pairs": confused_pairs,
-                "reasoning":      reasoning
-            },
-            "provider_used":      provider_used,
-        }).execute()
-    except Exception as e:
-        logger.warning(f"[DB] save_session failed: {e}")
+# save_session() was removed.
+#
+# It INSERTed a learning_sessions row at the end of /analyze_session. Because the
+# client calls that endpoint twice per letter -- once to initialise with zero
+# attempts, once at the end -- it ran twice, writing two rows with no session_id,
+# on top of the row the client writes itself. Three rows for one sitting, and the
+# two from here could not be joined to anything.
+#
+# The client is the single writer now: src/app/lib/sessionStore.ts owns the
+# session id and writes through at every activity, so a child who stops half-way
+# still leaves a record. Re-adding a server-side write would reintroduce the
+# duplicates.

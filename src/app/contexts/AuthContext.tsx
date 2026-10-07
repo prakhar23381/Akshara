@@ -12,7 +12,8 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  /** Resolves to null when the redirect was handed off, or a message when it could not start. */
+  signInWithGoogle: () => Promise<string | null>;
   signOut: () => Promise<void>;
   signInOffline: () => Promise<void>;
 }
@@ -90,13 +91,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  async function signInWithGoogle() {
-    await supabase.auth.signInWithOAuth({
+  /**
+   * Starts the Google OAuth round trip: this app → Supabase /authorize →
+   * Google → Supabase /callback → back to this origin.
+   *
+   * supabase-js signals a misconfigured provider by *returning* an error
+   * rather than throwing, so the caller's try/catch never saw it and the
+   * child was left on "Redirecting…" indefinitely. Hand the message back so
+   * the caller can say something and fall back to local play.
+   */
+  async function signInWithGoogle(): Promise<string | null> {
+    // A previous guest session routes supabase.auth to the local mock, whose
+    // signInWithOAuth is a no-op. Clear it, or real sign-in silently does
+    // nothing for anyone who tapped "Start Learning" first.
+    localStorage.removeItem("akshara_offline_mode");
+
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
+        // Supabase must have this exact origin on its redirect allowlist,
+        // otherwise it silently returns the child to the Site URL instead.
         redirectTo: window.location.origin,
       },
     });
+    if (!error) return null;
+    console.warn("[Auth] Google sign-in could not start:", error.message);
+    return error.message;
   }
 
   async function signInOffline() {
@@ -132,23 +152,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("akshara_db_user_profiles", JSON.stringify(profiles));
     }
 
-    // Seed default letter progress in mock DB if empty
-    const progressRaw = localStorage.getItem("akshara_db_letter_progress");
-    const progress = progressRaw ? JSON.parse(progressRaw) : [];
-    if (!progress.some((p: any) => p.user_id === mockUser.id)) {
-      progress.push({
-        user_id: mockUser.id,
-        letter: "म",
-        letter_index: 0,
-        mastered: false,
-        sessions_count: 0,
-        last_cognitive_state: "insufficient_data",
-        last_scaffold_intensity: 0.55,
-        last_avg_latency_ms: 6000,
-        created_at: new Date().toISOString()
-      });
-      localStorage.setItem("akshara_db_letter_progress", JSON.stringify(progress));
-    }
+    // Deliberately no letter_progress seed. Seeding a row made the progress
+    // report list a letter the child had never attempted, which would show a
+    // parent or specialist a session that never happened. Rows are created on
+    // first real completion in RewardScreen.
 
     window.dispatchEvent(new Event("akshara_auth_state_change"));
   }

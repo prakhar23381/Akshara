@@ -1,9 +1,19 @@
 """
-Flask route: GET /progress_report
+Flask route: GET /progress_report  --  RETIRED, NOT REGISTERED.
 
-Loads all Supabase session history for the authenticated user, builds per-letter
-stats, calls the LLM to generate parent-facing insights, and returns a structured
-progress report JSON.
+Kept for reference only; app.py no longer registers this blueprint, so the route
+does not exist on a running server.
+
+It loaded every session for the authenticated user from Supabase and asked an LLM
+for parent-facing prose. Two problems made that the wrong place for it. The report
+is the artifact a specialist reads, so each figure has to be traceable to a
+recorded attempt -- generated prose cannot carry that guarantee. And it needed a
+server, a database and an API key to be reachable at all, while the hosted app
+has none of the three.
+
+src/app/api/client.ts -> buildProgressReport() now assembles it on the device
+from stored sessions, and src/app/screens/ReportScreen.tsx renders it. The
+long-form text that used to be the LLM's job is a print view over the same data.
 """
 import json
 import logging

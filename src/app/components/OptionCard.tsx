@@ -35,7 +35,7 @@ export function OptionCard({
       className={`rounded-2xl p-8 cursor-pointer transition-all duration-300 ${stateClasses[state]}`}
       onClick={state === "dimmed" ? undefined : onClick}
     >
-      <div className="flex items-center justify-center text-5xl">
+      <div className="letter-glyph flex items-center justify-center t-3">
         {children}
       </div>
     </motion.div>

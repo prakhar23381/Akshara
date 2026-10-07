@@ -12,8 +12,8 @@ export function AvatarCircle({
   onClick,
 }: AvatarCircleProps) {
   const sizeClasses = {
-    small: "w-16 h-16 text-3xl",
-    large: "w-32 h-32 text-6xl",
+    small: "w-16 h-16 t-2",
+    large: "w-32 h-32 t-4",
   };
 
   return (

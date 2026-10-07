@@ -43,6 +43,13 @@ export interface SessionPayload {
   avg_latency_ms: number;
   consecutive_fails_peak: number;
   attempts: QuestionAttempt[];
+  /**
+   * The child's most recent cognitive state on any letter, so a new letter does
+   * not cold-start a child we already have a profile for. Supplied by the
+   * caller because it is the caller that holds the session history; the server
+   * used to look it up itself, which is why it needed a database.
+   */
+  prior_cognitive_state?: CognitiveState | null;
 }
 
 export interface AnalyzeSessionResponse {

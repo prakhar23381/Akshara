@@ -79,21 +79,21 @@ export function ResumeScreen() {
   const avatarEmoji = profileAvatar ?? user?.user_metadata?.avatar ?? "🐻";
 
   return (
-    <div className="h-screen bg-[#F7F6F2] flex flex-col items-center justify-center gap-12 overflow-hidden p-8">
+    <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col items-center justify-center gap-[var(--gap-screen)] overflow-hidden p-[var(--pad-screen)]">
       <div className="text-center">
         <motion.div
           animate={{ rotate: [0, 10, -10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="text-9xl mb-6"
+          className="t-5 mb-6"
         >
           {avatarEmoji}
         </motion.div>
-        <h1 className="text-5xl font-bold text-gray-800 mb-3 tracking-wide">
+        <h1 className="t-3 font-bold text-gray-800 mb-3 tracking-wide">
           Welcome back, {displayName}!
         </h1>
-        <p className="text-2xl text-gray-500 tracking-wide">
+        <p className="t-2 text-gray-500 tracking-wide">
           Currently learning:{" "}
-          <span className="text-4xl font-bold text-amber-500">{currentLetter}</span>
+          <span className="t-3 font-bold text-amber-500">{currentLetter}</span>
           <span className="text-lg text-gray-400 ml-2">
             ({LETTER_SEQUENCE.indexOf(currentLetter as (typeof LETTER_SEQUENCE)[number]) + 1}/{LETTER_SEQUENCE.length})
           </span>
@@ -109,27 +109,19 @@ export function ResumeScreen() {
           {loading ? "Preparing your lesson…" : !progressLoaded ? "Loading progress…" : "Continue Learning"}
         </AksharaButton>
 
-        <div className="flex gap-4 justify-center">
+        {/* Wraps, and the dead "Rewards" button (which only fired an alert)
+            is gone — three fixed-padding buttons in a non-wrapping row ran off
+            the side of a phone. */}
+        <div className="flex flex-wrap gap-3 justify-center">
           <AksharaButton
-            onClick={() => alert("Rewards screen (coming soon)")}
+            onClick={() => navigate("/my-progress")}
             variant="secondary"
             size="small"
           >
-            🏆 Rewards
+            📊 My letters
           </AksharaButton>
-          <AksharaButton
-            onClick={() => navigate("/progress")}
-            variant="secondary"
-            size="small"
-          >
-            📊 Progress
-          </AksharaButton>
-          <AksharaButton
-            onClick={signOut}
-            variant="secondary"
-            size="small"
-          >
-            Sign Out
+          <AksharaButton onClick={signOut} variant="secondary" size="small">
+            Sign out
           </AksharaButton>
         </div>
       </div>

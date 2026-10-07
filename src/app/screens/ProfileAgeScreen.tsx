@@ -15,10 +15,10 @@ export function ProfileAgeScreen() {
   };
 
   return (
-    <div className="h-screen bg-[#F7F6F2] flex flex-col items-center justify-center gap-16 overflow-hidden p-8">
-      <div className="text-8xl">🎂</div>
+    <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col items-center justify-center gap-[var(--gap-screen)] overflow-hidden p-[var(--pad-screen)]">
+      <div className="t-5">🎂</div>
 
-      <h1 className="text-5xl font-bold text-gray-800 tracking-wide text-center">
+      <h1 className="t-3 font-bold text-gray-800 tracking-wide text-center">
         How old are you?
       </h1>
 
@@ -28,7 +28,7 @@ export function ProfileAgeScreen() {
             key={a}
             whileTap={{ scale: 0.9 }}
             onClick={() => handleAgeSelect(a)}
-            className={`w-32 h-32 rounded-3xl text-5xl font-bold transition-all ${
+            className={`w-32 h-32 rounded-3xl t-3 font-bold transition-all ${
               age === a
                 ? "bg-[#4A90E2] text-white border-4 border-[#4A90E2]"
                 : "bg-white text-gray-800 border-4 border-gray-300 hover:border-[#4A90E2]"

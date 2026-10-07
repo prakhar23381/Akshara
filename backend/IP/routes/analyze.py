@@ -1,8 +1,21 @@
 """
 Flask route: POST /analyze_session
 
-Orchestrates: SessionPayload → DiagnosisAgent → LevelGeneratorAgent → LevelConfig JSON.
-If a valid Supabase JWT is present, loads real user history and persists results to DB.
+Orchestrates: SessionPayload -> DiagnosisAgent -> LevelGeneratorAgent -> LevelConfig JSON.
+
+Stateless by design: a pure function of its request body. It reads no database
+and writes none.
+
+It used to do both, and that was the bug. The client calls this endpoint twice
+per letter -- once to initialise (zero attempts) and once at the end -- and each
+call ran an INSERT, so a single sitting produced two server rows on top of the
+one the client itself writes. Three rows, two of them without a session_id,
+for one session.
+
+The client is now the only writer. It owns the session id, writes through at
+every activity rather than once at the end, and therefore keeps a child who
+quits half-way. It also supplies `prior_cognitive_state`, which is the one
+thing this endpoint previously needed a query for.
 """
 from flask import Blueprint, request, jsonify
 from dataclasses import asdict
@@ -23,16 +36,6 @@ level_agent     = LevelGeneratorAgent()
 _NEW_LETTER_STATE_CAP = {
     CognitiveState.VISUAL_MASTERY: CognitiveState.FEATURE_NEGLECT,
 }
-
-
-def _get_db():
-    """Lazy import so the app still starts if Supabase creds are missing."""
-    try:
-        from db import verify_jwt, load_user_history, save_session, get_latest_cognitive_state
-        return verify_jwt, load_user_history, save_session, get_latest_cognitive_state
-    except Exception as e:
-        import logging; logging.getLogger(__name__).warning(f"[DB] import failed: {e}")
-        return None, None, None, None
 
 
 def _parse_payload(data: dict) -> SessionPayload:
@@ -73,72 +76,50 @@ def analyze_session():
     if missing:
         return jsonify({"error": f"Missing fields: {missing}"}), 400
 
-    # ── Auth ──────────────────────────────────────────────────────────────────
-    verify_jwt, load_user_history, save_session, get_latest_cognitive_state = _get_db()
-    verified_user_id = None
-    raw_jwt = None
-    auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer ") and verify_jwt:
-        raw_jwt = auth_header[7:]
-        verified_user_id = verify_jwt(raw_jwt)
-
-    effective_user_id = verified_user_id or data["user_id"]
-
     # ── Parse ─────────────────────────────────────────────────────────────────
     try:
-        session = _parse_payload({**data, "user_id": effective_user_id})
+        session = _parse_payload(data)
     except (KeyError, ValueError) as e:
         return jsonify({"error": f"Payload parse error: {str(e)}"}), 422
-
-    # ── Load letter-specific history for LLM personalisation ─────────────────
-    user_history = []
-    if verified_user_id and raw_jwt and load_user_history:
-        user_history = load_user_history(verified_user_id, session.target_alphabet, raw_jwt)
 
     # ── Diagnose ──────────────────────────────────────────────────────────────
     state, reasoning = diagnosis_agent.diagnose(session)
 
     # ── Carry the learning profile forward when starting a new letter ─────────
-    # INSUFFICIENT_DATA means the current session has 0 attempts (initialisation
-    # call for a new letter). If the child has learned any previous letter, we
-    # already know their cognitive profile — use it instead of cold-starting.
-    if state == CognitiveState.INSUFFICIENT_DATA and verified_user_id and raw_jwt and get_latest_cognitive_state:
-        prior_state_str = get_latest_cognitive_state(verified_user_id, raw_jwt)
-        if prior_state_str and prior_state_str != CognitiveState.INSUFFICIENT_DATA.value:
+    # INSUFFICIENT_DATA means this payload has 0 attempts: the initialisation
+    # call for a letter the child is opening. Cold-starting there would hand a
+    # child who has mastered four letters the same assessment as one who has
+    # never seen Devanagari.
+    #
+    # The prior state arrives in the request. It used to be a SELECT per level,
+    # which meant this endpoint needed a database and a verified JWT to do a
+    # piece of arithmetic; the caller already holds its own history.
+    prior_state_str = data.get("prior_cognitive_state")
+    if state == CognitiveState.INSUFFICIENT_DATA and prior_state_str:
+        try:
             prior_state = CognitiveState(prior_state_str)
+        except ValueError:
+            prior_state = None
+        if prior_state and prior_state != CognitiveState.INSUFFICIENT_DATA:
             # Cap at FEATURE_NEGLECT for brand-new letters (don't skip shape recognition)
             state = _NEW_LETTER_STATE_CAP.get(prior_state, prior_state)
             reasoning = (
                 f"Carrying forward learning profile from prior letter. "
-                f"Prior state: {prior_state_str} → starting {session.target_alphabet} "
+                f"Prior state: {prior_state_str} -> starting {session.target_alphabet} "
                 f"at {state.value}."
             )
 
     # ── Generate level config ─────────────────────────────────────────────────
+    # user_history personalises the LLM's distractor choice. It came from the
+    # database; the client can send it, and until it does an empty list simply
+    # means the prompt carries no cross-session colour.
     level_config = level_agent.generate(
         session        = session,
         state          = state,
         reasoning      = reasoning,
-        user_history   = user_history,
+        user_history   = data.get("user_history") or [],
         session_number = session.session_number,
     )
-
-    # ── Persist to Supabase ───────────────────────────────────────────────────
-    if verified_user_id and raw_jwt and save_session:
-        save_session(
-            user_id            = verified_user_id,
-            letter             = session.target_alphabet,
-            session_number     = session.session_number,
-            cognitive_state    = state.value,
-            distractor_pool    = level_config.distractor_pool,
-            scaffold_intensity = level_config.scaffold_intensity,
-            error_rate_pct     = round(session.error_rate * 100, 1),
-            avg_latency_ms     = session.avg_latency_ms,
-            confused_pairs     = [list(p) for p in session.confused_pairs()],
-            provider_used      = level_config.provider_used,
-            reasoning          = level_config.reasoning,
-            user_jwt           = raw_jwt,
-        )
 
     # ── Respond ───────────────────────────────────────────────────────────────
     config_dict = asdict(level_config)
@@ -154,6 +135,6 @@ def analyze_session():
             "total_attempts":  session.total_attempts,
             "error_rate_pct":  round(session.error_rate * 100, 1),
             "cognitive_state": state.value,
-            "authenticated":   verified_user_id is not None,
+            "carried_forward": bool(prior_state_str) and session.total_attempts == 0,
         }
     }), 200

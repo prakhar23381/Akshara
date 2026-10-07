@@ -11,8 +11,35 @@ const isValidUrl = (url?: string) => {
   }
 };
 
-const supabaseUrl = isValidUrl(rawUrl) ? (rawUrl as string) : "https://placeholder.supabase.co";
+const PLACEHOLDER_URL = "https://placeholder.supabase.co";
+
+const supabaseUrl = isValidUrl(rawUrl) ? (rawUrl as string) : PLACEHOLDER_URL;
 const supabaseKey = rawKey && rawKey.trim() !== "" ? rawKey : "placeholder-anon-key";
+
+/**
+ * True only when real Supabase credentials were supplied at build time.
+ * When false there is no backing database, so hosted-auth flows (Google OAuth)
+ * cannot complete and every write must stay local. The UI reads this to avoid
+ * offering a sign-in button that would hang on an unreachable host.
+ */
+export const isSupabaseConfigured =
+  supabaseUrl !== PLACEHOLDER_URL && supabaseKey !== "placeholder-anon-key";
+
+// Say so loudly. The previous failure mode was silent: the production build had
+// no VITE_ variables at all, so it fell back to the placeholder host and ran
+// guest-only on localStorage, looking from the outside like it was simply
+// working. Vite only exposes variables prefixed VITE_ to the client, so the
+// Supabase integration's SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL are invisible
+// here no matter what they are set to.
+if (!isSupabaseConfigured) {
+  console.warn(
+    "[Supabase] Not configured — running on local device storage only.\n" +
+      "Set VITE_SUPABASE_URL and VITE_SUPABASE_KEY (those exact names: Vite only\n" +
+      "exposes VITE_-prefixed variables, and the app does not read SUPABASE_URL\n" +
+      "or NEXT_PUBLIC_SUPABASE_URL). They are inlined at build time, so a\n" +
+      "redeploy is required after changing them.",
+  );
+}
 
 // Initialize the real supabase client safely
 const realSupabase = createClient(supabaseUrl, supabaseKey);
@@ -102,14 +129,15 @@ class MockQueryBuilder {
     data.push(newRow);
     localStorage.setItem(`akshara_db_${this.table}`, JSON.stringify(data));
 
-    // Also sync to live Supabase backend when online
+    // Mirror to the live backend when one is actually configured. Without this
+    // guard every local write fired a request at an unreachable host.
+    if (!isSupabaseConfigured) return { data: newRow, error: null };
     try {
-      realSupabase
-        .from(this.table)
-        .insert(newRow)
+      Promise.resolve(
+        realSupabase.from(this.table).insert(newRow),
+      )
         .then(({ error }) => {
           if (error) console.warn(`[SupabaseSync] Guest insert failed for ${this.table}:`, error.message);
-          else console.log(`[SupabaseSync] Guest insert synced to Supabase for ${this.table}`);
         })
         .catch(() => {});
     } catch {}
@@ -138,14 +166,14 @@ class MockQueryBuilder {
     }
     localStorage.setItem(`akshara_db_${this.table}`, JSON.stringify(data));
 
-    // Also sync to live Supabase backend when online
+    // Mirror to the live backend when one is actually configured.
+    if (!isSupabaseConfigured) return { data: updatedRow, error: null };
     try {
-      realSupabase
-        .from(this.table)
-        .upsert(updatedRow)
+      Promise.resolve(
+        realSupabase.from(this.table).upsert(updatedRow),
+      )
         .then(({ error }) => {
           if (error) console.warn(`[SupabaseSync] Guest upsert failed for ${this.table}:`, error.message);
-          else console.log(`[SupabaseSync] Guest upsert synced to Supabase for ${this.table}`);
         })
         .catch(() => {});
     } catch {}

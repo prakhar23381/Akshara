@@ -343,7 +343,7 @@ GOOGLE_CLOUD_LOCATION=us-central1      (optional, Vertex AI)
 ```
 VITE_API_URL=http://localhost:5050  (or production backend URL)
 VITE_SUPABASE_URL=https://xxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJ...
+VITE_SUPABASE_KEY=eyJ...
 ```
 
 ---

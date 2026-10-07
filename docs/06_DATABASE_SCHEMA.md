@@ -301,7 +301,7 @@ The Supabase JS client stores the session in `localStorage`. On app reload, `sup
 3. **Enable Google OAuth** in Authentication → Providers
 4. **Copy credentials:**
    - `Project URL` → `SUPABASE_URL` (backend) and `VITE_SUPABASE_URL` (frontend)
-   - `anon public key` → `SUPABASE_KEY` (backend) and `VITE_SUPABASE_ANON_KEY` (frontend)
+   - `anon public key` → `SUPABASE_KEY` (backend) and `VITE_SUPABASE_KEY` (frontend)
 5. **Set allowed redirect URLs** in Authentication → URL Configuration:
    - `http://localhost:5173` (Vite dev server)
    - Your production domain

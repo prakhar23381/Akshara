@@ -291,9 +291,14 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 sm:gap-6 w-full max-w-[400px]">
-      {/* Responsive visual container */}
-      <div className="relative w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] md:w-[400px] md:h-[400px] select-none">
+    <div className="flex flex-col items-center w-full flex-1 min-h-0" style={{ gap: "var(--gap-screen)" }}>
+      {/* Square drawing surface that fills the height the step gives it.
+          Sizing from vmin made the board ~226px on a phone — too small to trace
+          a letter accurately. aspect-square on a flex-1 box lets the available
+          height drive the width instead. */}
+      <div
+        className="relative select-none flex-1 min-h-0 aspect-square max-w-full"
+      >
         
         {/* SVG Drawing Outline Silhouette Guide Layer */}
         <svg
@@ -356,10 +361,12 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
         {/* Glowing pointer during demonstration */}
         {animatingTemplate && (
           <motion.div
-            className="absolute w-8 h-8 bg-yellow-400 border-2 border-white rounded-full shadow-lg z-20 pointer-events-none -translate-x-1/2 -translate-y-1/2"
+            className="absolute bg-yellow-400 border-2 border-white rounded-full shadow-lg z-20 pointer-events-none -translate-x-1/2 -translate-y-1/2"
             animate={{
               left: `${(pointerPos.x / 400) * 100}%`,
               top: `${(pointerPos.y / 400) * 100}%`,
+              width: "7%",
+              height: "7%",
             }}
             transition={{
               type: "tween",
@@ -380,8 +387,8 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
             >
               {evaluation === "success" ? (
                 <div className="text-center space-y-2 sm:space-y-4">
-                  <span className="text-5xl sm:text-7xl">🌟</span>
-                  <h3 className="text-2xl sm:text-3xl font-black text-emerald-600">Great Job! Success!</h3>
+                  <span className="t-3 ">🌟</span>
+                  <h3 className="t-2 sm:text-3xl font-black text-emerald-600">Great Job! Success!</h3>
                   <p className="text-base sm:text-xl text-gray-500 font-medium">
                     You matched the letter shape with a score of{" "}
                     <span className="font-bold text-gray-800">{score}%</span>!
@@ -389,8 +396,8 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
                 </div>
               ) : (
                 <div className="text-center space-y-2 sm:space-y-4">
-                  <span className="text-5xl sm:text-7xl">🔄</span>
-                  <h3 className="text-2xl sm:text-3xl font-black text-rose-500">Try Again!</h3>
+                  <span className="t-3 ">🔄</span>
+                  <h3 className="t-2 sm:text-3xl font-black text-rose-500">Try Again!</h3>
                   <p className="text-base sm:text-xl text-gray-500 font-medium">
                     Keep practicing! You scored{" "}
                     <span className="font-bold text-gray-800">{score}%</span>.
@@ -409,31 +416,31 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
       </div>
 
       {/* Buttons Panel */}
-      <div className="flex flex-wrap justify-center gap-2 sm:gap-4 select-none">
+      <div className="shrink-0 flex flex-wrap justify-center gap-2 select-none">
         <button
           onClick={clearCanvas}
           disabled={animatingTemplate || !hasDrawn}
-          className="px-4 py-2 sm:px-6 sm:py-3 font-bold rounded-2xl bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:opacity-50 transition-colors border border-gray-300 shadow-sm text-sm sm:text-lg flex items-center gap-1 sm:gap-2"
+          className="t--1 px-3 py-1.5 font-bold rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:opacity-50 transition-colors border border-gray-300"
         >
-          Clear Drawing 🧹
+          Clear 🧹
         </button>
 
         {evaluation === "none" && (
           <button
             onClick={checkDrawing}
             disabled={animatingTemplate || !hasDrawn}
-            className="px-4 py-2 sm:px-6 sm:py-3 font-bold rounded-2xl bg-[#4A90E2] hover:bg-[#357ABD] text-white disabled:opacity-50 transition-colors shadow-md text-sm sm:text-lg flex items-center gap-1 sm:gap-2"
+            className="t--1 px-3 py-1.5 font-bold rounded-xl bg-[#4A90E2] hover:bg-[#357ABD] text-white disabled:opacity-50 transition-colors"
           >
-            Check Drawing 🔍
+            Check 🔍
           </button>
         )}
 
         <button
           onClick={playPreviewAnimation}
           disabled={animatingTemplate || evaluation !== "none"}
-          className="px-4 py-2 sm:px-6 sm:py-3 font-bold rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-800 disabled:opacity-50 transition-colors border border-amber-200 shadow-sm text-sm sm:text-lg"
+          className="t--1 px-3 py-1.5 font-bold rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-800 disabled:opacity-50 transition-colors border border-amber-200"
         >
-          👁️ Watch guide
+          👁️ Guide
         </button>
       </div>
     </div>
