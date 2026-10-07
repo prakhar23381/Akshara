@@ -8,6 +8,7 @@ dist/
 # ── Backend ───────────────────────────────────────────────
 backend/.env
 backend/**/__pycache__/
+.pytest_cache/
 backend/**/*.pyc
 backend/**/*.pyo
 *.egg-info/
