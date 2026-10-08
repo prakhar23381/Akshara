@@ -4,6 +4,44 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-09
+
+### D1 closed · push access restored, 15 commits on GitHub
+* **`origin/main` is now `d2a33df`, level with local `main` — 0 ahead, 0 behind.**
+  The standing risk recorded on 2026-10-07, that this laptop held the only copy
+  of the P1–P6 refactor and the whole structure cleanup, is **gone**.
+* **Route taken: an ed25519 SSH key.** `~/.ssh/id_ed25519` generated with no
+  passphrase (so pushes stay non-interactive), public key added at GitHub by
+  Prakhar, `origin` switched from HTTPS to
+  `git@github.com:prakhar23381/Akshara.git`. `ssh -T git@github.com` answers
+  `Hi prakhar23381!`. Chosen over installing `gh` and over a PAT — see the
+  Reference Decision of this date.
+* **One fact in D1 was wrong and is corrected here.** D1 said the osxkeychain
+  credential was *rejected*. By this session there was no credential for
+  `host=github.com` in the keychain at all, so an HTTPS push would not have
+  failed with `Invalid username or token` — it would have blocked prompting for
+  a username, which a non-interactive shell cannot answer. The practical
+  conclusion was unchanged: HTTPS could not authenticate.
+* **The commit count had drifted in both bookkeeping files.** The recovery
+  context said 10 ahead, `TODO.md` D1 said 14. The real number at push time was
+  **15** — the two docs commits made after each note was written were never
+  counted. Both are corrected.
+* **Pre-push safety scan, repeated.** Fast-forward confirmed by
+  `git merge-base --is-ancestor` (no force anywhere), `git push --dry-run`
+  clean, and the only env-shaped files tracked in the range are
+  `.env.example` and `backend/.env.example`, both added in `c2ed739` and both
+  holding comments with empty values. `.env.local`, `backend/.env` and the
+  `.bak` are all covered by `.gitignore:25` (`.env*`).
+* **No source file changed**, so `npm run build` / `npm run test` were not
+  re-run; the tree is byte-identical to the verified 2026-10-07 state.
+
+### Effect on D2
+* D2's stated objection — that `vercel --prod` "would deploy from the working
+  tree, widening the gap between production and the repo" — **no longer holds.**
+  The working tree, local `main` and `origin/main` are now the same commit, so a
+  CLI deploy from the tree ships exactly what is on GitHub. D2 is now a plain
+  go/no-go on shipping the cleanup, with no divergence cost attached.
+
 ## 2026-10-07  (later)
 
 ### Verified
