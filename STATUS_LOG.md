@@ -35,8 +35,40 @@ current state and recovery context in
 * **No source file changed**, so `npm run build` / `npm run test` were not
   re-run; the tree is byte-identical to the verified 2026-10-07 state.
 
+### D2 closed · the cleanup is live in production — deployed automatically
+* **Production now serves the post-cleanup build.** Verified over the wire at
+  `https://akshara-tau.vercel.app`: `index-B06-djcU.js` 714,656 B and
+  `index-Mmc3FRga.css` 37,265 B, byte-for-byte the local `dist/` from the
+  2026-10-07 clean build. The pre-cleanup pair (`index-DaMLZmhl.js` 712,890 B /
+  `index-BzKSVV-R.css` 103,889 B) is gone. **Production CSS fell 103,889 →
+  37,265 bytes, −64%**, which is exactly what D2 predicted.
+* **Nobody ran `vercel --prod`.** The Vercel project has a **GitHub integration
+  connected**, so the D1 push to `main` triggered a production build on its own.
+  Deployment `dpl_5fcCRk9rWPrZXqDi8veP4GzfFbLZ` was created at 00:32:22, nine
+  seconds after commit `17bc3f4` landed at 00:32:13, and carries the
+  `akshara-git-main-…` alias that only a git-triggered deploy gets. The earlier
+  00:30 deployment corresponds to the first push, of `d2a33df`.
+  **This was not anticipated when D1 was planned** — the push was treated as a
+  backup operation with no production consequence. It is now recorded as a fact
+  in the recovery context, because both bookkeeping files had assumed shipping
+  required a deliberate CLI deploy.
+* **Post-deploy health checks, all passing:**
+  * `VITE_` vars are inlined in the live bundle — the Supabase host appears once
+    and the key is an `sb_publishable_` value, not a service-role key.
+  * SPA rewrite works: `/`, `/play`, `/roadmap`, `/report` all return 200.
+  * `/audio/ka.mp3` returns 200, so the 33 consonant mp3s shipped.
+  * Build on Vercel took 21s and reports `● Ready`.
+* **One check that reads as a false alarm:** the old asset URLs still return 200.
+  They serve `index.html` (1,117 B, `text/html`), because `vercel.json` rewrites
+  `/(.*)` to `/index.html` — so *every* path returns 200, including
+  `/nonexistent-xyz`. The old bundles really are gone. A 404 probe against this
+  project proves nothing; check `content-type` instead.
+* **Local gate before accepting the deploy:** `npm run test` green —
+  `tsc --noEmit` clean and 21/21 frontend tests passing.
+
 ### Effect on D2
-* D2's stated objection — that `vercel --prod` "would deploy from the working
+* *(Written before the deploy was discovered, and overtaken by it.)*
+  D2's stated objection — that `vercel --prod` "would deploy from the working
   tree, widening the gap between production and the repo" — **no longer holds.**
   The working tree, local `main` and `origin/main` are now the same commit, so a
   CLI deploy from the tree ships exactly what is on GitHub. D2 is now a plain

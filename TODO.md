@@ -87,23 +87,13 @@ Walkthrough with values pre-filled: [docs/08_AUTH_SETUP.md](docs/08_AUTH_SETUP.m
       on an account the team does not control, replace it. It is off every
       critical path, so losing it costs the hosted app nothing.
 
-## Deploy
+## Deploy  — closed 2026-10-09
 
-*D1 (push access) closed 2026-10-09 — see `STATUS_LOG.md`. `origin/main` is level
-with local `main` at `d2a33df`, and the remote is now SSH.*
-
-- [ ] **D2 · Ship the cleanup to production.** Deferred by choice 2026-10-07;
-      still open, but the reason to defer is weaker now.
-      `akshara-tau.vercel.app` serves assets byte-identical to the pre-cleanup
-      baseline (`index-DaMLZmhl.js` 712,890 B / `index-BzKSVV-R.css` 103,889 B).
-      Deploying would cut production CSS to 37,265 bytes (−64%).
-
-      *What changed 2026-10-09:* the original objection was that a CLI deploy
-      runs from the working tree and would widen the gap between production and
-      the repo. The tree, local `main` and `origin/main` are now the same commit,
-      so `vercel --prod` ships exactly what is on GitHub. This is now a plain
-      go/no-go, with no divergence cost. Vercel CLI is installed and
-      authenticated as `prakhar23381-9369`.
+*Both D1 and D2 are done; detail in `STATUS_LOG.md`. `origin/main` is level with
+local `main`, and production serves the post-cleanup build (CSS −64%). Note for
+future work: **a push to `main` deploys to production by itself** — the Vercel
+GitHub integration is connected. There is no separate "ship it" step to remember,
+and no way to push without shipping.*
 
 ## Verification
 *No browser in the agent environment — these are yours to run.*
