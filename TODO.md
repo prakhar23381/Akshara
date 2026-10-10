@@ -109,14 +109,6 @@ instruction. The branches below are merged; kept for reference only:
 | `fix/r1-report-data` | report built per child from database + device | `ee78be8`+ |
 | `feat/w5a-accounts-schema` | migration 002 (accounts, classes, share codes), verify + rollback, PGlite test | — |
 
-- [~] **D3 · Migration 002 — applied 2026-10-10; one check left.** Tables,
-      columns, operations and anon permissions are verified live from here.
-      What only catalog access can show — every account got its child and a
-      role, and the policy list — is the summary at the end of
-      `002_verify.sql`: **run the whole file again; the last table should be 13
-      rows of ✓.** (The editor shows only the last statement's result, which is
-      why the first run showed just the trigger count.)
-
 - [ ] **V5 · Verify production on a device.** The release went out before
       this was done, so it now checks what children are actually using, at
       `https://akshara-tau.vercel.app`. If something is wrong, the fastest

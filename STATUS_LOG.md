@@ -150,7 +150,11 @@ in full in `docs/09_DATA_FLOW_AUDIT.md`. In short:
 * The first run of `002_verify.sql` showed only the trigger count: the SQL
   editor displays only the final statement's result. The file now ends with a
   one-table summary of all 13 checks, itself tested against a migrated
-  database.
+  database. **Run on the live project: 13 / 13 ✓** — every account has its
+  child and a role, no session or progress row lacks a child, both foreign
+  keys point at `children`, RLS is on for all six tables, guardian and old
+  policies both present, 14 functions with exactly the 5 read-only helpers
+  open to anon, trigger in place.
 
 **End state:** production = `main` = `bcc3897`. 168 app checks pass across 6
 files, plus 56 database checks. tsc clean.
