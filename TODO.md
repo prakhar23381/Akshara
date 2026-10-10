@@ -115,10 +115,11 @@ instruction. The branches below are merged; kept for reference only:
       undo is a `git revert` of the bad commit pushed to `main`, or Vercel →
       Deployments → promote the previous production deployment
       (`akshara-7z09eregf…`) while a fix is made.
-      Things only a device can confirm: centring and square memory cards (W1);
-      the dim → hint → rescue ladder in Fill-in and Spelling (W2); the
-      barakhadi rows fitting a 360×640 screen, and the ◌ dotted circle and the
-      conjunct options (`ड्गा`) rendering in Noto Sans Devanagari (W3).
+      **Layout is now checked in a headless browser** (`scripts/visual/`,
+      2026-10-10): centring, square tiles, the barakhadi at 360×640, the ◌
+      dotted circle, the hint ladder's timing, the report at three widths. What
+      still needs a real device: touch, audio and text-to-speech, Android's
+      fonts (including the conjunct options such as `ड्गा` for ङ), and speed.
 - [ ] **V6 · Confirm the database read path for a signed-in child.** W2 reads
       `learning_sessions` for signed-in children. The columns are verified to
       exist, but the query itself has only run against an empty table under
@@ -145,11 +146,16 @@ instruction. The branches below are merged; kept for reference only:
       games share `hooks/useHesitationLadder.ts`; Identify's copy is tangled
       with its slow-audio retry, so folding it in was left out of W2.
 
-- [ ] **W4 · Report redesign (reports 5a, 5b, 5c).** Too much space, too little
-      information, too little colour. Decision taken: **use RAG colour on
-      scores**, reversing the earlier single-hue restraint — see Reference
-      Decision [2026-10-10]. Also needs a content brief: which figures earn the
-      space currently empty.
+- [ ] **W4b · Teacher class dashboard.** W4a (the per-child dashboard) is
+      built — `STATUS_LOG.md`. W4b is the class view: a table of children ×
+      key figures with status colour, who needs attention, the class's most
+      common confusions and hardest letters, tap a child for their W4a report.
+      Depends on W5c (classes).
+- [ ] **H2 · Calibrate the hint dot per letter.** `FEATURE_HIGHLIGHT_POSITIONS`
+      places the guiding dot as a percentage of the *tile*, and was never
+      measured against the glyphs. Square tiles (3b/4b fix) bring it close to
+      the letter; putting it on the actual feature of each of the 33 letters
+      needs a pass with the visual harness, one letter at a time.
 - [ ] **W5 · Parent / Teacher / Child accounts (report 8).** The deepest item.
       Today `triggerMathGate(target: "parent" | "teacher")` **never reads
       `target`** — both buttons run the same gate and both land on `/report`, so
@@ -163,7 +169,8 @@ instruction. The branches below are merged; kept for reference only:
       production data** — plan the migration before writing any of it.
 
 ## Verification
-*No browser in the agent environment — these are yours to run.*
+*Layout can now be checked headlessly (`scripts/visual/`); these need a real
+device — touch, sound, persistence across a real refresh.*
 
 - [ ] **V1** After each phase: 360×640, 390×844, tablet
 - [ ] **V2** Full play-through → one session row with one `session_id`
