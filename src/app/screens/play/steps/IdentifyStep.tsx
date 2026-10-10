@@ -53,6 +53,11 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
   const answeredAt = useRef<number | null>(null);
   const phaseRef = useRef<Phase>("default");
   phaseRef.current = phase;
+  // `phase` is state and `phaseRef` only catches up on render, so in the gap a
+  // double-tap (or a tap landing as the rescue timer fires) recorded two
+  // attempts and could advance twice, skipping a question. `busy` is set
+  // synchronously, and reopened only when the child genuinely gets another try.
+  const busy = useRef(false);
 
   const markAudioEnd = useCallback(() => {
     answeredAt.current = performance.now();
@@ -84,6 +89,7 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
 
   const advance = useCallback(() => {
     if (index < QUESTIONS - 1) {
+      busy.current = false;
       setIndex((i) => i + 1);
       setPhase("default");
       setChosen(null);
@@ -126,7 +132,8 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
       if (phaseRef.current === "hesitation") setPhase("hint");
     }, s2);
     const t3 = setTimeout(() => {
-      if (phaseRef.current !== "hint") return;
+      if (phaseRef.current !== "hint" || busy.current) return;
+      busy.current = true;
       log(letter, true);
       setPhase("correct");
       playSuccessSound();
@@ -140,7 +147,8 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
   }, [index, levelConfig, letter, log, advance]);
 
   function pick(option: string) {
-    if (phase === "correct" || phase === "wrong") return;
+    if (busy.current || phase === "correct" || phase === "wrong") return;
+    busy.current = true;
     setChosen(option);
     log(option, false);
 
@@ -163,6 +171,8 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
         playSuccessSound();
         setTimeout(advance, 1200);
       } else {
+        // A second try: reopen the guard.
+        busy.current = false;
         setSlow(true);
         setPhase("hint");
         setChosen(null);

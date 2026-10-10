@@ -25,6 +25,11 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
   const [index, setIndex] = useState(0);
   const [chosen, setChosen] = useState<WordOption | null>(null);
   const [locked, setLocked] = useState(false);
+  // `locked` is state, so it only changes on the next render. In the gap, a
+  // second tap — or the ladder's rescue timer landing on the same moment as a
+  // tap — would record a second attempt and advance twice, skipping a question.
+  // The ref closes the gap synchronously.
+  const answered = useRef(false);
   const shownAt = useRef(performance.now());
 
   const q = questions[index];
@@ -35,6 +40,7 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
       setIndex((i) => i + 1);
       setChosen(null);
       setLocked(false);
+      answered.current = false;
       shownAt.current = performance.now();
     } else {
       onComplete();
@@ -52,7 +58,8 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
   }, [questions.length, onComplete]);
 
   function pick(option: WordOption) {
-    if (locked || !q) return;
+    if (answered.current || !q) return;
+    answered.current = true;
     setChosen(option);
     setLocked(true);
 
@@ -78,7 +85,8 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
   // Stalled? Dim, then hint, then answer for the child — the same ladder
   // Listen-to-Letter uses. Without it a child who froze here had no way on.
   const rescue = useCallback(() => {
-    if (locked || !q) return;
+    if (answered.current || !q) return;
+    answered.current = true;
     setChosen({ text: q.answer, consonant: letter });
     setLocked(true);
     recordAttempt("word_fill", {
@@ -92,7 +100,7 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
     });
     playSuccessSound();
     setTimeout(advance, 1200);
-  }, [locked, q, letter, recordAttempt, advance]);
+  }, [q, letter, recordAttempt, advance]);
 
   const phase = useHesitationLadder({
     stage1Ms: levelConfig.hesitation_trigger_stage1_ms,

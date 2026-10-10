@@ -75,8 +75,18 @@ in full in `docs/09_DATA_FLOW_AUDIT.md`. In short:
   `include_matras` so past sessions' report completion is unchanged.
 * `tests/akshara.test.ts`, 39 checks, run over every letter.
 
-**End state:** 153 checks pass across 6 files. tsc clean. Build: JS 724.9 kB,
-CSS 37.44 kB.
+### Race fix — double answers in all three question games
+* Every question game guarded "already answered" with React state, which only
+  changes on the next render. A fast double-tap — plausible for children with
+  coordination difficulty — or W2's rescue timer landing on the same moment as
+  a tap recorded two attempts and advanced twice, skipping a question. Now a
+  synchronous ref guard in Fill-in, Spelling and Listen-to-Letter; Listen
+  reopens it only when the child genuinely gets a second try. The Listen and
+  double-tap cases predate this work.
+
+**End state:** 153 checks pass across 6 files. tsc clean. Build: JS 725.1 kB,
+CSS 37.44 kB. Three Vercel *preview* deployments; production unchanged
+(`index-B06-djcU.js`).
 
 ## 2026-10-09
 
