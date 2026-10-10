@@ -95,10 +95,11 @@ future work: **a push to `main` deploys to production by itself** — the Vercel
 GitHub integration is connected. There is no separate "ship it" step to remember,
 and no way to push without shipping.*
 
-## Device feedback, 2026-10-10 — W1–W3 and R1 built, W4–W5 open
+## Device feedback, 2026-10-10 — W1–W3 and R1 released, W4–W5 open
 
-W1, W2, W3 and R1 are implemented and logged in `STATUS_LOG.md`. They sit on
-a **stack of branches, each built on the one before**, and none is merged:
+W1, W2, W3 and R1 are logged in `STATUS_LOG.md`. **They are in production,
+unverified on a device** — `main` was fast-forwarded to `bcc3897` on the user's
+instruction. The branches below are merged; kept for reference only:
 
 | Branch | Adds | Commit |
 |---|---|---|
@@ -117,14 +118,12 @@ a **stack of branches, each built on the one before**, and none is merged:
       creates. If anything looks wrong, `002_rollback.sql` undoes it (it
       refuses once new-model children have sessions).
 
-- [ ] **V5 · Verify the stack on a device, then merge.** Test the
-      `fix/r1-report-data` preview, which contains all four. Previews sit
-      behind Vercel login (Deployment Protection): sign in to Vercel on the
-      phone, or use the deployment's Share link. **Use guest mode on a
-      preview URL:** the Supabase redirect allowlist (7.6) has no pattern
-      matching `akshara-git-…-prakhar23381-iiitdacins-projects.vercel.app`, so
-      Google sign-in there will likely land on production instead. Merging to
-      `main` **is** the production release.
+- [ ] **V5 · Verify production on a device.** The release went out before
+      this was done, so it now checks what children are actually using, at
+      `https://akshara-tau.vercel.app`. If something is wrong, the fastest
+      undo is a `git revert` of the bad commit pushed to `main`, or Vercel →
+      Deployments → promote the previous production deployment
+      (`akshara-7z09eregf…`) while a fix is made.
       Things only a device can confirm: centring and square memory cards (W1);
       the dim → hint → rescue ladder in Fill-in and Spelling (W2); the
       barakhadi rows fitting a 360×640 screen, and the ◌ dotted circle and the

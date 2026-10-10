@@ -124,9 +124,22 @@ in full in `docs/09_DATA_FLOW_AUDIT.md`. In short:
 * `002_verify.sql` (read-only checks with expected values, themselves run
   against a migrated database) and `002_rollback.sql`.
 
-**End state:** 168 app checks pass across 6 files, plus 56 database checks.
-tsc clean. Vercel *preview* deployments only; production unchanged
-(`index-B06-djcU.js`).
+### Released to production — on the user's instruction, before device checks
+* `main` fast-forwarded `1f3fdec → bcc3897` (10 commits: W1, W2, W3, R1, W5a)
+  and pushed; the Vercel GitHub integration deployed it.
+* Before releasing: grep confirmed no client code touches 002's tables or
+  functions, so shipping ahead of the migration is safe; 168 checks green;
+  build clean.
+* After: production serves `index-365eO841.js`, **byte-identical** to the
+  local build. Supabase URL and publishable key inlined; `/`, `/play`,
+  `/roadmap`, `/report`, `/my-progress` and the audio all served; the barakhadi
+  step, the new title, the report's device-only notice, the learner profile,
+  the traditional ङ words all present in the bundle; the 0.8× badge absent.
+* **Not verified on a device** (`TODO.md` V5), and migration 002 not applied
+  (D3).
+
+**End state:** production = `main` = `bcc3897`. 168 app checks pass across 6
+files, plus 56 database checks. tsc clean.
 
 ## 2026-10-09
 
