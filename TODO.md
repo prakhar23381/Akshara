@@ -146,8 +146,19 @@ instruction. The branches below are merged; kept for reference only:
       games share `hooks/useHesitationLadder.ts`; Identify's copy is tangled
       with its slow-audio retry, so folding it in was left out of W2.
 
-- [ ] **W4b · Teacher class dashboard.** W4a (the per-child dashboard) is
-      built — `STATUS_LOG.md`. W4b is the class view: a table of children ×
+- [ ] **W4 · The learning report — REOPENED (2026-10-10).** The user is not a
+      fan of the W4a dashboard. It is **live in production** and stays there
+      until the user decides; nothing was reverted. Next session: ask what
+      specifically does not work for them *before* designing anything — the
+      W4a brief came from the device feedback ("too much space, too little
+      info, no colour") and the result still missed. Options to put to them:
+      (a) revert to the old tabbed report while a new one is designed,
+      (b) iterate on W4a against concrete objections, (c) a fresh brief. The
+      data layer underneath (R1: per child, database + device) and the
+      engine-derived colour bands (`lib/reportBands.ts`) are independent of the
+      layout and can stay whichever way it goes.
+- [ ] **W4b · Teacher class dashboard.** **Waits on W4** — it was to reuse the
+      W4a layout. W4a (the per-child dashboard) is built — `STATUS_LOG.md`. W4b is the class view: a table of children ×
       key figures with status colour, who needs attention, the class's most
       common confusions and hardest letters, tap a child for their W4a report.
       Depends on W5c (classes).

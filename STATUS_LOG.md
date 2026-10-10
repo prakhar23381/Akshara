@@ -4,6 +4,18 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-10 — session end
+
+* **The W4a report is reopened.** The user is not a fan of it. It remains in
+  production; nothing was reverted. Back in `TODO.md` as W4, with W4b (the
+  class dashboard) now waiting on it.
+* **W5b is not released.** It is complete on `feat/w5b-accounts` (`33b669c`,
+  pushed, preview built) and awaiting the user's go-ahead. The repo is left
+  checked out on that branch, which holds the newest bookkeeping.
+* State at close: production = `main` = `758865a` (W1–R1, W4a, 3b/4b, 002 SQL).
+  Migration 002 applied and verified 13/13 on the live project. 220 app checks
+  across 8 files, 56 database checks, 23-step click-through, all green.
+
 ## 2026-10-10 (later still) — W5b, accounts and child mode (`feat/w5b-accounts`)
 
 * **Adults own children, on the client.** `lib/accounts.ts` (signed-in →
