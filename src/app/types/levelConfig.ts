@@ -30,6 +30,8 @@ export interface LevelConfig {
    * backend, and sessions recorded before it existed, simply lack it.
    */
   confused_letters?: string[];
+  /** Whether the session includes the barakhadi (matra) step. */
+  include_matras?: boolean;
 }
 
 export interface QuestionAttempt {

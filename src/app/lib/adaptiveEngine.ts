@@ -534,6 +534,7 @@ export function planSession(
     scaffold_intensity: computeScaffold(state, errorRate),
     distractor_pool: pool,
     confused_letters: personal,
+    include_matras: true,
     feature_to_highlight: FEATURE_BY_LETTER[target] ?? "",
     phonological_note: "",
     hesitation_trigger_stage1_ms: baseline + 8000,

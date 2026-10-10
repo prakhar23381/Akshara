@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AudioButton } from "../../../components/AudioButton";
 import { PlayLayout } from "../PlayLayout";
 import { OptionGrid } from "../../../components/OptionGrid";
@@ -7,7 +7,11 @@ import { useSession } from "../../../contexts/SessionContext";
 import { speakHindi } from "../../../utils/speech";
 import { playSuccessSound, playErrorSound } from "../../../utils/soundEffects";
 import { useHesitationLadder } from "../../../hooks/useHesitationLadder";
-import { buildSpellingQuestions, QUESTIONS_PER_ROUND } from "./wordQuestions";
+import {
+  buildSpellingQuestions,
+  QUESTIONS_PER_ROUND,
+  type WordOption,
+} from "./wordQuestions";
 import type { StepProps } from "../types";
 
 export function WordSpellingStep({ letter, levelConfig, onComplete }: StepProps) {
@@ -23,7 +27,7 @@ export function WordSpellingStep({ letter, levelConfig, onComplete }: StepProps)
     [letter, levelConfig.confused_letters, levelConfig.distractor_pool],
   );
   const [index, setIndex] = useState(0);
-  const [chosen, setChosen] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<WordOption | null>(null);
   const [locked, setLocked] = useState(false);
   const shownAt = useRef(performance.now());
 
@@ -41,21 +45,28 @@ export function WordSpellingStep({ letter, levelConfig, onComplete }: StepProps)
     }
   }, [index, total, onComplete]);
 
-  function pick(option: string) {
+  // A letter with no usable word used to leave the child on a screen reading
+  // "No words available" with no button — a dead end mid-session. Move on.
+  const skipped = useRef(false);
+  useEffect(() => {
+    if (questions.length === 0 && !skipped.current) {
+      skipped.current = true;
+      onComplete();
+    }
+  }, [questions.length, onComplete]);
+
+  function pick(option: WordOption) {
     if (locked || !q) return;
     setChosen(option);
     setLocked(true);
 
-    // The spelling differs from the answer by exactly one confusable letter,
-    // so the attempt is recorded at letter level: which letter was accepted in
-    // place of the target.
-    const differingIndex = [...q.answer].findIndex(
-      (c, i) => c !== [...option][i],
-    );
+    // Each spelling records the letter it swapped in, so the attempt is
+    // letter-level: which letter the child accepted in place of the target.
+    // This used to be recovered by comparing code points, which in a word with
+    // matras could name a vowel sign — or the whole word — as the "letter".
     recordAttempt("word_spelling", {
       target_letter: letter,
-      selected_letter:
-        option === q.answer ? letter : [...option][differingIndex] ?? option,
+      selected_letter: option.consonant,
       module_type: "similar",
       time_to_interact_ms: Math.max(0, Math.round(performance.now() - shownAt.current)),
       was_guided_win: false,
@@ -63,16 +74,17 @@ export function WordSpellingStep({ letter, levelConfig, onComplete }: StepProps)
       jitter_count: 0,
     });
 
-    if (option === q.answer) playSuccessSound();
+    const right = option.text === q.answer;
+    if (right) playSuccessSound();
     else playErrorSound();
-    setTimeout(advance, option === q.answer ? 900 : 1400);
+    setTimeout(advance, right ? 900 : 1400);
   }
 
   // Stalled? Dim, then hint, then answer for the child — the same ladder
   // Listen-to-Letter uses. Without it a child who froze here had no way on.
   const rescue = useCallback(() => {
     if (locked || !q) return;
-    setChosen(q.answer);
+    setChosen({ text: q.answer, consonant: letter });
     setLocked(true);
     recordAttempt("word_spelling", {
       target_letter: letter,
@@ -95,13 +107,7 @@ export function WordSpellingStep({ letter, levelConfig, onComplete }: StepProps)
     onRescue: rescue,
   });
 
-  if (!q) {
-    return (
-      <PlayLayout>
-        <p className="t-0 text-gray-500">No words available for this letter.</p>
-      </PlayLayout>
-    );
-  }
+  if (!q) return null;
 
   return (
     <PlayLayout centerBody={false}>
@@ -123,9 +129,9 @@ export function WordSpellingStep({ letter, levelConfig, onComplete }: StepProps)
       <OptionGrid
         shape="row"
         items={q.options}
-        keyOf={(o) => o}
+        keyOf={(o) => o.text}
         render={(option) => {
-          const isAnswer = option === q.answer;
+          const isAnswer = option.text === q.answer;
           const dimmed = !locked && phase !== "default" && !isAnswer;
           const state = !locked
             ? phase === "hint" && isAnswer
@@ -133,7 +139,7 @@ export function WordSpellingStep({ letter, levelConfig, onComplete }: StepProps)
               : dimmed
                 ? "bg-white border-gray-300 opacity-30"
                 : "bg-white border-gray-300"
-            : option === chosen
+            : option.text === chosen?.text
               ? isAnswer
                 ? "bg-[#4CAF50] border-[#4CAF50] text-white"
                 : "bg-white border-[#E76F51]"
@@ -151,7 +157,7 @@ export function WordSpellingStep({ letter, levelConfig, onComplete }: StepProps)
                 className="letter-glyph font-bold tracking-wide truncate"
                 style={{ fontSize: "clamp(1rem, 4.5vmin, 1.9rem)" }}
               >
-                {option}
+                {option.text}
               </span>
             </button>
           );

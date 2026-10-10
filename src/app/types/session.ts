@@ -16,6 +16,7 @@ export type ActivityType =
   | "intro"
   | "pronunciation"
   | "example_words"
+  | "matras"
   // Skill: the child produces something, scored but not a question.
   | "tracing"
   | "memory"
@@ -82,6 +83,11 @@ export interface LearningSession {
  */
 export function buildStepOrder(config: LevelConfig): ActivityType[] {
   const steps: ActivityType[] = ["intro", "pronunciation", "example_words"];
+  // Gated on the config rather than always present: the report derives each
+  // past session's completion from this order, so adding a step for everyone
+  // would retroactively mark every earlier session incomplete. Sessions planned
+  // from a learner profile carry the flag; older ones never had the step.
+  if (config.include_matras) steps.push("matras");
   if (config.input_mode === "trace") steps.push("tracing");
   steps.push("memory", "identify", "word_fill", "word_spelling");
   return steps;

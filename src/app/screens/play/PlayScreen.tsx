@@ -7,6 +7,7 @@ import type { StepProps } from "./types";
 import { IntroStep } from "./steps/IntroStep";
 import { PronunciationStep } from "./steps/PronunciationStep";
 import { ExampleWordsStep } from "./steps/ExampleWordsStep";
+import { MatraStep } from "./steps/MatraStep";
 import { TracingStep } from "./steps/TracingStep";
 import { MemoryStep } from "./steps/MemoryStep";
 import { IdentifyStep } from "./steps/IdentifyStep";
@@ -14,10 +15,13 @@ import { WordFillStep } from "./steps/WordFillStep";
 import { WordSpellingStep } from "./steps/WordSpellingStep";
 import { RewardStep } from "./steps/RewardStep";
 
-const STEPS: Record<ActivityType, (p: StepProps) => ReactElement> = {
+// `null` is allowed: a step with nothing to show (a letter with no usable
+// words) completes itself and renders nothing for the frame before it moves on.
+const STEPS: Record<ActivityType, (p: StepProps) => ReactElement | null> = {
   intro: IntroStep,
   pronunciation: PronunciationStep,
   example_words: ExampleWordsStep,
+  matras: MatraStep,
   tracing: TracingStep,
   memory: MemoryStep,
   identify: IdentifyStep,

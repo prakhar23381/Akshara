@@ -50,8 +50,17 @@ export const LETTER_CONTENT: Record<string, LetterContent> = {
     letter: "ङ",
     pronunciationHint: "Nasal sound, hummed from the back of the throat",
     mouthEmoji: "😌",
+    // ङ is almost never written in modern Hindi: the anusvara stands in for it
+    // (गंगा, पंखा). The old example, गंगा, therefore did not contain ङ at all —
+    // the fill-in game blanked the first ग instead and recorded the child's
+    // answer against ग, and the spelling game rendered a single option. These
+    // are the traditional spellings, where ङ is written out as the first half
+    // of the conjunct. Reviewed against nothing but the Unicode text — a Hindi
+    // teacher should confirm them.
     exampleWords: [
-      { word: "गंगा", image: "🌊", meaning: "Ganges (nasal)" }
+      { word: "गङ्गा", image: "🌊", meaning: "Ganges" },
+      { word: "पङ्खा", image: "🪭", meaning: "Fan" },
+      { word: "अङ्गूर", image: "🍇", meaning: "Grapes" },
     ]
   },
   "च": {
@@ -98,8 +107,13 @@ export const LETTER_CONTENT: Record<string, LetterContent> = {
     letter: "ञ",
     pronunciationHint: "Nasal sound from the center of the mouth",
     mouthEmoji: "😌",
+    // Same problem as ङ: modern spelling writes चंचल with an anusvara, so the
+    // word taught for ञ did not contain ञ. Traditional spellings, where ञ is the
+    // first half of the conjunct. A Hindi teacher should confirm them.
     exampleWords: [
-      { word: "चंचल", image: "🧒", meaning: "Playful" }
+      { word: "चञ्चल", image: "🧒", meaning: "Playful" },
+      { word: "पञ्जा", image: "🐾", meaning: "Paw" },
+      { word: "मञ्च", image: "🎭", meaning: "Stage" },
     ]
   },
   "ट": {

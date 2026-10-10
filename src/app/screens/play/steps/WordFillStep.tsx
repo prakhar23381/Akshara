@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AudioButton } from "../../../components/AudioButton";
 import { PlayLayout } from "../PlayLayout";
 import { OptionGrid } from "../../../components/OptionGrid";
@@ -7,7 +7,7 @@ import { useSession } from "../../../contexts/SessionContext";
 import { speakHindi } from "../../../utils/speech";
 import { playSuccessSound, playErrorSound } from "../../../utils/soundEffects";
 import { useHesitationLadder } from "../../../hooks/useHesitationLadder";
-import { buildFillQuestions, QUESTIONS_PER_ROUND } from "./wordQuestions";
+import { buildFillQuestions, QUESTIONS_PER_ROUND, type WordOption } from "./wordQuestions";
 import type { StepProps } from "../types";
 
 export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
@@ -23,14 +23,15 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
     [letter, levelConfig.confused_letters, levelConfig.distractor_pool],
   );
   const [index, setIndex] = useState(0);
-  const [chosen, setChosen] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<WordOption | null>(null);
   const [locked, setLocked] = useState(false);
   const shownAt = useRef(performance.now());
 
   const q = questions[index];
+  const total = Math.min(questions.length, QUESTIONS_PER_ROUND);
 
   const advance = useCallback(() => {
-    if (index < Math.min(questions.length, QUESTIONS_PER_ROUND) - 1) {
+    if (index < total - 1) {
       setIndex((i) => i + 1);
       setChosen(null);
       setLocked(false);
@@ -38,18 +39,29 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
     } else {
       onComplete();
     }
-  }, [index, questions.length, onComplete]);
+  }, [index, total, onComplete]);
 
-  function pick(option: string) {
+  // A letter with no usable word used to leave the child on a screen reading
+  // "No words available" with no button — a dead end mid-session. Move on.
+  const skipped = useRef(false);
+  useEffect(() => {
+    if (questions.length === 0 && !skipped.current) {
+      skipped.current = true;
+      onComplete();
+    }
+  }, [questions.length, onComplete]);
+
+  function pick(option: WordOption) {
     if (locked || !q) return;
     setChosen(option);
     setLocked(true);
 
-    // These games use confusable distractors, so they measure fine feature
-    // discrimination, not gross shape recognition.
+    // Recorded at letter level: the session's letter, and the consonant the
+    // chosen akshara carries. These games use confusable distractors, so they
+    // measure fine feature discrimination, not gross shape recognition.
     recordAttempt("word_fill", {
-      target_letter: q.answer,
-      selected_letter: option,
+      target_letter: letter,
+      selected_letter: option.consonant,
       module_type: "similar",
       time_to_interact_ms: Math.max(0, Math.round(performance.now() - shownAt.current)),
       was_guided_win: false,
@@ -57,20 +69,21 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
       jitter_count: 0,
     });
 
-    if (option === q.answer) playSuccessSound();
+    const right = option.text === q.answer;
+    if (right) playSuccessSound();
     else playErrorSound();
-    setTimeout(advance, option === q.answer ? 900 : 1400);
+    setTimeout(advance, right ? 900 : 1400);
   }
 
   // Stalled? Dim, then hint, then answer for the child — the same ladder
   // Listen-to-Letter uses. Without it a child who froze here had no way on.
   const rescue = useCallback(() => {
     if (locked || !q) return;
-    setChosen(q.answer);
+    setChosen({ text: q.answer, consonant: letter });
     setLocked(true);
     recordAttempt("word_fill", {
-      target_letter: q.answer,
-      selected_letter: q.answer,
+      target_letter: letter,
+      selected_letter: letter,
       module_type: "similar",
       time_to_interact_ms: 0,
       was_guided_win: true,
@@ -79,7 +92,7 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
     });
     playSuccessSound();
     setTimeout(advance, 1200);
-  }, [locked, q, recordAttempt, advance]);
+  }, [locked, q, letter, recordAttempt, advance]);
 
   const phase = useHesitationLadder({
     stage1Ms: levelConfig.hesitation_trigger_stage1_ms,
@@ -89,19 +102,11 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
     onRescue: rescue,
   });
 
-  if (!q) {
-    return (
-      <PlayLayout>
-        <p className="t-0 text-gray-500">No words available for this letter.</p>
-      </PlayLayout>
-    );
-  }
-
-  const chars = [...q.word];
+  if (!q) return null;
 
   return (
     <PlayLayout centerBody={false}>
-      <StepDots total={Math.min(questions.length, QUESTIONS_PER_ROUND)} current={index} />
+      <StepDots total={total} current={index} />
 
       <h1 className="shrink-0 t-1 font-bold text-gray-800 text-center">
         Fill in the missing letter ✏️
@@ -115,14 +120,20 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
           <AudioButton onPlay={() => speakHindi(q.word)} />
           <span className="t--1 text-gray-500 tracking-wide">{q.meaning}</span>
         </div>
+        {/* One span per akshara, never per code point: a matra stays with its
+            consonant, so it can neither detach nor land on the blank's "?". */}
         <p className="letter-glyph t-3 font-bold text-gray-800 tracking-wide">
-          {chars.map((c, i) =>
+          {q.parts.map((part, i) =>
             i === q.blankIndex ? (
-              <span key={i} className="text-[#4A90E2]">
-                {chosen ?? "?"}
+              <span
+                key={i}
+                className="inline-block text-center text-[#4A90E2] border-b-4 border-dashed border-[#4A90E2]"
+                style={{ minWidth: "1.3em" }}
+              >
+                {chosen?.text ?? "?"}
               </span>
             ) : (
-              <span key={i}>{c}</span>
+              <span key={i}>{part}</span>
             ),
           )}
         </p>
@@ -130,9 +141,9 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
 
       <OptionGrid
         items={q.options}
-        keyOf={(o) => o}
+        keyOf={(o) => o.text}
         render={(option) => {
-          const isAnswer = option === q.answer;
+          const isAnswer = option.text === q.answer;
           const dimmed = !locked && phase !== "default" && !isAnswer;
           const state = !locked
             ? phase === "hint" && isAnswer
@@ -140,7 +151,7 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
               : dimmed
                 ? "bg-white border-gray-300 opacity-30"
                 : "bg-white border-gray-300"
-            : option === chosen
+            : option.text === chosen?.text
               ? isAnswer
                 ? "bg-[#4CAF50] border-[#4CAF50] text-white"
                 : "bg-white border-[#E76F51]"
@@ -155,7 +166,7 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
               style={{ borderRadius: "var(--card-radius)" }}
             >
               <span className="letter-glyph font-black" style={{ fontSize: "clamp(1.25rem, 6vmin, 2.5rem)" }}>
-                {option}
+                {option.text}
               </span>
             </button>
           );

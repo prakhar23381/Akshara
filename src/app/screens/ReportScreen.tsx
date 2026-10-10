@@ -45,6 +45,7 @@ const ACTIVITY_LABEL: Record<string, string> = {
   intro: "Intro",
   pronunciation: "Sound",
   example_words: "Words",
+  matras: "Matras",
   tracing: "Tracing",
   memory: "Matching",
   identify: "Listen & tap",
