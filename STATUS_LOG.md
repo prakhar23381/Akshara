@@ -51,6 +51,17 @@ current state and recovery context in
 * Left open: the hint dot is placed as a percentage of the tile and was never
   calibrated against the glyphs (`TODO.md` H2).
 
+### Released (on the user's instruction)
+* `main` fast-forwarded `b66c766 → 9a6b29a` and pushed. Before: 184 checks
+  green, build clean. After: production serves `index-C1m0XGa8.js` and
+  `index-D6u5eBcW.css`, both byte-identical to the local build; env inlined;
+  routes and audio up; the new report and the container-query tile sizing
+  present in the live bundle.
+* **Then the live site itself was rendered** with the visual harness (guest
+  mode in a throwaway profile, so nothing reaches the database): the report
+  on a tablet, Listen-to-Letter on a tablet, spelling and the barakhadi on a
+  phone — all centred, no overflow, matching the pre-release shots.
+
 ## 2026-10-10
 
 Device testing produced nine reports. Three phases were built against them,
