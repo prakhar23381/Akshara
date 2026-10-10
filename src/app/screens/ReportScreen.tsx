@@ -9,6 +9,7 @@ import {
   type SessionSummary,
 } from "../api/client";
 import { LETTER_SEQUENCE } from "../types/levelConfig";
+import { useAuth } from "../contexts/AuthContext";
 
 /* ── Colour ───────────────────────────────────────────────────────────────────
    Section accents come from the validated categorical palette and carry
@@ -153,18 +154,29 @@ function Section({
 
 export function ReportScreen() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [report, setReport] = useState<ProgressReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("overview");
   const [openSession, setOpenSession] = useState<string | null>(null);
   const [pickedLetter, setPickedLetter] = useState<string | null>(null);
 
+  // Wait for auth to settle: building the report for "no one" first would
+  // flash "No sessions recorded yet" before the child's own report arrived.
+  const userId = user?.id ?? "offline";
+  const metadataName = user?.user_metadata?.display_name as string | undefined;
   useEffect(() => {
-    fetchProgressReport().then((r) => {
+    if (authLoading) return;
+    let live = true;
+    fetchProgressReport(userId, metadataName).then((r) => {
+      if (!live) return;
       setReport(r);
       setLoading(false);
     });
-  }, []);
+    return () => {
+      live = false;
+    };
+  }, [authLoading, userId, metadataName]);
 
   const practised = useMemo(
     () => (report ? LETTER_SEQUENCE.filter((l) => report.letter_stats[l]) : []),
@@ -273,6 +285,9 @@ export function ReportScreen() {
               : ""}
             {" · "}
             {letters_mastered}/{LETTER_SEQUENCE.length} mastered
+            {/* A device-only report may be missing sessions played elsewhere.
+                Say so, or an adult reads a partial record as the whole one. */}
+            {report.data_source === "device" && " · saved on this device only"}
           </p>
         </div>
         <button

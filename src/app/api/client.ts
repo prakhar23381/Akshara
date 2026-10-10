@@ -8,8 +8,13 @@ import { LETTER_SEQUENCE } from "../types/levelConfig";
 import { supabase } from "../lib/supabase";
 import { queueOfflineSession, syncOfflineSessions } from "../lib/offline_sync";
 import { analyzeLocally, planSession } from "../lib/adaptiveEngine";
-import { loadAllSessions } from "../lib/sessionStore";
-import { loadLearnerProfile } from "../lib/learnerProfile";
+import { loadAllSessions, loadRowsFor, rowToSession } from "../lib/sessionStore";
+import {
+  loadLearnerProfile,
+  normaliseRow,
+  readsDatabase,
+  withTimeout,
+} from "../lib/learnerProfile";
 import {
   buildStepOrder,
   sessionAttempts,
@@ -95,6 +100,12 @@ export interface ProgressReport {
     letter_insights: Record<string, string>;
   };
   provider: string;
+  /**
+   * Where the records came from. "device" means the database was not read —
+   * a guest, or a signed-in child whose database request failed or timed out —
+   * so the report may be missing sessions played on another device.
+   */
+  data_source?: "database+device" | "device";
 
   // ── Report-level context a specialist needs to read the numbers ──────────
   /** Per-session rows, newest first. Empty for data written before v2. */
@@ -245,27 +256,32 @@ export async function prepareSessionConfig(
   return levelConfig;
 }
 
+/** One child's records, from wherever they were found. */
+export interface ReportSources {
+  /** `learning_sessions` rows, v1 and v2, this child only. */
+  rows: any[];
+  /** `letter_progress` rows, this child only. */
+  progress: any[];
+  displayName: string;
+  source: "database+device" | "device";
+}
+
 /**
- * Builds the progress report from locally recorded sessions.
+ * Builds the progress report from one child's records.
  *
  * Every figure is derived from stored attempts. Nothing is estimated and
  * nothing is invented — a parent or specialist must be able to trace each
  * statement back to a session the child actually completed.
+ *
+ * Pure: it reads nothing itself. It used to read three localStorage keys
+ * directly and unfiltered, so every child who had used the device was merged
+ * into one report, a signed-in child was titled after `profiles[0]` (always
+ * the guest profile), and their letters mastered came from a key only the
+ * guest mock writes — always 0. `fetchProgressReport` now gathers the records.
  */
-export function buildProgressReport(): ProgressReport {
-  const read = <T,>(key: string, fallback: T): T => {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? (JSON.parse(raw) as T) : fallback;
-    } catch {
-      return fallback;
-    }
-  };
-
-  const progress = read<any[]>("akshara_db_letter_progress", []);
-  const sessions = read<any[]>("akshara_db_learning_sessions", []);
-  const profiles = read<any[]>("akshara_db_user_profiles", []);
-  const displayName = profiles[0]?.display_name ?? "Guest Explorer";
+export function buildProgressReport(src: ReportSources): ProgressReport {
+  const { progress, displayName } = src;
+  const sessions = src.rows;
 
   const totalSessions = sessions.length;
   const lettersMastered = progress.filter((p: any) => p.mastered).length;
@@ -412,7 +428,11 @@ export function buildProgressReport(): ProgressReport {
   // Sessions carry what a single sitting actually contained: which activities
   // were finished, how long it took, and whether the child saw it through.
   // Aggregates alone cannot answer "what happened on Tuesday".
-  const sessionRows: SessionSummary[] = loadAllSessions().map((sess) => {
+  const sessionRows: SessionSummary[] = sessions
+    .map(rowToSession)
+    .filter((sess): sess is NonNullable<typeof sess> => sess !== null)
+    .sort((a, b) => Date.parse(b.started_at) - Date.parse(a.started_at))
+    .map((sess) => {
     const attempts = sessionAttempts(sess);
     const unaided = attempts.filter(
       (a) => a.target_letter === a.selected_letter && !a.was_guided_win,
@@ -644,6 +664,7 @@ export function buildProgressReport(): ProgressReport {
       letter_insights: letterInsights,
     },
     provider: "on-device",
+    data_source: src.source,
     sessions: sessionRows,
     generated_at: new Date().toISOString(),
     assessment_window: {
@@ -671,25 +692,96 @@ export function buildProgressReport(): ProgressReport {
 }
 
 
+function readLocal<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/** Database rows and device rows for the same sessions, device copy preferred. */
+export function mergeRows(remote: any[], local: any[]): any[] {
+  const key = (r: any) => r.session_id ?? r.id;
+  const merged = new Map<string, any>();
+  remote.forEach((r) => merged.set(key(r), r));
+  local.forEach((r) => merged.set(key(r), r));
+  return [...merged.values()];
+}
+
 /**
- * Builds the progress report.
+ * Gathers one child's records and builds their report.
  *
- * Always computed on-device, deliberately. The report is a clinical artifact,
+ * - **This device**, filtered to the child: their session rows, and — for a
+ *   guest, whose writes go to the local mock — their progress and profile.
+ * - **The database**, for a signed-in child: `learning_sessions`,
+ *   `letter_progress` and their `user_profiles` name. Merged with the device
+ *   by session id, device copy preferred as the more current. A request that
+ *   fails or takes over 2.5s falls back to the device, and the report says so
+ *   (`data_source: "device"`), so a partial report is never mistaken for a
+ *   complete one.
+ *
+ * Still computed on-device, deliberately. The report is a clinical artifact,
  * so it has to be reproducible: the same sessions must always produce the same
- * figures and the same wording. An LLM summary varies between runs and can
- * assert more than the data supports, which is the opposite of what a
- * specialist reading it needs.
+ * figures and the same wording, which an LLM summary does not.
  *
- * It is also the only path that computes the question-level metrics — rescue
- * rate, the gross-shape versus feature-level split, latency spread. The
- * server's /progress_report predates those, so calling it would hand the UI a
- * report with most fields empty.
- *
- * The LLM still earns its place elsewhere: choosing distractors from a child's
- * own confusion history, in /analyze_session, where variety is a feature.
+ * `fallbackName` is used when no profile row has a name — pass the signed-in
+ * user's metadata name.
  */
-export async function fetchProgressReport(): Promise<ProgressReport | null> {
-  return buildProgressReport();
+export async function fetchProgressReport(
+  userId: string,
+  fallbackName?: string,
+): Promise<ProgressReport> {
+  const localRows = loadRowsFor(userId);
+  const localProgress = readLocal<any[]>("akshara_db_letter_progress", []).filter(
+    (p) => p.user_id === userId,
+  );
+  const localProfile = readLocal<any[]>("akshara_db_user_profiles", []).find(
+    (p) => p.id === userId,
+  );
+
+  let rows = localRows;
+  let progress = localProgress;
+  let name: string | undefined = localProfile?.display_name;
+  let source: ReportSources["source"] = "device";
+
+  if (readsDatabase(userId)) {
+    const remote = await withTimeout(
+      Promise.all([
+        supabase
+          .from("learning_sessions")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1000),
+        supabase.from("letter_progress").select("*").eq("user_id", userId),
+        supabase.from("user_profiles").select("display_name").eq("id", userId).maybeSingle(),
+      ]),
+    );
+    if (remote) {
+      const [sessionsRes, progressRes, profileRes] = remote;
+      if (!sessionsRes.error && sessionsRes.data) {
+        rows = mergeRows((sessionsRes.data as any[]).map(normaliseRow), localRows);
+        source = "database+device";
+      } else if (sessionsRes.error) {
+        console.warn("[Report] sessions unavailable:", sessionsRes.error.message);
+      }
+      // The database is the only place a signed-in child's progress is
+      // written, so when it answers it is the whole truth.
+      if (!progressRes.error && progressRes.data) progress = progressRes.data as any[];
+      if (!profileRes.error && profileRes.data?.display_name) {
+        name = profileRes.data.display_name as string;
+      }
+    }
+  }
+
+  return buildProgressReport({
+    rows,
+    progress,
+    displayName: name ?? fallbackName ?? "Your child",
+    source,
+  });
 }
 
 

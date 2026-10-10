@@ -109,19 +109,24 @@ export function upsertSession(s: LearningSession): void {
   }
 }
 
-export function loadSession(sessionId: string): LearningSession | null {
-  const row = readRows().find(
-    (r) => r.session_id === sessionId || r.id === sessionId,
-  );
-  if (!row || row.schema_version !== 2) return null;
+/**
+ * A stored row — from this device or from the `learning_sessions` table, which
+ * hold the same shape — as a session. Null for a legacy v1 row, which has no
+ * activity detail to rebuild.
+ *
+ * The one mapping. The learner profile and the report used to need their own
+ * copies because they read different stores; they now read both.
+ */
+export function rowToSession(row: Record<string, any> | undefined): LearningSession | null {
+  if (!row || row.schema_version !== 2 || !row.session_id) return null;
   return {
     session_id: row.session_id,
     user_id: row.user_id,
     letter: row.letter,
-    session_number: row.session_number,
-    status: row.status,
-    started_at: row.started_at,
-    ended_at: row.ended_at,
+    session_number: row.session_number ?? 1,
+    status: row.status ?? "completed",
+    started_at: row.started_at ?? row.created_at,
+    ended_at: row.ended_at ?? null,
     level_config: row.level_config,
     activities: row.activities ?? [],
     metrics: row.metrics ?? null,
@@ -129,6 +134,17 @@ export function loadSession(sessionId: string): LearningSession | null {
     reasoning: row.confused_pairs?.reasoning ?? null,
     schema_version: 2,
   };
+}
+
+export function loadSession(sessionId: string): LearningSession | null {
+  return rowToSession(
+    readRows().find((r) => r.session_id === sessionId || r.id === sessionId),
+  );
+}
+
+/** This device's raw rows for one child — what the report aggregates. */
+export function loadRowsFor(userId: string): Record<string, any>[] {
+  return readRows().filter((r) => r.user_id === userId);
 }
 
 /** Every v2 session, newest first. Legacy v1 rows are excluded. */

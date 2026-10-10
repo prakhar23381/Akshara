@@ -3,8 +3,13 @@
  * figures must be traceable to recorded sessions. These checks assert the
  * per-session rows and that nothing is invented when data is thin.
  */
-import { buildProgressReport } from "../src/app/api/client";
-import { upsertSession } from "../src/app/lib/sessionStore";
+import {
+  buildProgressReport,
+  fetchProgressReport,
+  mergeRows,
+} from "../src/app/api/client";
+import { upsertSession, loadRowsFor } from "../src/app/lib/sessionStore";
+import { normaliseRow } from "../src/app/lib/learnerProfile";
 import type { LearningSession } from "../src/app/types/session";
 import type { LevelConfig, QuestionAttempt } from "../src/app/types/levelConfig";
 
@@ -66,15 +71,31 @@ function session(over: Partial<LearningSession>): LearningSession {
   };
 }
 
+// Two children on one device. The guest profile is listed first on purpose:
+// the report used to take `profiles[0]`, whoever that was.
 localStorage.setItem(
   "akshara_db_user_profiles",
-  JSON.stringify([{ display_name: "Aarav", age: 7 }]),
+  JSON.stringify([
+    { id: "guest-user-id", display_name: "Guest Explorer", age: 6 },
+    { id: "child-1", display_name: "Aarav", age: 7 },
+  ]),
 );
 localStorage.setItem(
   "akshara_db_letter_progress",
   JSON.stringify([
-    { letter: "घ", mastered: false, sessions_count: 2, last_cognitive_state: "feature_neglect" },
+    { user_id: "child-1", letter: "घ", mastered: false, sessions_count: 2, last_cognitive_state: "feature_neglect" },
+    { user_id: "child-2", letter: "क", mastered: true, sessions_count: 3, last_cognitive_state: "visual_mastery" },
   ]),
+);
+// Another child's session on the same device must not reach child-1's report.
+upsertSession(
+  session({
+    session_id: "s-other-child",
+    user_id: "child-2",
+    letter: "क",
+    started_at: new Date("2026-10-07T09:00:00Z").toISOString(),
+    ended_at: new Date("2026-10-07T09:05:00Z").toISOString(),
+  }),
 );
 
 // A complete session with every activity type represented.
@@ -122,7 +143,8 @@ upsertSession(
   }),
 );
 
-const report = buildProgressReport();
+async function main() {
+const report = await fetchProgressReport("child-1");
 const rows = report.sessions ?? [];
 
 console.log("\n-- sessions appear in the report --");
@@ -157,5 +179,49 @@ ok("report is not flagged empty", report.empty === false, String(report.empty));
 ok("provider is on-device", report.provider === "on-device", report.provider);
 ok("generated_at present", typeof report.generated_at === "string");
 
+console.log("\n-- one child per report --");
+ok("another child's session is excluded", !rows.some((r) => r.session_id === "s-other-child"));
+ok("another child's letter does not appear", !report.letter_stats["क"], Object.keys(report.letter_stats).join(" "));
+ok("another child's mastery is not counted", report.letters_mastered === 0, String(report.letters_mastered));
+ok("named from this child's profile, not profiles[0]", report.display_name === "Aarav", report.display_name);
+ok("session total counts only this child", report.total_sessions === 2, String(report.total_sessions));
+ok("a guest / unconfigured report says it is device-only", report.data_source === "device", String(report.data_source));
+
+const unnamed = await fetchProgressReport("child-3", "Meera");
+ok("falls back to the signed-in name when no profile row has one", unnamed.display_name === "Meera", unnamed.display_name);
+ok("a child with no sessions gets an empty report, not someone else's", unnamed.empty === true, String(unnamed.empty));
+
+console.log("\n-- database rows merged in --");
+// A session that exists only in the database, with Postgres's timestamp format.
+const remoteOnly = {
+  ...loadRowsFor("child-2")[0],
+  id: "s-remote",
+  session_id: "s-remote",
+  user_id: "child-1",
+  started_at: "2026-10-08T09:00:00.5+00:00",
+  created_at: "2026-10-08T09:00:00.5+00:00",
+  ended_at: "2026-10-08T09:06:00+00:00",
+};
+// And a stale database copy of a session this device holds more recently.
+const staleCopy = { ...loadRowsFor("child-1").find((r) => r.session_id === "s-abandoned"), status: "in_progress" };
+const merged = mergeRows([remoteOnly, staleCopy].map(normaliseRow), loadRowsFor("child-1"));
+ok("database-only session is included", merged.some((r) => r.session_id === "s-remote"));
+ok("no session is duplicated", merged.length === 3, String(merged.length));
+ok("the device copy wins over a stale database copy",
+  merged.find((r) => r.session_id === "s-abandoned")?.status === "abandoned");
+ok("Postgres timestamps are normalised to ISO", normaliseRow(remoteOnly).started_at === "2026-10-08T09:00:00.500Z",
+  String(normaliseRow(remoteOnly).started_at));
+
+const fromDb = buildProgressReport({ rows: merged, progress: [], displayName: "Aarav", source: "database+device" });
+ok("a database-only session reaches the session list", (fromDb.sessions ?? []).some((r) => r.session_id === "s-remote"));
+ok("and is ordered by time among device sessions", fromDb.sessions?.[0]?.session_id === "s-remote", fromDb.sessions?.[0]?.session_id);
+ok("the report records its source", fromDb.data_source === "database+device");
+
 console.log(`\nRESULT ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
+}
+
+main().catch((err) => {
+  console.log("  ✗ report test threw", err);
+  process.exit(1);
+});

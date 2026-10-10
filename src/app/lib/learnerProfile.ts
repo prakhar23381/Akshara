@@ -1,6 +1,6 @@
-import type { CognitiveState, LevelConfig } from "../types/levelConfig";
+import type { CognitiveState } from "../types/levelConfig";
 import { sessionAttempts, type LearningSession } from "../types/session";
-import { loadAllSessions } from "./sessionStore";
+import { loadAllSessions, rowToSession } from "./sessionStore";
 import { supabase, isSupabaseConfigured } from "./supabase";
 
 /**
@@ -63,7 +63,44 @@ const REVERSE_WEIGHT = 0.5;
 /** Response times are taken from this many recent sessions. */
 const LATENCY_SESSIONS = 5;
 /** How long the database gets before the device's own history is used alone. */
-const REMOTE_TIMEOUT_MS = 2500;
+export const REMOTE_TIMEOUT_MS = 2500;
+
+/**
+ * Whether this child has a database history to read. Guests do not: they have
+ * no auth session, and their id is not a UUID, so row-level security rejects
+ * every read and write.
+ */
+export function readsDatabase(userId: string): boolean {
+  const offline = localStorage.getItem("akshara_offline_mode") === "true";
+  return !offline && isSupabaseConfigured && userId !== "offline";
+}
+
+/** Resolve to the promise's value, or to null if it is slower than `ms` or throws. */
+export async function withTimeout<T>(p: PromiseLike<T>, ms = REMOTE_TIMEOUT_MS): Promise<T | null> {
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), ms));
+  try {
+    return await Promise.race([Promise.resolve(p), timeout]);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Postgres returns `2026-10-10T07:46:49.12+00:00`; this device stores
+ * `2026-10-10T07:46:49.120Z`. Both are the same instant, but code here sorts
+ * timestamps as strings, so a merged history must use one format.
+ */
+export function normaliseRow<T extends Record<string, unknown>>(row: T): T {
+  const out: Record<string, unknown> = { ...row };
+  for (const k of ["created_at", "started_at", "ended_at", "updated_at"]) {
+    const v = out[k];
+    if (typeof v === "string") {
+      const t = Date.parse(v);
+      if (!Number.isNaN(t)) out[k] = new Date(t).toISOString();
+    }
+  }
+  return out as T;
+}
 
 /**
  * A single letter, not a matra, a half-form or a whole word. The word games
@@ -159,26 +196,6 @@ export function confusedWith(profile: LearnerProfile, target: string): string[] 
     .map(([l]) => l);
 }
 
-/** A database row from `learning_sessions`, as a session, or null if it predates v2. */
-function rowToSession(row: Record<string, unknown>): LearningSession | null {
-  if (row.schema_version !== 2 || !row.session_id) return null;
-  return {
-    session_id: row.session_id as string,
-    user_id: row.user_id as string,
-    letter: row.letter as string,
-    session_number: (row.session_number as number) ?? 1,
-    status: (row.status as LearningSession["status"]) ?? "completed",
-    started_at: (row.started_at as string) ?? (row.created_at as string),
-    ended_at: (row.ended_at as string) ?? null,
-    level_config: row.level_config as LevelConfig,
-    activities: (row.activities as LearningSession["activities"]) ?? [],
-    metrics: (row.metrics as LearningSession["metrics"]) ?? null,
-    cognitive_state: (row.cognitive_state as CognitiveState) ?? null,
-    reasoning: null,
-    schema_version: 2,
-  };
-}
-
 async function fetchRemoteSessions(userId: string): Promise<LearningSession[] | null> {
   const query = Promise.resolve(
     supabase
@@ -197,18 +214,10 @@ async function fetchRemoteSessions(userId: string): Promise<LearningSession[] | 
       return null;
     }
     return ((data ?? []) as unknown as Record<string, unknown>[])
-      .map(rowToSession)
+      .map((r) => rowToSession(normaliseRow(r)))
       .filter((s): s is LearningSession => s !== null);
   });
-
-  const timeout = new Promise<null>((resolve) =>
-    setTimeout(() => resolve(null), REMOTE_TIMEOUT_MS),
-  );
-  try {
-    return await Promise.race([query, timeout]);
-  } catch {
-    return null;
-  }
+  return withTimeout(query);
 }
 
 /**
@@ -230,10 +239,7 @@ async function fetchRemoteSessions(userId: string): Promise<LearningSession[] | 
 export async function loadLearnerProfile(userId: string): Promise<LearnerProfile> {
   const local = loadAllSessions().filter((s) => s.user_id === userId);
 
-  const offline = localStorage.getItem("akshara_offline_mode") === "true";
-  if (offline || !isSupabaseConfigured || userId === "offline") {
-    return buildLearnerProfile(local, "device");
-  }
+  if (!readsDatabase(userId)) return buildLearnerProfile(local, "device");
 
   const remote = await fetchRemoteSessions(userId);
   if (remote === null) return buildLearnerProfile(local, "device");

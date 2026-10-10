@@ -21,16 +21,23 @@ import { LETTER_SEQUENCE } from "../types/levelConfig";
  */
 export function ChildProgressScreen() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [report, setReport] = useState<ProgressReport | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const userId = user?.id ?? "offline";
   useEffect(() => {
-    fetchProgressReport().then((r) => {
+    if (authLoading) return;
+    let live = true;
+    fetchProgressReport(userId).then((r) => {
+      if (!live) return;
       setReport(r);
       setLoading(false);
     });
-  }, []);
+    return () => {
+      live = false;
+    };
+  }, [authLoading, userId]);
 
   const avatar = user?.user_metadata?.avatar ?? "🐻";
   const stats = report?.letter_stats ?? {};
