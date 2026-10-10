@@ -138,6 +138,20 @@ in full in `docs/09_DATA_FLOW_AUDIT.md`. In short:
 * **Not verified on a device** (`TODO.md` V5), and migration 002 not applied
   (D3).
 
+### Migration 002 applied to the live project (by Prakhar)
+* Verified from here with the anon key, each probe with a negative control:
+  all six tables reachable (unknown table → 404); `role`, `pin_hash`,
+  `recorded_by` exist (unknown column → 400); all seven operations exist and
+  refuse anon with `42501` (unknown function → 404); `is_guardian` and
+  `my_role` answer anon with `false` / `null`; the trigger is present.
+* Because the trigger is the script's last statement and 002 is one
+  transaction, its presence also shows the foreign-key moves committed — which
+  Postgres allows only if every session has a child.
+* The first run of `002_verify.sql` showed only the trigger count: the SQL
+  editor displays only the final statement's result. The file now ends with a
+  one-table summary of all 13 checks, itself tested against a migrated
+  database.
+
 **End state:** production = `main` = `bcc3897`. 168 app checks pass across 6
 files, plus 56 database checks. tsc clean.
 

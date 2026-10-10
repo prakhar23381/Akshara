@@ -8,10 +8,12 @@ honest.
 |---|---|---|
 | `000_init.sql` | `user_profiles`, `learning_sessions`, `letter_progress`; RLS policies on all three | **applied** |
 | `001_session_model.sql` | 9 columns on `learning_sessions` (`session_id`, `status`, `started_at`, `ended_at`, `duration_ms`, `activities`, `metrics`, `level_config`, `schema_version`), two indexes, and a backfill of `started_at` on legacy rows | **applied** — verified 2026-10-07 |
-| `002_accounts.sql` | Adults own children: `children`, `child_guardians`, `classes`, `class_members`, `class_join_codes`, `child_share_codes`; `role` and `pin_hash` on `user_profiles`; `recorded_by` on `learning_sessions`; foreign keys re-pointed at `children`; guardian policies; seven operations (`create_child`, `create_class`, `join_class`, …); a temporary trigger for the deployed client | **NOT applied.** Tested against real Postgres (56 checks, `tests/test_002.cjs`) |
+| `002_accounts.sql` | Adults own children: `children`, `child_guardians`, `classes`, `class_members`, `class_join_codes`, `child_share_codes`; `role` and `pin_hash` on `user_profiles`; `recorded_by` on `learning_sessions`; foreign keys re-pointed at `children`; guardian policies; seven operations (`create_child`, `create_class`, `join_class`, …); a temporary trigger for the deployed client | **applied** 2026-10-10 by Prakhar. Verified from outside with the anon key: all six tables, the three new columns, all seven operations (each refusing anon with `42501`), the helpers open to anon — every probe with a negative control. The catalog-only checks (every account got its child and role; the policy list) are the summary query at the end of `002_verify.sql` |
 
 Companions: `002_verify.sql` (read-only checks with expected results, run after
-applying) and `002_rollback.sql` (undoes 002; refuses once the new client has
+applying — **run the whole file and read the last table**: the SQL editor shows
+only the final statement's result, so the file ends with a one-table summary of
+every check) and `002_rollback.sql` (undoes 002; refuses once the new client has
 recorded sessions for a child it created, rather than delete them).
 
 ## 002 — what to know before running it

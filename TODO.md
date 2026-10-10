@@ -109,14 +109,13 @@ instruction. The branches below are merged; kept for reference only:
 | `fix/r1-report-data` | report built per child from database + device | `ee78be8`+ |
 | `feat/w5a-accounts-schema` | migration 002 (accounts, classes, share codes), verify + rollback, PGlite test | — |
 
-- [ ] **D3 · Run migration 002 on the live project.** Yours — the anon key
-      cannot change the schema. Review `backend/migrations/002_accounts.sql`,
-      run it in the Supabase SQL editor, then run `002_verify.sql`: every query
-      states what it should return. Safe for the deployed client (it keeps the
-      old policies, and a trigger covers new sign-ups on it). **W5b's client
-      must not merge before this is applied** — it writes to tables 002
-      creates. If anything looks wrong, `002_rollback.sql` undoes it (it
-      refuses once new-model children have sessions).
+- [~] **D3 · Migration 002 — applied 2026-10-10; one check left.** Tables,
+      columns, operations and anon permissions are verified live from here.
+      What only catalog access can show — every account got its child and a
+      role, and the policy list — is the summary at the end of
+      `002_verify.sql`: **run the whole file again; the last table should be 13
+      rows of ✓.** (The editor shows only the last statement's result, which is
+      why the first run showed just the trigger count.)
 
 - [ ] **V5 · Verify production on a device.** The release went out before
       this was done, so it now checks what children are actually using, at
