@@ -1,4 +1,7 @@
 @import 'tailwindcss' source(none);
 @source '../**/*.{js,ts,jsx,tsx}';
+/* The report lab (lab.html, development only) is never built, so its classes
+   must not reach the production stylesheet either. It styles itself inline. */
+@source not '../lab';
 
 @import 'tw-animate-css';

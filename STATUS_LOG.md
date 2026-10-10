@@ -4,6 +4,39 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-11 — a fresh report: the brief, and the lab to build it in (`feat/report-v2`)
+
+* **Decided: a fresh report**, not an iteration on W4a, which stays live until
+  the new one replaces it. The brief, from the user's answers (recovery
+  context §4): graphical and layered, parent first then teacher, clean charts,
+  week / month / all switch, no verdict, English, phone-first. Branch
+  `feat/report-v2`, off `feat/w5b-accounts`.
+* **W4-L · The report lab.** `npm run dev` → `/lab.html`. Six scenarios
+  played through the real engine — a new child, one session, Aarav's week, a
+  month (29 sessions, 13 letters, 5 mastered), a struggling child (29%
+  supplied, 4 of 11 sessions stopped early) and a class of 25 (strong,
+  average, struggling, two lapsed, one new, one never played) — with the date
+  fixed at 11 Oct 2026. Phone, tablet and desktop frames side by side, the
+  URL holding the view. New reports in `screens/report-v2/` take records and a
+  date, so the lab can feed them; placeholders for now.
+* **Storage isolated, verified in Brave.** The lab swaps both storages for
+  in-memory copies before any app module loads: the dev app's real storage
+  was unchanged after the lab ran, and the lab made no request but Google
+  Fonts.
+* **Nothing ships, verified.** `dist/` is byte-identical to the pre-lab build,
+  all 36 files. The first comparison was not: Tailwind scans every word under
+  `src/`, comments included, so the lab's classes reached the production CSS
+  (+599 bytes). Fixed with `@source not '../lab'` (user's choice of three);
+  the lab styles itself inline, and the placeholders take colours from a
+  palette as W4a does.
+* `scripts/visual/seed.ts` now plays Aarav's week through the shared generator
+  (`src/lab/fixtures/play.ts`). Output identical to before, all 386 KB, apart
+  from 60 "now" timestamps. `shoot.cjs` gains `lab` shots against the dev
+  server: 18 frames and the workbench, all shot and checked.
+* **Found: a supplied answer counts as right in the diagnosis** (TODO E2). The
+  struggling scenario reached "mastered" on 2 of 3 letters.
+* 220 checks green, typecheck clean, build clean.
+
 ## 2026-10-10 — session end
 
 * **The W4a report is reopened.** The user is not a fan of it. It remains in

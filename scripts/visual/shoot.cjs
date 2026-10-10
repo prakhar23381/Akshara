@@ -2,13 +2,17 @@
 // See scripts/visual/README.md. Usage:
 //   node shoot.cjs <puppeteer-core dir> <scenarios.json> <out dir> <base url> [shot-prefix,...]
 // BROWSER=<path to a Chromium-family browser> overrides the default (Brave).
+//
+// Report lab shots run only when asked for by a "lab" prefix, against the dev
+// server (the lab is never built), and need no scenarios file — pass "-":
+//   node shoot.cjs <puppeteer-core dir> - <out dir> http://localhost:5173 lab
 const path = require("node:path"), fs = require("node:fs");
 const puppeteer = require(path.join(process.argv[2], "node_modules/puppeteer-core"));
-const { scenarios } = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
+const { scenarios } = process.argv[3] === "-" ? { scenarios: {} } : JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
 const OUT = process.argv[4], BASE = process.argv[5];
 const want = (process.argv[6] || "").split(",").filter(Boolean);
-const VIEW = { phone: [390, 844], small: [360, 640], tablet: [820, 1180], desktop: [1440, 900], landscape: [740, 360] };
-const SHOTS = [
+const VIEW = { phone: [390, 844], small: [360, 640], tablet: [820, 1180], desktop: [1440, 900], landscape: [740, 360], wide: [1728, 1000] };
+const APP_SHOTS = [
   // name, scenario, path, viewport, height override (report is one scroll container: a tall viewport shows all of it)
   ["acct-role", "role", "/", "phone"],
   ["acct-pinsetup", "pin-setup", "/", "phone"],
@@ -34,7 +38,17 @@ const SHOTS = [
   ["identify-desktop", "play-identify", "/play", "desktop"],
   ["identify-hint-small", "play-identify", "/play", "small", undefined, 19500],
   ["landscape-identify", "play-identify", "/play", "landscape"],
-].filter(([n]) => want.length === 0 || want.some((w) => n.startsWith(w)));
+];
+// Every lab scenario at every size, plus the workbench itself. The lab seeds
+// its own data, so these use no scenario.
+const LAB_SCENARIOS = ["new", "first", "week", "month", "struggling", "class"];
+const LAB_SHOTS = [
+  ...LAB_SCENARIOS.flatMap((sc) =>
+    ["phone", "tablet", "desktop"].map((vp) => [`lab-${sc}-${vp}`, null, `/lab.html?frame=1&scenario=${sc}`, vp])),
+  ["lab-workbench", null, "/lab.html?scenario=week&size=all", "wide", undefined, 2500],
+];
+const SHOTS = (want.some((w) => w.startsWith("lab")) ? LAB_SHOTS : APP_SHOTS)
+  .filter(([n]) => want.length === 0 || want.some((w) => n.startsWith(w)));
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -56,7 +70,7 @@ const SHOTS = [
         else localStorage.setItem(k, v);
       }
       window.speechSynthesis && (window.speechSynthesis.speak = () => {});
-    }, scenarios[scen]);
+    }, scen ? scenarios[scen] : {});
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));

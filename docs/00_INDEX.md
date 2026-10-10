@@ -25,6 +25,7 @@
 npm install
 cp .env.example .env.local     # then fill in the two VITE_ values
 npm run dev
+# …and /lab.html is the report lab (development only; 05_FRONTEND_REFERENCE.md)
 
 # Backend — optional. Note that its Gemini output has never shaped a session:
 # production never calls it, and session start no longer asks it at all (see

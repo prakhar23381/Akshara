@@ -66,6 +66,23 @@ race conditions where a screen's own guard redirected before a navigation
 landed, plus avatar choices built as unfocusable `<div>`s. Neither tests nor
 screenshots had caught them.
 
+## The report lab
+
+`/lab.html` exists only on the dev server (see `docs/05_FRONTEND_REFERENCE.md`),
+so its shots run against `npm run dev`, need no build and no scenarios file
+(pass `-`), and run only when a `lab` prefix asks for them:
+
+```bash
+npm run dev    # or: ./node_modules/.bin/vite --port 5199 --strictPort
+node scripts/visual/shoot.cjs /tmp/pptr - /tmp/shots http://localhost:5173 lab
+# lab-<scenario>-<phone|tablet|desktop>.png for every scenario, plus lab-workbench.png
+# only some: … http://localhost:5173 lab-month,lab-class
+```
+
+The lab plays its scenarios through the same generator as `seed.ts`
+(`src/lab/fixtures/play.ts`), so the app shots and the lab show the same
+engine behaviour.
+
 ## What it cannot tell you
 
 Touch, audio and text-to-speech, real Android fonts and performance. Those

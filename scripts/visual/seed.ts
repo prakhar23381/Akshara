@@ -1,65 +1,18 @@
 import { upsertSession } from "../../src/app/lib/sessionStore";
-import { planSession, analyzeLocally } from "../../src/app/lib/adaptiveEngine";
+import { planSession } from "../../src/app/lib/adaptiveEngine";
 import { buildLearnerProfile } from "../../src/app/lib/learnerProfile";
 import type { LearningSession } from "../../src/app/types/session";
-import type { QuestionAttempt, ModuleType } from "../../src/app/types/levelConfig";
 import { hashPin } from "../../src/app/lib/accounts";
+import { createPlayer } from "../../src/lab/fixtures/play";
+import { AARAV_WEEK } from "../../src/lab/fixtures/scenarios";
 
 const UID = "guest-user-id";
-const history: LearningSession[] = [];
-let n = 0;
 
-const att = (target: string, picks: string[], module: ModuleType, ms = 4200): QuestionAttempt[] =>
-  picks.map((p, i) => ({
-    target_letter: target, selected_letter: p, module_type: module,
-    time_to_interact_ms: ms + (i % 3) * 700, was_guided_win: false, hover_duration_ms: 0, jitter_count: 0,
-  }));
-
-function play(letter: string, when: string, identify: string[], words: string[], status: "completed" | "abandoned" = "completed"): LearningSession {
-  const profile = buildLearnerProfile(history);
-  const { levelConfig } = planSession(UID, letter, profile, []);
-  const module: ModuleType = levelConfig.distractor_similarity === "low" ? "dissimilar" : "similar";
-  const idAttempts = att(letter, identify, module);
-  const wordAttempts = att(letter, words, "similar", 5200);
-  const t0 = Date.parse(when);
-  const at = (m: number) => new Date(t0 + m * 60_000).toISOString();
-  const v = (type: any, m: number, outcome: any) => ({ type, started_at: at(m), completed_at: at(m + 1), outcome });
-  const activities: any[] = [
-    v("intro", 0, { kind: "viewed", dwell_ms: 4000 }),
-    v("pronunciation", 1, { kind: "viewed", dwell_ms: 5000 }),
-    v("example_words", 2, { kind: "viewed", dwell_ms: 6000 }),
-    v("matras", 3, { kind: "viewed", dwell_ms: 9000 }),
-    v("memory", 4, { kind: "memory", moves: 6 + identify.length % 4, pairs: 3, duration_ms: 40000 }),
-    v("identify", 5, { kind: "questions", attempts: idAttempts }),
-  ];
-  if (status === "completed") {
-    activities.push(v("word_fill", 7, { kind: "questions", attempts: wordAttempts.slice(0, 3) }));
-    activities.push(v("word_spelling", 8, { kind: "questions", attempts: wordAttempts.slice(3) }));
-  }
-  const all = activities.flatMap((a) => (a.outcome.kind === "questions" ? a.outcome.attempts : []));
-  const diag = analyzeLocally({ user_id: UID, target_alphabet: letter, session_id: "x", session_number: 1,
-    avg_latency_ms: 4500, consecutive_fails_peak: 0, attempts: all });
-  const s: LearningSession = {
-    session_id: `00000000-0000-4000-8000-${String(++n).padStart(12, "0")}`,
-    user_id: UID, letter, session_number: history.filter((h) => h.letter === letter).length + 1,
-    status, started_at: at(0), ended_at: at(status === "completed" ? 9 : 6),
-    level_config: levelConfig, activities, metrics: null,
-    cognitive_state: status === "completed" ? diag.state : null,
-    reasoning: status === "completed" ? diag.levelConfig.reasoning : null,
-    schema_version: 2,
-  };
-  history.push(s);
-  return s;
-}
-
-const K = "क", KH = "ख", G = "ग", GH = "घ";
-play(K, "2026-10-03T10:00:00Z", [K, "ख", K, "ख", K], [K, "ख", K, "फ", K, K]);
-play(K, "2026-10-05T10:00:00Z", [K, K, "ख", K, K], [K, K, K, "ख", K, K]);
-play(KH, "2026-10-06T10:00:00Z", [KH, K, KH, K, KH], [KH, "थ", KH, KH, K, KH]);
-play(K, "2026-10-07T10:00:00Z", [K, K, K, K, K], [K, K, K, K, K, K]);
-play(KH, "2026-10-08T10:00:00Z", [KH, KH, K, KH, KH], [KH, KH, KH, K, KH, KH]);
-play(G, "2026-10-09T10:00:00Z", [G, "घ", "घ", "ध"], [], "abandoned");
-play(GH, "2026-10-10T09:00:00Z", [GH, GH, "ग", GH, GH], [GH, GH, "ध", GH, GH, GH]);
+// Aarav's week, played by the generator the report lab shares
+// (src/lab/fixtures). Metrics stay off so this output is unchanged.
+const { history, play } = createPlayer(UID);
+AARAV_WEEK.forEach(play);
+const KH = "ख";
 
 history.forEach(upsertSession);
 const progress = [...new Set(history.map((h) => h.letter))].map((l, i) => {

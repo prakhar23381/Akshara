@@ -271,6 +271,33 @@ Every step has that same shape and none knows what follows it.
 `theme.css`. `tw-animate-css` is imported **here, not from any TS file** — a
 TS-only dependency scan will wrongly call it unused.
 
+Tailwind scans the *text* of every source file under `src/`, comments included,
+so any word that is also a utility name (`inline`, `block`, `isolate`, …)
+generates a rule in the production stylesheet. `src/lab/` is excluded with
+`@source not '../lab'`, because the lab is never built.
+
+## Report lab (development only)
+
+`npm run dev`, then open **`/lab.html`**. A workbench for designing the new
+report (TODO W4): one scenario at a time, rendered at phone (390×844), tablet
+(820×1180) and desktop (1440×900) side by side, each a real device-sized
+viewport scaled to fit. Saving a file updates all three. The address bar keeps
+the scenario and size, so a link reproduces the view; `?frame=1&scenario=…`
+renders one report alone.
+
+| File | Holds |
+|---|---|
+| `lab.html` | the page. `vite build` builds `index.html` only, so the lab never ships — verified by a byte-identical `dist/` |
+| `src/lab/main.tsx` | swaps `localStorage` and `sessionStorage` for in-memory copies **before** any app module loads, with offline mode on. Fails closed if the browser refuses |
+| `src/lab/memoryStorage.ts` | the in-memory `Storage` |
+| `src/lab/Lab.tsx` | the workbench and the frames. Styled inline (see Styles) |
+| `src/lab/fixtures/play.ts` | `createPlayer()` plays scripted sessions through the real `planSession` / `analyzeLocally`; `rowsOf()` stores them through the app's own `upsertSession`; `progressOf()`; a seeded `rng()`. `"?"` in a script means the app supplied the answer |
+| `src/lab/fixtures/scenarios.ts` | `LAB_TODAY` (fixed at 11 Oct 2026), `SCENARIOS`, `buildScenario()`: a new child, one session, Aarav's week (shared with `scripts/visual/seed.ts`), a month of 13 letters, a struggling child, and a class of 25 |
+| `screens/report-v2/ParentReport.tsx` · `ClassReport.tsx` | the new reports — placeholders until W4-P/W4-B. They take records and a date instead of loading them, and are not routed |
+
+Screenshots of every scenario at every size, against the dev server:
+`scripts/visual/README.md` → "The report lab".
+
 ## Tests
 
 `tests/*.test.ts`, run by `scripts/run-tests.mjs` via `npm run test` (which runs

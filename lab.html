@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Akshara report lab</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Development only: served by `npm run dev` at /lab.html, never built.
+         The root rules match index.html, so a frame lays out as the app does. -->
+    <style>
+      html, body { height: 100dvh; margin: 0; overflow: hidden; overscroll-behavior: none; }
+      #root { height: 100dvh; overflow: hidden; }
+      @supports not (height: 100dvh) {
+        html, body, #root { height: 100vh; }
+      }
+      @media print {
+        html, body, #root { height: auto; overflow: visible; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/lab/main.tsx"></script>
+  </body>
+</html>

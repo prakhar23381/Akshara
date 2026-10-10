@@ -145,18 +145,29 @@ instruction. The branches below are merged; kept for reference only:
 - [ ] **E1 · `IdentifyStep` still runs its own hesitation ladder.** The word
       games share `hooks/useHesitationLadder.ts`; Identify's copy is tangled
       with its slow-audio retry, so folding it in was left out of W2.
+- [ ] **E2 · A supplied answer counts as a right answer in the diagnosis.**
+      Found 2026-10-11 by the lab's struggling-child scenario, which reached
+      "mastered" on 2 of 3 letters with 29% of answers supplied. When the
+      hesitation ladder answers for the child, the attempt is stored with
+      `selected_letter = target`, so `overallErrorRate()` and `diagnose()` in
+      `lib/adaptiveEngine.ts` — and the report's error rate — never see it as
+      wrong. A child who stalls and is rescued on every hard question can be
+      diagnosed `visual_mastery`. Decide: count supplied answers as errors,
+      exclude them from the rate, or require a minimum unaided share for
+      mastery. Changes the engine's behaviour for every child — needs a plan.
 
-- [ ] **W4 · The learning report — REOPENED (2026-10-10).** The user is not a
-      fan of the W4a dashboard. It is **live in production** and stays there
-      until the user decides; nothing was reverted. Next session: ask what
-      specifically does not work for them *before* designing anything — the
-      W4a brief came from the device feedback ("too much space, too little
-      info, no colour") and the result still missed. Options to put to them:
-      (a) revert to the old tabbed report while a new one is designed,
-      (b) iterate on W4a against concrete objections, (c) a fresh brief. The
-      data layer underneath (R1: per child, database + device) and the
-      engine-derived colour bands (`lib/reportBands.ts`) are independent of the
-      layout and can stay whichever way it goes.
+- [~] **W4 · A fresh report (decided 2026-10-11).** W4a stays live until the
+      new one replaces it. Brief: recovery context §4. On `feat/report-v2`.
+      The report lab (W4-L) is built — `STATUS_LOG.md`; open `/lab.html`.
+  - [ ] **W4-P · Design plan for the parent report** — wireframes for the
+        summary, Letters, Mix-ups, Practice habits and Skills, the tap-in
+        detail, and the figures the builder must add (week/month windows,
+        per-skill trends). Needs approval before building. Load the `dataviz`
+        skill first. Mind E2: "mistakes" and "mastered" both count a supplied
+        answer as right, so a graphic built on them flatters a child who
+        stalls — "right without help" is the honest base figure.
+  - [ ] **W4-B · Build the parent report** in `screens/report-v2/`, then swap
+        `/report` over to it.
 - [ ] **W4b · Teacher class dashboard.** **Waits on W4** — it was to reuse the
       W4a layout. W4a (the per-child dashboard) is built — `STATUS_LOG.md`. W4b is the class view: a table of children ×
       key figures with status colour, who needs attention, the class's most

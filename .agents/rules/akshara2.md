@@ -75,10 +75,10 @@ git add . && git commit -m "feat/fix: <descriptive-message>"
 │   ├── smoke/           live_api.py — needs a live server, deliberately outside tests/
 │   ├── tests/           test_pipeline.py — a script, not a pytest suite (see §7)
 │   ├── app.py  db.py  requirements.txt  .env  .env.example  .venv/
-├── docs/                00_INDEX … 08_AUTH_SETUP
+├── docs/                00_INDEX … 09_DATA_FLOW_AUDIT
 ├── public/audio/        33 consonant mp3s
 ├── scripts/             generate-audio.js · run-tests.mjs
-│   └── visual/          seed · shoot · flow — render and click the real build (README)
+│   └── visual/          seed · shoot · flow — render and click the real build, and the lab (README)
 ├── src/
 │   ├── app/
 │   │   ├── api/         client.ts
@@ -93,12 +93,15 @@ git add . && git commit -m "feat/fix: <descriptive-message>"
 │   │   │                sessionMetrics · sessionStore · supabase
 │   │   ├── screens/     profile (add a child) · resume · roadmap · report · my-progress
 │   │   │   ├── account/ RoleScreen · PinSetupScreen · UnlockScreen · AdultHomeScreen
+│   │   │   ├── report-v2/ ParentReport · ClassReport — the new reports (W4), not routed yet
 │   │   │   └── play/    PlayScreen · PlayLayout · StepDots · types
 │   │   │       └── steps/  Intro · Pronunciation · ExampleWords · Matra · Tracing
 │   │   │                   Memory · Identify · WordFill · WordSpelling · Reward
 │   │   ├── types/       levelConfig.ts · session.ts
 │   │   ├── utils/       soundEffects · speech · tracingEvaluator
 │   │   ├── App.tsx  routes.tsx
+│   ├── lab/             the report lab (dev only): main · Lab · memoryStorage
+│   │   └── fixtures/    play (engine-driven sessions) · scenarios
 │   ├── styles/          index.css → fonts.css · tailwind.css · theme.css
 │   ├── main.tsx  vite-env.d.ts
 ├── tests/               accounts · akshara · bands · engine · learner · playthrough
@@ -106,7 +109,7 @@ git add . && git commit -m "feat/fix: <descriptive-message>"
 ├── .legacy/             11 pre-refactor screens + useSessionTracker. Delete after V1–V4
 ├── TODO.md  STATUS_LOG.md  .agent_recovery_context.md  IMPLEMENTATION_PLAN.md
 ├── README.md  ATTRIBUTIONS.md
-└── index.html  package.json  tsconfig.json  vite.config.ts  vercel.json  .env.example
+└── index.html  lab.html (dev only, never built)  package.json  tsconfig.json  vite.config.ts  vercel.json  .env.example
 ```
 
 > [!IMPORTANT]
