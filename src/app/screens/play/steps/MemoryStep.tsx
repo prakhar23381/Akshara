@@ -135,7 +135,6 @@ export function MemoryStep({ letter, levelConfig, onComplete }: StepProps) {
       </div>
 
       <OptionGrid
-        squareCells
         items={cards}
         keyOf={(c) => String(c.id)}
         render={(card, i) => (
@@ -153,15 +152,14 @@ export function MemoryStep({ letter, levelConfig, onComplete }: StepProps) {
           >
             {card.flipped || card.matched ? (
               <span
-                className={`letter-glyph font-black ${
+                className={`letter-glyph tile-glyph font-black ${
                   card.matched ? "text-emerald-600" : "text-gray-800"
                 }`}
-                style={{ fontSize: "clamp(1.25rem, 6vmin, 2.75rem)" }}
               >
                 {card.letter}
               </span>
             ) : (
-              <span className="t-1">❓</span>
+              <span className="tile-icon">❓</span>
             )}
           </motion.button>
         )}

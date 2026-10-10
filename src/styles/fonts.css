@@ -82,5 +82,24 @@
 .t-3  { font-size: var(--step-3); }
 .t-4  { font-size: var(--step-4); line-height: 1.1; }
 .glyph-lg { font-size: var(--glyph-lg); line-height: 1; }
+
+/* ── Answer options size their text from the option, not the screen ─────────
+   Device feedback 3b/4b: "things are too small or too big". Glyph sizes came
+   from the viewport (7vmin, 4.5vmin) while the tiles took whatever space the
+   layout left, so a tile could be huge with a small letter in the middle — on
+   a tablet, four 170×700px strips each holding a 30px glyph. Each option cell
+   is now a size container, and its text is a fixed share of the cell. The
+   viewport-based sizes stay as the fallback for browsers without container
+   query units. */
+.option-cell { container-type: size; }
+.tile-glyph  { font-size: clamp(1.5rem, 7vmin, 3rem); line-height: 1; }
+.tile-icon   { font-size: clamp(1.25rem, 5vmin, 2rem); line-height: 1; }
+.row-word    { font-size: clamp(1rem, 4.5vmin, 1.9rem); line-height: 1.1; }
+@supports (font-size: 1cqmin) {
+  .tile-glyph { font-size: clamp(1.5rem, 46cqmin, 6.5rem); }
+  .tile-icon  { font-size: clamp(1.25rem, 30cqmin, 3.5rem); }
+  /* A whole word: bounded by the row's width as well as its height. */
+  .row-word   { font-size: clamp(1.15rem, min(8cqw, 44cqh), 2.6rem); }
+}
 .glyph-md { font-size: var(--glyph-md); line-height: 1; }
 .t-5 { font-size: var(--glyph-lg); line-height: 1; }

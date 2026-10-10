@@ -126,7 +126,7 @@ export function WordSpellingStep({ letter, levelConfig, onComplete }: StepProps)
       </h1>
 
       <div className="shrink-0 flex items-center justify-center gap-3 flex-wrap">
-        <span className="t-3 leading-none">{q.image}</span>
+        <span className="glyph-md">{q.image}</span>
         <AudioButton onPlay={() => speakHindi(q.answer)} />
         <span className="t--1 text-gray-500 tracking-wide">{q.meaning}</span>
       </div>
@@ -161,10 +161,7 @@ export function WordSpellingStep({ letter, levelConfig, onComplete }: StepProps)
               className={`w-full h-full flex items-center justify-center border-4 transition-all min-h-0 px-3 ${state}`}
               style={{ borderRadius: "var(--card-radius)" }}
             >
-              <span
-                className="letter-glyph font-bold tracking-wide truncate"
-                style={{ fontSize: "clamp(1rem, 4.5vmin, 1.9rem)" }}
-              >
+              <span className="letter-glyph row-word font-bold tracking-wide truncate">
                 {option.text}
               </span>
             </button>

@@ -235,12 +235,7 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
             className={`relative w-full h-full flex items-center justify-center border-4 transition-all min-h-0 ${tileStyle[stateOf(option)]}`}
             style={{ borderRadius: "var(--card-radius)" }}
           >
-            <span
-              className="letter-glyph font-bold"
-              style={{ fontSize: "clamp(1.5rem, 7vmin, 3rem)" }}
-            >
-              {option}
-            </span>
+            <span className="letter-glyph tile-glyph font-bold">{option}</span>
 
             {/* The guiding dot. The percentages mark a point on the glyph, so
                 the dot must be centred on that point — previously it was

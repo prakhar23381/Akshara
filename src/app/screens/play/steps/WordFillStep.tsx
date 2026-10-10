@@ -121,7 +121,7 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
       </h1>
 
       <div className="flex-1 min-h-0 w-full flex flex-col items-center justify-center" style={{ gap: "var(--gap-screen)" }}>
-        <span className="t-3 leading-none">{q.image}</span>
+        <span className="glyph-lg">{q.image}</span>
         {/* The speaker and the meaning were one control, so the icon looked
             like decoration on a label. Split: one tappable thing, one caption. */}
         <div className="shrink-0 flex items-center justify-center gap-2 flex-wrap">
@@ -130,7 +130,10 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
         </div>
         {/* One span per akshara, never per code point: a matra stays with its
             consonant, so it can neither detach nor land on the blank's "?". */}
-        <p className="letter-glyph t-3 font-bold text-gray-800 tracking-wide">
+        <p
+          className="letter-glyph font-bold text-gray-800 tracking-wide leading-none"
+          style={{ fontSize: "clamp(2rem, 10vmin, 3.75rem)" }}
+        >
           {q.parts.map((part, i) =>
             i === q.blankIndex ? (
               <span
@@ -173,9 +176,7 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
               className={`w-full h-full flex items-center justify-center border-4 transition-all min-h-0 ${state}`}
               style={{ borderRadius: "var(--card-radius)" }}
             >
-              <span className="letter-glyph font-black" style={{ fontSize: "clamp(1.25rem, 6vmin, 2.5rem)" }}>
-                {option.text}
-              </span>
+              <span className="letter-glyph tile-glyph font-black">{option.text}</span>
             </button>
           );
         }}
