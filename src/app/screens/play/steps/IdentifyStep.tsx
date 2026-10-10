@@ -191,14 +191,19 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
     <PlayLayout centerBody={false}>
       <StepDots total={QUESTIONS} current={index} />
 
+      {/* Every other activity names itself; this one only had the instruction
+          caption, so it was the one screen with no title. */}
+      <h1 className="shrink-0 t-1 font-bold text-gray-800 text-center">
+        Listen to the letter 👂
+      </h1>
+
+      {/* The replay deliberately carries no "0.8x speed" badge. Slowing the
+          audio is a scaffold for the child, not a status for them to read: it
+          labelled the child as needing help, in words a struggling reader
+          cannot read anyway. `slow` still drives the playback rate. */}
       <div className="shrink-0 flex flex-col items-center gap-1">
         <AudioButton onPlay={play} size="lg" />
         <p className="t-0 text-gray-500 tracking-wide">Tap the letter you heard 👆</p>
-        {slow && (
-          <span className="t--1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
-            0.8x speed
-          </span>
-        )}
       </div>
 
       <OptionGrid

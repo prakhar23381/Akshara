@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../contexts/AuthContext";
-import { supabase } from "../lib/supabase";
+import { isProfileComplete } from "../lib/profile";
 
 export function HomeRedirect() {
   const navigate = useNavigate();
@@ -12,19 +12,8 @@ export function HomeRedirect() {
     if (!user) return;
 
     async function checkProfile() {
-      // Always verify against the DB — auth metadata can be stale
-      // (e.g. user deleted their profile row while testing)
-      const { data } = await supabase
-        .from("user_profiles")
-        .select("profile_complete")
-        .eq("id", user!.id)
-        .single();
-
-      if (data?.profile_complete) {
-        navigate("/resume", { replace: true });
-      } else {
-        navigate("/welcome", { replace: true });
-      }
+      const complete = await isProfileComplete(user!.id);
+      navigate(complete ? "/resume" : "/welcome", { replace: true });
       setChecking(false);
     }
 

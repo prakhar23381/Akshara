@@ -132,6 +132,7 @@ export function MemoryStep({ letter, levelConfig, onComplete }: StepProps) {
       </div>
 
       <OptionGrid
+        squareCells
         items={cards}
         keyOf={(c) => String(c.id)}
         render={(card, i) => (

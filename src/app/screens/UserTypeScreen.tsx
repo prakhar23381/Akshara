@@ -1,13 +1,37 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
+import { useAuth } from "../contexts/AuthContext";
+import { isProfileComplete } from "../lib/profile";
 
 export function UserTypeScreen() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [checkingChild, setCheckingChild] = useState(false);
   const [showMathGate, setShowMathGate] = useState(false);
   const [mathProblem, setMathProblem] = useState({ num1: 0, num2: 0, answer: 0 });
   const [userAnswer, setUserAnswer] = useState("");
   const [gateError, setGateError] = useState("");
+
+  /**
+   * "Child" used to go straight to /profile/name, unconditionally. This screen
+   * is reached from the roadmap's Parents button as well as from Welcome, so a
+   * child who looked at the adult area and came back was asked for name, age
+   * and avatar all over again. Ask the database instead.
+   *
+   * Note this deliberately does not redirect through "/" to reuse
+   * HomeRedirect: Welcome also arrives here, and an incomplete profile would
+   * bounce /welcome -> /user-type -> / -> /welcome forever.
+   */
+  const handleChild = async () => {
+    if (!user) {
+      navigate("/profile/name");
+      return;
+    }
+    setCheckingChild(true);
+    const complete = await isProfileComplete(user.id);
+    navigate(complete ? "/resume" : "/profile/name", { replace: complete });
+  };
 
   const triggerMathGate = (target: "parent" | "teacher") => {
     const num1 = Math.floor(Math.random() * 8) + 6; // 6 to 13
@@ -34,15 +58,18 @@ export function UserTypeScreen() {
     label,
     onClick,
     dominant = false,
+    disabled = false,
   }: {
     emoji: string;
     label: string;
     onClick: () => void;
     dominant?: boolean;
+    disabled?: boolean;
   }) => (
     <motion.button
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
+      disabled={disabled}
       className={`${
         dominant
           ? "bg-[#4A90E2] text-white border-4 border-[#4A90E2]"
@@ -67,8 +94,9 @@ export function UserTypeScreen() {
       <div className="grid grid-cols-2 gap-[var(--gap-screen)] max-w-4xl w-full">
         <UserTypeButton
           emoji="🧒"
-          label="Child"
-          onClick={() => navigate("/profile/name")}
+          label={checkingChild ? "One moment…" : "Child"}
+          onClick={handleChild}
+          disabled={checkingChild}
           dominant
         />
         <UserTypeButton

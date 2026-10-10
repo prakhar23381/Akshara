@@ -46,7 +46,13 @@ export function ChildScreen({
         style={{
           gap: "var(--gap-screen)",
           paddingInline: "var(--pad-screen)",
-          paddingBlock: header ? 0 : "var(--pad-screen)",
+          // Padding is the body's job only where no slot already provides it.
+          // This used to be one `paddingBlock: header ? 0 : …`, which meant any
+          // step that had a header and no footer got *zero* bottom padding —
+          // the spelling, fill-in and listen activities all sat flush against
+          // the bottom edge of the screen.
+          paddingBlockStart: header ? 0 : "var(--pad-screen)",
+          paddingBlockEnd: footer ? 0 : "var(--pad-screen)",
         }}
       >
         {children}
