@@ -137,18 +137,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("akshara_mock_session", JSON.stringify(mockSession));
     localStorage.setItem("akshara_offline_mode", "true");
     
-    // Seed default user profile in mock DB if empty
+    // The guest is an adult account now, like a signed-in one: it gets a role
+    // and a PIN in first-time setup, then adds children. It used to be seeded
+    // as a finished child profile called "Guest Explorer".
     const profilesRaw = localStorage.getItem("akshara_db_user_profiles");
     const profiles = profilesRaw ? JSON.parse(profilesRaw) : [];
     if (!profiles.some((p: any) => p.id === mockUser.id)) {
-      profiles.push({
-        id: mockUser.id,
-        display_name: "Guest Explorer",
-        age: 6,
-        avatar: "🦁",
-        profile_complete: true,
-        created_at: new Date().toISOString()
-      });
+      profiles.push({ id: mockUser.id, created_at: new Date().toISOString() });
       localStorage.setItem("akshara_db_user_profiles", JSON.stringify(profiles));
     }
 

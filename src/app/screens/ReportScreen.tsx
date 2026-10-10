@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, Download } from "lucide-react";
 import { Screen } from "../components/Screen";
 import {
@@ -17,7 +17,7 @@ import {
   readableReasoning,
   type Band,
 } from "../lib/reportBands";
-import { useAuth } from "../contexts/AuthContext";
+import { useAccount } from "../contexts/AccountContext";
 
 /* ── Colour ───────────────────────────────────────────────────────────────────
    Section accents come from the validated categorical palette and carry
@@ -380,21 +380,28 @@ const SESSIONS_SHOWN = 6;
 
 export function ReportScreen() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const [params] = useSearchParams();
+  const { children: myChildren, activeChild } = useAccount();
   const [report, setReport] = useState<ProgressReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [openSession, setOpenSession] = useState<string | null>(null);
   const [pickedLetter, setPickedLetter] = useState<string | null>(null);
   const [allSessions, setAllSessions] = useState(false);
 
-  // Wait for auth to settle: building the report for "no one" first would
-  // flash "No sessions recorded yet" before the child's own report arrived.
-  const userId = user?.id ?? "offline";
-  const metadataName = user?.user_metadata?.display_name as string | undefined;
+  // Whose report: the child named in ?child= — but only one of this adult's
+  // own children, never an arbitrary id — else the child playing on the device.
+  const asked = params.get("child");
+  const subject = myChildren.find((c) => c.id === asked) ?? activeChild ?? myChildren[0] ?? null;
+  const subjectId = subject?.id ?? null;
+  const subjectName = subject?.display_name;
   useEffect(() => {
-    if (authLoading) return;
+    if (!subjectId) {
+      setLoading(false);
+      return;
+    }
     let live = true;
-    fetchProgressReport(userId, metadataName).then((r) => {
+    setLoading(true);
+    fetchProgressReport(subjectId, subjectName).then((r) => {
       if (!live) return;
       setReport(r);
       setLoading(false);
@@ -402,7 +409,7 @@ export function ReportScreen() {
     return () => {
       live = false;
     };
-  }, [authLoading, userId, metadataName]);
+  }, [subjectId, subjectName]);
 
   const practised = useMemo(
     () => (report ? LETTER_SEQUENCE.filter((l) => report.letter_stats[l]) : []),
@@ -440,11 +447,12 @@ export function ReportScreen() {
             Once a letter has been practised, this shows accuracy, response
             times and which letters were confused with which.
           </p>
+          {/* The report is adult-only now; its way back is to the children. */}
           <button
-            onClick={() => navigate("/roadmap")}
+            onClick={() => navigate("/home")}
             className="t-0 rounded-xl bg-[#4A90E2] px-5 py-2.5 font-semibold text-white"
           >
-            Go to the roadmap
+            Back to your children
           </button>
         </div>
       </Screen>

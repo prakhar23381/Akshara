@@ -1,38 +1,37 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
-import { useAuth } from "../contexts/AuthContext";
-import { isProfileComplete } from "../lib/profile";
+import { Navigate } from "react-router";
+import { useAccount } from "../contexts/AccountContext";
+import { AccountLoading, RequireAccount } from "../components/AccountGuards";
+import { homeRoute, inSetup } from "../lib/accounts";
 
+/**
+ * "/" — decides the first screen once, from the account (`homeRoute` in
+ * lib/accounts.ts holds the rule and its reasons).
+ *
+ * This used to read `profile_complete` off the account's own profile row,
+ * because the account was the child.
+ */
 export function HomeRedirect() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    if (!user) return;
-
-    async function checkProfile() {
-      const complete = await isProfileComplete(user!.id);
-      navigate(complete ? "/resume" : "/welcome", { replace: true });
-      setChecking(false);
-    }
-
-    checkProfile();
-  }, [user, navigate]);
-
-  if (!checking) return null;
-
   return (
-    <div className="h-[100dvh] bg-[#F7F6F2] flex items-center justify-center overflow-hidden">
-      <div className="flex gap-2">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="w-3 h-3 bg-amber-400 rounded-full animate-bounce"
-            style={{ animationDelay: `${i * 0.15}s` }}
-          />
-        ))}
-      </div>
-    </div>
+    <RequireAccount>
+      <Decide />
+    </RequireAccount>
+  );
+}
+
+function Decide() {
+  const a = useAccount();
+  if (!a.ready) return <AccountLoading />;
+  if (a.pinReset) return <Navigate to="/setup/pin" replace />;
+  return (
+    <Navigate
+      replace
+      to={homeRoute({
+        role: a.account?.role ?? null,
+        hasPin: Boolean(a.account?.pinHash),
+        unlocked: a.adultOpen,
+        hasActiveChild: Boolean(a.activeChild),
+        inSetup: inSetup(a.uid),
+      })}
+    />
   );
 }

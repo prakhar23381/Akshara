@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useLevelConfig } from "../hooks/useLevelConfig";
 import { useSession } from "../contexts/SessionContext";
-import { useAuth } from "../contexts/AuthContext";
+import { useAccount } from "../contexts/AccountContext";
 import { supabase } from "../lib/supabase";
 import { LETTER_SEQUENCE } from "../types/levelConfig";
 import { prepareSessionConfig } from "../api/client";
@@ -21,8 +21,10 @@ const TOTAL_PAGES = 4;
 
 export function LetterRoadmapScreen() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const userId = user?.id ?? "offline";
+  // The child this device is playing as. Sessions, progress and the learner
+  // profile are all theirs — this used to be the signed-in account.
+  const { activeChild } = useAccount();
+  const userId = activeChild?.id ?? "offline";
   const { setLevelConfig, jumpToLetterIndex, setLastAvgLatencyMs } = useLevelConfig();
   const { startSession } = useSession();
 
@@ -32,7 +34,7 @@ export function LetterRoadmapScreen() {
   const [startingLetter, setStartingLetter] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
+    if (!activeChild) {
       setLoading(false);
       return;
     }
@@ -42,7 +44,7 @@ export function LetterRoadmapScreen() {
         const { data, error } = await supabase
           .from("letter_progress")
           .select("letter, mastered, last_cognitive_state, sessions_count")
-          .eq("user_id", user!.id);
+          .eq("user_id", userId);
 
         if (error) {
           console.error("[Roadmap] Failed to fetch progress:", error);
@@ -65,7 +67,8 @@ export function LetterRoadmapScreen() {
     }
 
     fetchProgress();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   // Compute completion score from last cognitive state
   const getCompletionScore = (letter: string): number => {
@@ -176,16 +179,16 @@ export function LetterRoadmapScreen() {
   return (
     <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col overflow-hidden relative">
       <TopBar
-        avatarEmoji={user?.user_metadata?.avatar ?? "🐻"}
+        avatarEmoji={activeChild?.avatar ?? "🐻"}
         progress={null}
         onExit={() => navigate("/resume")}
         action={
           <button
-            onClick={() => navigate("/user-type")}
+            onClick={() => navigate("/unlock?next=/home")}
             className="t--1 shrink-0 bg-white border-2 border-gray-300 rounded-full font-bold text-gray-600 hover:text-[#4A90E2] hover:border-[#4A90E2] transition-all px-3"
             style={{ minHeight: "var(--tap-min)" }}
           >
-            ⚙️ Parents
+            ⚙️ Grown-ups
           </button>
         }
       />

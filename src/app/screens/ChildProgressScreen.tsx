@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { TopBar } from "../components/TopBar";
 import { Screen } from "../components/Screen";
 import { fetchProgressReport, type ProgressReport } from "../api/client";
-import { useAuth } from "../contexts/AuthContext";
+import { useAccount } from "../contexts/AccountContext";
 import { LETTER_SEQUENCE } from "../types/levelConfig";
 
 /**
@@ -21,13 +21,13 @@ import { LETTER_SEQUENCE } from "../types/levelConfig";
  */
 export function ChildProgressScreen() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { activeChild } = useAccount();
   const [report, setReport] = useState<ProgressReport | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const userId = user?.id ?? "offline";
+  const userId = activeChild?.id ?? "offline";
   useEffect(() => {
-    if (authLoading) return;
+    if (!activeChild) return;
     let live = true;
     fetchProgressReport(userId).then((r) => {
       if (!live) return;
@@ -37,9 +37,10 @@ export function ChildProgressScreen() {
     return () => {
       live = false;
     };
-  }, [authLoading, userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
-  const avatar = user?.user_metadata?.avatar ?? "🐻";
+  const avatar = activeChild?.avatar ?? "🐻";
   const stats = report?.letter_stats ?? {};
   const mastered = LETTER_SEQUENCE.filter((l) => stats[l]?.mastered);
   const sessions = report?.total_sessions ?? 0;

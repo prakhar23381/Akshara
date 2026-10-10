@@ -156,17 +156,23 @@ instruction. The branches below are merged; kept for reference only:
       measured against the glyphs. Square tiles (3b/4b fix) bring it close to
       the letter; putting it on the actual feature of each of the 33 letters
       needs a pass with the visual harness, one letter at a time.
-- [ ] **W5 · Parent / Teacher / Child accounts (report 8).** The deepest item.
-      Today `triggerMathGate(target: "parent" | "teacher")` **never reads
-      `target`** — both buttons run the same gate and both land on `/report`, so
-      the two roles are literally identical in code.
-      The real ask is one adult account managing several children, and that is a
-      schema change, not a screen: `user_profiles.id` **is** `auth.users.id` and
-      every RLS policy is `auth.uid() = user_id`, so one auth account is
-      structurally one child. Needs a new owner/child table, rewritten RLS on
-      `user_profiles`, `learning_sessions` and `letter_progress`, a
-      `user_id` → `child_id` migration, and a child switcher. **On live
-      production data** — plan the migration before writing any of it.
+- [ ] **W5c · Classes and share codes.** W5a (migration 002, applied) and W5b
+      (accounts, PIN, child mode) are done — `STATUS_LOG.md`. Left: a
+      teacher creates named classes and sees/rotates the class code; a parent
+      enters a class code to put their child in a class (which gives the
+      teacher access); either adult creates or redeems a child share code; a
+      classroom tablet picks the class, then the child. The database side is
+      built and tested (`join_class`, `create_child_share_code`, …); this is
+      the client.
+- [ ] **V7 · Try the signed-in path for real.** W5b's guest path is
+      click-tested end to end; the signed-in path calls the same operations
+      through Supabase and every column and function name is verified against
+      the live project, but no Google account has run it. Sign in, choose a
+      role, set a PIN, add a child, play, check the report.
+- [ ] **D4 · Migration 003, once W5b is in production.** Drop
+      `trg_legacy_profile_child` and the old `users_own_*` policies — only
+      after no deployed client predates 002. Until then the trigger is what
+      keeps old cached clients' sign-ups working.
 
 ## Verification
 *Layout can now be checked headlessly (`scripts/visual/`); these need a real

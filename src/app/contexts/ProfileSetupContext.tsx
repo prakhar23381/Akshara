@@ -8,6 +8,8 @@ interface ProfileSetupData {
   setAge: (a: number) => void;
   avatar: string | null;
   setAvatar: (a: string) => void;
+  /** Clear between children, so adding a second child doesn't start pre-filled. */
+  reset: () => void;
 }
 
 const ProfileSetupContext = createContext<ProfileSetupData | null>(null);
@@ -18,7 +20,16 @@ export function ProfileSetupProvider({ children }: { children: ReactNode }) {
   const [avatar, setAvatar] = useState<string | null>(null);
 
   return (
-    <ProfileSetupContext.Provider value={{ name, setName, age, setAge, avatar, setAvatar }}>
+    <ProfileSetupContext.Provider
+      value={{
+        name, setName, age, setAge, avatar, setAvatar,
+        reset: () => {
+          setName("");
+          setAge(null);
+          setAvatar(null);
+        },
+      }}
+    >
       {children}
     </ProfileSetupContext.Provider>
   );

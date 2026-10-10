@@ -746,9 +746,11 @@ export async function fetchProgressReport(
   const localProgress = readLocal<any[]>("akshara_db_letter_progress", []).filter(
     (p) => p.user_id === userId,
   );
-  const localProfile = readLocal<any[]>("akshara_db_user_profiles", []).find(
-    (p) => p.id === userId,
-  );
+  // The child's name: their own row in `children`. A guest who played before
+  // accounts existed may only have the old profile row, whose id is the child's.
+  const localProfile =
+    readLocal<any[]>("akshara_db_children", []).find((c) => c.id === userId) ??
+    readLocal<any[]>("akshara_db_user_profiles", []).find((p) => p.id === userId);
 
   let rows = localRows;
   let progress = localProgress;
@@ -765,7 +767,7 @@ export async function fetchProgressReport(
           .order("created_at", { ascending: false })
           .limit(1000),
         supabase.from("letter_progress").select("*").eq("user_id", userId),
-        supabase.from("user_profiles").select("display_name").eq("id", userId).maybeSingle(),
+        supabase.from("children").select("display_name").eq("id", userId).maybeSingle(),
       ]),
     );
     if (remote) {

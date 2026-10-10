@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LoginScreen } from "./screens/LoginScreen";
 import { ProfileSetupProvider } from "./contexts/ProfileSetupContext";
 import { SessionProvider } from "./contexts/SessionContext";
+import { AccountProvider } from "./contexts/AccountContext";
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -30,13 +31,15 @@ function AppContent() {
   }
 
   return (
-    <ProfileSetupProvider>
-      <LevelConfigProvider>
-        <SessionProvider>
-          <RouterProvider router={router} />
-        </SessionProvider>
-      </LevelConfigProvider>
-    </ProfileSetupProvider>
+    <AccountProvider>
+      <ProfileSetupProvider>
+        <LevelConfigProvider>
+          <SessionProvider>
+            <RouterProvider router={router} />
+          </SessionProvider>
+        </LevelConfigProvider>
+      </ProfileSetupProvider>
+    </AccountProvider>
   );
 }
 

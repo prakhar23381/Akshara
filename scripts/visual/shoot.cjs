@@ -10,6 +10,15 @@ const want = (process.argv[6] || "").split(",").filter(Boolean);
 const VIEW = { phone: [390, 844], small: [360, 640], tablet: [820, 1180], desktop: [1440, 900], landscape: [740, 360] };
 const SHOTS = [
   // name, scenario, path, viewport, height override (report is one scroll container: a tall viewport shows all of it)
+  ["acct-role", "role", "/", "phone"],
+  ["acct-pinsetup", "pin-setup", "/", "phone"],
+  ["acct-home-phone", "home", "/", "phone"],
+  ["acct-home-desktop", "home", "/", "desktop"],
+  ["acct-unlock", "unlock", "/unlock?next=/home", "phone"],
+  ["acct-nopin", "no-pin", "/", "phone"],
+  ["acct-resume", "child-resume", "/", "phone"],
+  ["acct-legacy", "legacy", "/", "phone"],
+  ["acct-report-locked", "unlock", "/report", "phone"],
   ["report-phone", "report", "/report", "phone", 3600],
   ["report-tablet", "report", "/report", "tablet", 2300],
   ["report-desktop", "report", "/report", "desktop", 1700],
@@ -40,7 +49,12 @@ const SHOTS = [
     await page.setViewport({ width: w, height: tall ?? h, deviceScaleFactor: 2 });
     await page.evaluateOnNewDocument((entries) => {
       localStorage.clear();
-      for (const [k, v] of Object.entries(entries)) localStorage.setItem(k, v);
+      sessionStorage.clear();
+      // "session:"-prefixed keys belong in sessionStorage (e.g. the adult unlock).
+      for (const [k, v] of Object.entries(entries)) {
+        if (k.startsWith("session:")) sessionStorage.setItem(k.slice(8), v);
+        else localStorage.setItem(k, v);
+      }
       window.speechSynthesis && (window.speechSynthesis.speak = () => {});
     }, scenarios[scen]);
     const errors = [];
@@ -62,6 +76,7 @@ const SHOTS = [
         gridLeftGap: r ? Math.round(r.left) : null,
         gridRightGap: r ? Math.round(window.innerWidth - r.right) : null,
         h1: document.querySelector("h1")?.textContent?.trim() ?? null,
+        path: location.pathname + location.search,
       };
     });
     console.log(`${name.padEnd(20)} ${JSON.stringify(facts)}${errors.length ? "  ERRORS: " + errors.slice(0, 2).join(" | ") : ""}`);

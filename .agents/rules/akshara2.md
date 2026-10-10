@@ -70,34 +70,39 @@ git add . && git commit -m "feat/fix: <descriptive-message>"
 │   │   ├── agents/      diagnosis_agent · level_generator · llm_provider · prompts
 │   │   ├── models/      session.py
 │   │   └── routes/      analyze.py (registered) · progress.py (RETIRED, not registered)
-│   ├── migrations/      000_init.sql · 001_session_model.sql (both applied) · README.md
+│   ├── migrations/      000 · 001 · 002_accounts (all applied) · 002_verify · 002_rollback
+│   │                    tests/test_002.cjs (real Postgres via PGlite) · README.md
 │   ├── smoke/           live_api.py — needs a live server, deliberately outside tests/
 │   ├── tests/           test_pipeline.py — a script, not a pytest suite (see §7)
 │   ├── app.py  db.py  requirements.txt  .env  .env.example  .venv/
 ├── docs/                00_INDEX … 08_AUTH_SETUP
 ├── public/audio/        33 consonant mp3s
 ├── scripts/             generate-audio.js · run-tests.mjs
+│   └── visual/          seed · shoot · flow — render and click the real build (README)
 ├── src/
 │   ├── app/
 │   │   ├── api/         client.ts
-│   │   ├── components/  AksharaButton · AudioButton · AvatarCircle · ChildScreen
-│   │   │                LetterDisplay · OptionCard · OptionGrid · ProgressBar
-│   │   │                Screen · TopBar · TracingCanvas
-│   │   ├── contexts/    AuthContext · ProfileSetupContext · SessionContext
+│   │   ├── components/  AccountGuards · AdultScreen · AksharaButton · AudioButton
+│   │   │                AvatarCircle · ChildScreen · LetterDisplay · OptionCard
+│   │   │                OptionGrid · PinPad · ProgressBar · Screen · TopBar · TracingCanvas
+│   │   ├── contexts/    AccountContext · AuthContext · ProfileSetupContext · SessionContext
 │   │   ├── data/        letterContent.ts · letterPaths.ts
 │   │   ├── hooks/       useLetterAudio · useLevelConfig
-│   │   ├── lib/         adaptiveEngine · devOverflowCheck · offline_sync
+│   │   ├── lib/         accounts · adaptiveEngine · akshara · devOverflowCheck
+│   │   │                learnerProfile · offline_sync · reportBands
 │   │   │                sessionMetrics · sessionStore · supabase
-│   │   ├── screens/     onboarding + roadmap + report screens
+│   │   ├── screens/     profile (add a child) · resume · roadmap · report · my-progress
+│   │   │   ├── account/ RoleScreen · PinSetupScreen · UnlockScreen · AdultHomeScreen
 │   │   │   └── play/    PlayScreen · PlayLayout · StepDots · types
-│   │   │       └── steps/  Intro · Pronunciation · ExampleWords · Tracing
+│   │   │       └── steps/  Intro · Pronunciation · ExampleWords · Matra · Tracing
 │   │   │                   Memory · Identify · WordFill · WordSpelling · Reward
 │   │   ├── types/       levelConfig.ts · session.ts
 │   │   ├── utils/       soundEffects · speech · tracingEvaluator
 │   │   ├── App.tsx  routes.tsx
 │   ├── styles/          index.css → fonts.css · tailwind.css · theme.css
 │   ├── main.tsx  vite-env.d.ts
-├── tests/               engine · playthrough · report · session  (.test.ts)
+├── tests/               accounts · akshara · bands · engine · learner · playthrough
+│                        report · session  (.test.ts)
 ├── .legacy/             11 pre-refactor screens + useSessionTracker. Delete after V1–V4
 ├── TODO.md  STATUS_LOG.md  .agent_recovery_context.md  IMPLEMENTATION_PLAN.md
 ├── README.md  ATTRIBUTIONS.md

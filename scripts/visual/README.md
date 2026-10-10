@@ -49,6 +49,23 @@ Each shot also prints measured facts: horizontal overflow, the option grid's
 left and right gaps (equal means centred), the page title, and any console
 errors. A `favicon.ico` 404 is expected, because the app ships no favicon.
 
+## The account journey, by clicking
+
+`flow.cjs` drives the whole adult-and-child journey through the real build:
+guest sign-in, role, PIN (with a deliberate mismatch), adding a child,
+"Play as", trying to reach the adult home and a report without the PIN, a
+wrong PIN, the right one, reload, and a second tab.
+
+```bash
+node scripts/visual/flow.cjs /tmp/pptr /tmp/shots http://localhost:4173
+# RESULT 23 passed, 0 failed
+```
+
+Screenshots show states; this shows transitions. Its first run found two
+race conditions where a screen's own guard redirected before a navigation
+landed, plus avatar choices built as unfocusable `<div>`s. Neither tests nor
+screenshots had caught them.
+
 ## What it cannot tell you
 
 Touch, audio and text-to-speech, real Android fonts and performance. Those

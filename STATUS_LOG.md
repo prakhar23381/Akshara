@@ -4,6 +4,46 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-10 (later still) — W5b, accounts and child mode (`feat/w5b-accounts`)
+
+* **Adults own children, on the client.** `lib/accounts.ts` (signed-in →
+  migration 002's tables and `create_child()`; guest → the same shapes on the
+  device), `contexts/AccountContext.tsx` (account, children, the child active
+  on this device, whether the adult area is open). Nine call sites that used
+  the signed-in account *as the child* now use the active child: roadmap,
+  session start, progress, resume, play header, my-progress, report.
+* **New screens:** choose parent or teacher; choose a 4-digit PIN (twice);
+  the grown-ups lock; the adult home (children with letters mastered, "Play
+  as …", "Report", "Add a child", sign out). Adding a child reuses the
+  name → age → avatar screens, which now create a child instead of writing
+  onto the account's own profile.
+* **Areas and guards:** adult routes need a role, a PIN and the PIN entered in
+  this tab (sessionStorage — a new tab or a closed one starts locked); child
+  routes need an active child, and opening one closes the adult area. "/"
+  decides once, via `homeRoute`.
+* **Existing accounts reopen as before.** A migrated account's first child has
+  the account's id and is selected automatically, so a child opening the app
+  lands where they always did. Setting a PIN without one — every migrated
+  account — requires proving you are the adult first (Google sign-in again;
+  a guest does a two-digit multiplication), so a child cannot set it. Forgot
+  PIN takes the same path. Guests from before accounts are migrated on the
+  device exactly as 002 migrated signed-in accounts (same id, no session
+  rewritten), but only if they have sessions — no invented "Guest Explorer".
+* **Fixed along the way:** the child's resume screen had a "Sign out" button
+  (now only on the adult home); avatar choices were clickable `<div>`s,
+  unreachable by keyboard (now buttons with a pressed state).
+* **Removed:** `UserTypeScreen` (Parent and Teacher ran the same code),
+  `WelcomeScreen`, `AssessmentScreen` (one question that recorded nothing),
+  `lib/profile.ts`. Old URLs redirect to "/".
+* **Verified:** `tests/accounts.test.ts` (36). Screenshots of every new screen
+  and every routing state. And a click-through of the whole journey
+  (`scripts/visual/flow.cjs`, 23 steps) — which **found two race conditions**
+  (matching PINs landed on the lock; "Play as" landed on the lock — in both a
+  screen's own guard redirected before the navigation landed) and the
+  unfocusable avatars. All fixed; 23/23. Every column and function the
+  signed-in path uses was probed on the live project; the path itself has not
+  run with a Google account (`TODO.md` V7).
+
 ## 2026-10-10 (later) — W4a, the dropped 3b/4b, and seeing the app
 
 ### Visual checks, for the first time

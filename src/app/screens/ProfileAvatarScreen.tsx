@@ -3,50 +3,37 @@ import { useNavigate } from "react-router";
 import { AvatarCircle } from "../components/AvatarCircle";
 import { AksharaButton } from "../components/AksharaButton";
 import { useProfileSetup } from "../contexts/ProfileSetupContext";
-import { useAuth } from "../contexts/AuthContext";
-import { supabase } from "../lib/supabase";
+import { useAccount } from "../contexts/AccountContext";
 
 export function ProfileAvatarScreen() {
   const navigate = useNavigate();
-  const { name, age, avatar, setAvatar } = useProfileSetup();
-  const { user } = useAuth();
+  const { name, age, avatar, setAvatar, reset } = useProfileSetup();
+  const { addChild } = useAccount();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const avatars = ["🐻", "🐼", "🐨", "🦁", "🐯", "🐸", "🐰", "🦊"];
 
+  /**
+   * The last step of adding a child. This used to write the name onto the
+   * signed-in account's own profile row — the account *was* the child — so a
+   * parent could only ever have one. It now creates a child the adult owns
+   * (`create_child()` when signed in, this device's storage for a guest) and
+   * returns to the adult home, where the new child appears with "Play as".
+   */
   async function handleContinue() {
-    if (!avatar || !user) return;
+    if (!avatar) return;
     setSaving(true);
     setError(null);
-
-    // 1. Upsert into user_profiles table (reliable, survives re-logins)
-    const { error: dbError } = await supabase.from("user_profiles").upsert(
-      {
-        id: user.id,
-        display_name: name,
-        age,
-        avatar,
-        profile_complete: true,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id" },
-    );
-
-    if (dbError) {
-      console.error("[ProfileAvatarScreen] Failed to save profile:", dbError);
-      setError("Couldn't save your profile. Please try again.");
+    try {
+      await addChild({ name, age, avatar });
+      reset();
+      navigate("/home", { replace: true });
+    } catch (e) {
+      console.error("[ProfileAvatarScreen] Failed to add child:", e);
+      setError("Couldn't save. Please try again.");
       setSaving(false);
-      return;
     }
-
-    // 2. Also stamp profile_complete on auth metadata so HomeRedirect can read it
-    //    without an extra DB round-trip on every load.
-    await supabase.auth.updateUser({
-      data: { profile_complete: true, display_name: name, avatar },
-    });
-
-    navigate("/assessment", { replace: true });
   }
 
   return (

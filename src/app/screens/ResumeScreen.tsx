@@ -1,95 +1,83 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { AksharaButton } from "../components/AksharaButton";
 import { motion } from "motion/react";
-import { analyzeSession } from "../api/client";
+import { AksharaButton } from "../components/AksharaButton";
 import { useLevelConfig } from "../hooks/useLevelConfig";
-import { useAuth } from "../contexts/AuthContext";
+import { useAccount } from "../contexts/AccountContext";
 import { supabase } from "../lib/supabase";
 import { LETTER_SEQUENCE } from "../types/levelConfig";
 
+/**
+ * The child's front door: "welcome back", and where they are up to.
+ *
+ * It is the *active child's* now. It used to read the signed-in account's
+ * profile for the name and avatar, because the account was the child — and it
+ * carried a "Sign out" button, so a child could sign the adult out. Signing
+ * out lives on the adult home; this screen offers the way to the grown-ups'
+ * lock instead.
+ */
 export function ResumeScreen() {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
-  const {
-    setLevelConfig,
-    sessionNumber,
-    currentLetter,
-    letterIndex,
-    lastAvgLatencyMs,
-    setLastAvgLatencyMs,
-    jumpToLetterIndex,
-  } = useLevelConfig();
-
-  const [loading, setLoading] = useState(false);
+  const { activeChild } = useAccount();
+  const { currentLetter, setLastAvgLatencyMs, jumpToLetterIndex } = useLevelConfig();
   const [progressLoaded, setProgressLoaded] = useState(false);
-  const [profileName, setProfileName] = useState<string | null>(null);
-  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
+  const childId = activeChild?.id;
 
-  // Load profile + letter progress from Supabase on mount
+  // Where this child is up to: the furthest letter they have reached.
   useEffect(() => {
-    if (!user || progressLoaded) return;
+    if (!childId) return;
+    let live = true;
+    supabase
+      .from("letter_progress")
+      .select("letter_index, mastered, last_avg_latency_ms")
+      .eq("user_id", childId)
+      .order("letter_index", { ascending: false })
+      .limit(1)
+      .single()
+      .then(({ data }) => {
+        if (!live) return;
+        if (data) {
+          const { letter_index, mastered, last_avg_latency_ms } = data as {
+            letter_index: number;
+            mastered: boolean;
+            last_avg_latency_ms: number | null;
+          };
+          jumpToLetterIndex(mastered ? Math.min(letter_index + 1, LETTER_SEQUENCE.length - 1) : letter_index);
+          setLastAvgLatencyMs(last_avg_latency_ms ?? 6000);
+        } else {
+          jumpToLetterIndex(0);
+        }
+        setProgressLoaded(true);
+      });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childId]);
 
-    async function loadAll() {
-      const [profileRes, progressRes] = await Promise.all([
-        supabase
-          .from("user_profiles")
-          .select("display_name, avatar")
-          .eq("id", user!.id)
-          .single(),
-        supabase
-          .from("letter_progress")
-          .select("letter_index, mastered, last_avg_latency_ms")
-          .eq("user_id", user!.id)
-          .order("letter_index", { ascending: false })
-          .limit(1)
-          .single(),
-      ]);
-
-      if (profileRes.data) {
-        setProfileName(profileRes.data.display_name ?? null);
-        setProfileAvatar(profileRes.data.avatar ?? null);
-      }
-
-      if (progressRes.data) {
-        const { letter_index, mastered, last_avg_latency_ms } = progressRes.data;
-        // Single atomic jump — avoids re-triggering the effect on each increment.
-        const targetIndex = mastered
-          ? Math.min(letter_index + 1, LETTER_SEQUENCE.length - 1)
-          : letter_index;
-        jumpToLetterIndex(targetIndex);
-        setLastAvgLatencyMs((last_avg_latency_ms as number) ?? 6000);
-      }
-      setProgressLoaded(true);
-    }
-
-    loadAll();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, progressLoaded]);
-
-  function handleContinue() {
-    navigate("/roadmap");
-  }
-
-  const displayName =
-    profileName ||
-    user?.user_metadata?.display_name ||
-    user?.user_metadata?.full_name?.split(" ")[0] ||
-    "there";
-  const avatarEmoji = profileAvatar ?? user?.user_metadata?.avatar ?? "🐻";
+  if (!activeChild) return null;
 
   return (
-    <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col items-center justify-center gap-[var(--gap-screen)] overflow-hidden p-[var(--pad-screen)]">
+    <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col items-center justify-center gap-[var(--gap-screen)] overflow-hidden p-[var(--pad-screen)] relative">
+      {/* The way out for a grown-up, quiet enough not to be a child's target. */}
+      <button
+        onClick={() => navigate("/unlock?next=/home")}
+        className="absolute top-3 right-3 t--1 font-semibold rounded-full border-2 border-gray-300 bg-white px-3 text-gray-500"
+        style={{ minHeight: "var(--tap-min)" }}
+      >
+        Grown-ups
+      </button>
+
       <div className="text-center">
         <motion.div
           animate={{ rotate: [0, 10, -10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
           className="t-5 mb-6"
         >
-          {avatarEmoji}
+          {activeChild.avatar ?? "🐻"}
         </motion.div>
         <h1 className="t-3 font-bold text-gray-800 mb-3 tracking-wide">
-          Welcome back, {displayName}!
+          Welcome back, {activeChild.display_name}!
         </h1>
         <p className="t-2 text-gray-500 tracking-wide">
           Currently learning:{" "}
@@ -101,31 +89,13 @@ export function ResumeScreen() {
       </div>
 
       <div className="flex flex-col gap-6 items-center">
-        <AksharaButton
-          onClick={handleContinue}
-          size="large"
-          disabled={loading || !progressLoaded}
-        >
-          {loading ? "Preparing your lesson…" : !progressLoaded ? "Loading progress…" : "Continue Learning"}
+        <AksharaButton onClick={() => navigate("/roadmap")} size="large" disabled={!progressLoaded}>
+          {progressLoaded ? "Continue Learning" : "Loading progress…"}
         </AksharaButton>
-
-        {/* Wraps, and the dead "Rewards" button (which only fired an alert)
-            is gone — three fixed-padding buttons in a non-wrapping row ran off
-            the side of a phone. */}
-        <div className="flex flex-wrap gap-3 justify-center">
-          <AksharaButton
-            onClick={() => navigate("/my-progress")}
-            variant="secondary"
-            size="small"
-          >
-            📊 My letters
-          </AksharaButton>
-          <AksharaButton onClick={signOut} variant="secondary" size="small">
-            Sign out
-          </AksharaButton>
-        </div>
+        <AksharaButton onClick={() => navigate("/my-progress")} variant="secondary" size="small">
+          📊 My letters
+        </AksharaButton>
       </div>
-
     </div>
   );
 }

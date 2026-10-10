@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { ChildScreen } from "../../components/ChildScreen";
 import { TopBar } from "../../components/TopBar";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAccount } from "../../contexts/AccountContext";
 import { useSession } from "../../contexts/SessionContext";
 
 /**
@@ -24,7 +24,7 @@ export function PlayLayout({
   centerBody?: boolean;
 }) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { activeChild } = useAccount();
   const { progressPct, abandonSession } = useSession();
 
   function handleExit() {
@@ -39,7 +39,7 @@ export function PlayLayout({
     <ChildScreen
       header={
         <TopBar
-          avatarEmoji={user?.user_metadata?.avatar ?? "🐻"}
+          avatarEmoji={activeChild?.avatar ?? "🐻"}
           progress={progressPct}
           onExit={handleExit}
         />
