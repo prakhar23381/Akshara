@@ -25,8 +25,11 @@ import type {
 } from "../types/levelConfig";
 import type { LearnerProfile } from "./learnerProfile";
 
-const ERROR_THRESHOLD_FAIL = 0.30;    // >30% error → struggling
-const ERROR_THRESHOLD_MASTERY = 0.10; // <10% error → mastered
+// Exported because the report colours error rates by these same two lines:
+// a colour then always marks a point at which this engine changes the
+// child's level, rather than a threshold invented for the chart.
+export const ERROR_THRESHOLD_FAIL = 0.30;    // >30% error → struggling
+export const ERROR_THRESHOLD_MASTERY = 0.10; // <10% error → mastered
 
 export const DISTRACTOR_POOLS: Record<string, { easy: string[]; hard: string[] }> = {
   "क": { easy: ["ल", "ह", "स", "र"], hard: ["ख", "फ", "ट", "ठ"] },

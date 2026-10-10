@@ -79,6 +79,12 @@ export interface SessionSummary {
   rescue_pct: number | null;
   latency_median_ms: number | null;
   cognitive_state: string | null;
+  /** Why the session was configured as it was — the planner's account. */
+  plan_reasoning: string | null;
+  /** What the engine concluded from the session's answers. */
+  diagnosis: string | null;
+  /** Letters this session deliberately included because the child confuses them. */
+  targeted: string[];
   tracing_score: number | null;
   memory_moves: number | null;
   confusions: Record<string, number>;
@@ -476,6 +482,9 @@ export function buildProgressReport(src: ReportSources): ProgressReport {
           : null,
       latency_median_ms: sess.metrics?.latency_median_ms ?? null,
       cognitive_state: sess.cognitive_state,
+      plan_reasoning: sess.level_config?.reasoning ?? null,
+      diagnosis: sess.reasoning ?? null,
+      targeted: sess.level_config?.confused_letters ?? [],
       tracing_score:
         tracing?.outcome?.kind === "tracing" ? tracing.outcome.score : null,
       memory_moves:

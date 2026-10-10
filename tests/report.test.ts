@@ -179,6 +179,11 @@ ok("report is not flagged empty", report.empty === false, String(report.empty));
 ok("provider is on-device", report.provider === "on-device", report.provider);
 ok("generated_at present", typeof report.generated_at === "string");
 
+console.log("\n-- what the app did, per session --");
+ok("each session carries the planner's reasoning", typeof done.plan_reasoning === "string" && done.plan_reasoning.length > 0, String(done.plan_reasoning));
+ok("…and the engine's conclusion", done.diagnosis === "r", String(done.diagnosis));
+ok("…and the letters it targeted (none in this config)", Array.isArray(done.targeted) && done.targeted.length === 0, JSON.stringify(done.targeted));
+
 console.log("\n-- one child per report --");
 ok("another child's session is excluded", !rows.some((r) => r.session_id === "s-other-child"));
 ok("another child's letter does not appear", !report.letter_stats["क"], Object.keys(report.letter_stats).join(" "));
