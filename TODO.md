@@ -95,48 +95,59 @@ future work: **a push to `main` deploys to production by itself** — the Vercel
 GitHub integration is connected. There is no separate "ship it" step to remember,
 and no way to push without shipping.*
 
-## Device feedback, 2026-10-10 — W1 landed, W2–W5 open
+## Device feedback, 2026-10-10 — W1–W3 built, W4–W5 open
 
-Nine reports from device testing. W1 is on branch `fix/w1-child-view-layout`
-(commit `29eae34`) and covers 1a·1b·2a·2b·3a·4a·4c·6·7 — see `STATUS_LOG.md`.
-**Every W1 claim is a visual one made without a browser; V1 on a device is what
-confirms them.**
+W1, W2 and W3 are implemented and logged in `STATUS_LOG.md`. They sit on a
+**stack of branches, each built on the one before**, and none is merged:
 
-- [ ] **W2 · Make the games actually adapt to the child (report 2c).**
-      The feedback was not about option counts: the games must pick confusable
-      letters from what *this* child gets wrong. **They do not.**
-      `pickDistractors` (`src/app/lib/adaptiveEngine.ts:322`) reads the static
-      `DISTRACTOR_POOLS[target].easy/hard`, chosen by cognitive state alone, and
-      never looks at the child's history. The only per-child behaviour is
-      "rotate one letter if identical to last session", which is
-      anti-memorisation, not personalisation.
-      **The loop is open, and the plumbing is already there pointing the wrong
-      way:** `sessionMetrics.ts` computes `confusion_counts`, the report renders
-      them, and `wordQuestions.distractorsFor(target, confused, n)` takes a
-      `confused` argument it *prefers* — but every caller passes
-      `levelConfig.distractor_pool`, which is static. Closing it means feeding
-      real confusion counts into `pickDistractors` and into the three games.
-- [ ] **W2b · Hesitation nudging in the word games (reports 3c, 4d).**
-      `levelConfig.hesitation_trigger_stage1_ms` / `stage2_ms` exist and are
-      **ignored by both word games**. Only `IdentifyStep` implements the ladder
-      (dim → pulse → answer for the child). A child who stalls in Fill-in or
-      Spelling dead-ends with no help at all.
-- [ ] **W3 · Matras as first-class units (report 9).** Decision taken: teach
-      them separately, not just fix the split — see Reference Decision
-      [2026-10-10]. Two parts:
-      * **The correctness half, which is a live data bug.** Words are split by
-        code point, so the app counts `खिलौना` as 6 letters when it is 3
-        graphemes (78% of the 92 example words carry a matra). Worse, **ङ and ञ
-        log attempts under the wrong letter**: their words (`गंगा`, `चंचल`) do
-        not contain the target, `Math.max(0, findIndex(...))` falls back to
-        index 0, so the child practising ङ is asked to fill ग and the attempt is
-        recorded as `target_letter: "ग"` — feeding the adaptive engine and the
-        report's confusion pairs. For those same two letters
-        `buildSpellingQuestions` skips its loop entirely and renders a spelling
-        question with **one** option. Needs `Intl.Segmenter`.
-      * **The teaching half.** A matra model showing bare consonant, matra mark
-        and combined form as three distinct things. New content across 33
-        letters and probably a new activity. Scope this before building it.
+| Branch | Adds | Commit |
+|---|---|---|
+| `fix/w1-child-view-layout` | layout fixes, re-onboarding bug | `29eae34` |
+| `feat/w2-adaptive-games` | learner profile, personal distractors, word-game nudging | `6206fc3` |
+| `fix/w3-matras` | akshara segmentation, ङ/ञ fix, barakhadi step, data audit doc | `d81a8ad`+ |
+
+- [ ] **V5 · Verify the stack on a device, then merge.** Test the
+      `fix/w3-matras` preview, which contains all three. **Use guest mode on a
+      preview URL:** the Supabase redirect allowlist (7.6) has no pattern
+      matching `akshara-git-…-prakhar23381-iiitdacins-projects.vercel.app`, so
+      Google sign-in there will likely land on production instead. Merging to
+      `main` **is** the production release.
+      Things only a device can confirm: centring and square memory cards (W1);
+      the dim → hint → rescue ladder in Fill-in and Spelling (W2); the
+      barakhadi rows fitting a 360×640 screen, and the ◌ dotted circle and the
+      conjunct options (`ड्गा`) rendering in Noto Sans Devanagari (W3).
+- [ ] **V6 · Confirm the database read path for a signed-in child.** W2 reads
+      `learning_sessions` for signed-in children. The columns are verified to
+      exist, but the query itself has only run against an empty table under
+      the anon key — no signed-in session was available. Sign in, play a
+      letter twice, and check the second session's reasoning reads
+      "Personalised from N sessions (database+device)".
+- [ ] **R1 · The learning report never reads the database.**
+      `buildProgressReport()` reads three `localStorage` keys, with **no user
+      filter**. On a shared device every child's sessions merge into one
+      report; a signed-in child is always titled "Guest Explorer" and always
+      has 0 letters mastered (both keys are only written by the guest mock);
+      and a new phone shows an empty report. The learner-profile loader
+      already reads the database and filters by child — point the report at
+      the same source. Detail in `docs/09_DATA_FLOW_AUDIT.md`.
+- [ ] **R2 · Database writes fail silently.** Every write is fire-and-forget
+      and nobody inspects its `{ error }` (supabase-js returns errors rather
+      than throwing, so the `.catch()` never fires). Guest-mode mirror writes
+      *always* fail — no auth session, and `"guest-user-id"` is not a UUID —
+      so either remove the mirror or give guests an anonymous Supabase
+      identity.
+- [ ] **M1 · Measure matras, not just teach them.** The barakhadi step is
+      unscored. A short ि/ी, ु/ू check would put matra confusions — the most
+      common dyslexic error in Devanagari — into the learner profile, so the
+      matra step could adapt the way the letter games now do.
+- [ ] **H1 · A Hindi teacher should confirm the new ङ / ञ words.** गङ्गा,
+      पङ्खा, अङ्गूर, चञ्चल, पञ्जा, मञ्च are the traditional spellings, chosen because
+      the modern anusvara forms do not contain the letter. Also: ण has two
+      example words and ष one, so those sessions have fewer word questions.
+- [ ] **E1 · `IdentifyStep` still runs its own hesitation ladder.** The word
+      games share `hooks/useHesitationLadder.ts`; Identify's copy is tangled
+      with its slow-audio retry, so folding it in was left out of W2.
+
 - [ ] **W4 · Report redesign (reports 5a, 5b, 5c).** Too much space, too little
       information, too little colour. Decision taken: **use RAG colour on
       scores**, reversing the earlier single-hue restraint — see Reference

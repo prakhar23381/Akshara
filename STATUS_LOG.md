@@ -4,6 +4,80 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-10
+
+Device testing produced nine reports. Three phases were built against them,
+each on its own branch stacked on the last. **None is merged or
+device-verified** — that is `TODO.md` V5.
+
+### Data-flow audit — the app was not personalised
+Asked to establish whether the app reads the database for anything. Written up
+in full in `docs/09_DATA_FLOW_AUDIT.md`. In short:
+* **`learning_sessions` was written and never read back.** The database was
+  read only for routing and the roadmap's lock state.
+* **Every session was configured from an empty attempt list.** The roadmap,
+  the only way to start a session, called `analyzeSession({ attempts: [] })`,
+  so distractors came from static pools (whose `easy` list is `ल ह स र` for
+  almost every letter), nudge timers were always 14 s / 19 s, and the only
+  carry-over was the latest state on any letter — read across every child on
+  the device. The end-of-session diagnosis was computed and then discarded.
+* **The report reads only `localStorage`, with no user filter.** A signed-in
+  child is titled "Guest Explorer" and shows 0 letters mastered. Not fixed —
+  `TODO.md` R1.
+* **Production never calls the backend**: the live bundle carries the
+  `localhost:5050` fallback, so `VITE_API_URL` is unset. Gemini has never
+  shaped a production session.
+* Every column the app writes exists on the live project (PostgREST probe,
+  negative control `400`). Whether rows actually land could not be verified:
+  every write ignores its `{ error }`.
+
+### W1 · Child-view layout (`fix/w1-child-view-layout`, `29eae34`)
+* **Reports 1a, 2a, 3a, 4a — "not centred" — were one line.** `OptionGrid` used
+  `justifySelf`, which has no effect on a flex item; with a `max-width` the
+  grid pinned left. Now `marginInline: auto`.
+* **4c — no bottom padding.** `ChildScreen` derived vertical padding from the
+  header alone, so a step with a header and no footer got none.
+* **1b** square memory cards (`OptionGrid squareCells`); **2b** Listen-to-Letter
+  gets a title; **7** the "0.8x speed" badge is removed from the child view.
+* **6** — tapping Child re-ran name/age/avatar for a child with a profile. The
+  check is now shared in `lib/profile.ts`; routing via `/` would have looped
+  `/welcome → /user-type → / → /welcome`.
+* Pushed; Vercel built a preview, not a production deploy.
+
+### W2 · Games adapt to the child (`feat/w2-adaptive-games`, `6206fc3`)
+* `lib/learnerProfile.ts`: per-child profile — state per letter,
+  recency-weighted confusions (0.8× per older session, reverse direction at
+  half weight), median response time. Signed-in: database merged with device;
+  guest: device. Always filtered to the child; database read times out to the
+  device after 2.5 s.
+* `planSession()` configures each session from it; the roadmap calls
+  `prepareSessionConfig()` instead of the empty analyse. Empty profile → exactly
+  the old behaviour.
+* All four games lead with the child's confusions. Personal slots capped at 1
+  in the low-similarity states, where questions are labelled "dissimilar", so
+  personalisation does not rewrite the measurement.
+* **3c, 4d** — Fill-in and Spelling had no hesitation ladder; now they dim,
+  hint and rescue via `hooks/useHesitationLadder.ts`.
+* `readPriorCognitiveState` now filters by child.
+* `tests/learner.test.ts`, 29 checks.
+
+### W3 · Matras (`fix/w3-matras`, `d81a8ad`)
+* `lib/akshara.ts` splits Devanagari into aksharas, written out rather than
+  `Intl.Segmenter` so conjuncts behave the same in every browser.
+* Fill-in blanks a whole akshara; options carry its matra (गा · मा · भा).
+* **ङ and ञ** had example words without the letter, so their sessions blanked
+  and logged ग / च, and their spelling question showed one option. New
+  traditional-spelling words; want a Hindi teacher's check (H1).
+* Attempts record real consonants; vowels never used as word distractors; an
+  empty word step completes itself instead of dead-ending.
+* **New barakhadi step** — consonant + sign on a dotted circle = syllable,
+  tap to hear, short/long pairs side by side, four per session. Gated on
+  `include_matras` so past sessions' report completion is unchanged.
+* `tests/akshara.test.ts`, 39 checks, run over every letter.
+
+**End state:** 153 checks pass across 6 files. tsc clean. Build: JS 724.9 kB,
+CSS 37.44 kB.
+
 ## 2026-10-09
 
 ### D1 closed · push access restored, 15 commits on GitHub

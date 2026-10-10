@@ -13,6 +13,7 @@
 | [07_DYSLEXIA_SCIENCE.md](07_DYSLEXIA_SCIENCE.md) | Research backing for every design decision: why each adaptation specifically helps children with dyslexia |
 | [archive/](archive/) | Superseded planning documents, kept for their reasoning |
 | [08_AUTH_SETUP.md](08_AUTH_SETUP.md) | Owning the credentials: creating the Google Cloud OAuth client, enabling the Supabase provider, the two redirect allowlists, which env vars the frontend can actually read |
+| [09_DATA_FLOW_AUDIT.md](09_DATA_FLOW_AUDIT.md) | **Read this before touching adaptation or the report.** Which code reads the database (almost none), what the adaptive loop actually used before W2, the report's data defects, and what the learner profile changed |
 
 ## Quick Reference
 
@@ -25,7 +26,9 @@ npm install
 cp .env.example .env.local     # then fill in the two VITE_ values
 npm run dev
 
-# Backend — optional, only if you want Gemini-personalised distractors.
+# Backend — optional. Note that its Gemini output has never shaped a session:
+# production never calls it, and session start no longer asks it at all (see
+# 09_DATA_FLOW_AUDIT.md). It still diagnoses a finished session when reachable.
 cd backend
 python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 cp .env.example .env           # SUPABASE_URL, SUPABASE_KEY, GEMINI_API_KEY
