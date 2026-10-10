@@ -23,6 +23,7 @@ import type {
   SessionPayload,
   VisualAidIntensity,
 } from "../types/levelConfig";
+import type { LearnerProfile } from "./learnerProfile";
 
 const ERROR_THRESHOLD_FAIL = 0.30;    // >30% error → struggling
 const ERROR_THRESHOLD_MASTERY = 0.10; // <10% error → mastered
@@ -319,11 +320,28 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/**
+ * How many slots in the pool the child's own confusions may take.
+ *
+ * Fewer in the low-similarity states. There the diagnosis labels every
+ * question "dissimilar", so each confusable letter added makes that label a
+ * little less true — and a child who keeps failing hard letters under a
+ * "dissimilar" label is held in GROSS_SHAPE_BLINDNESS longer. One slot keeps the
+ * session personal without letting it rewrite the measurement.
+ */
+export const PERSONAL_SLOTS: Record<CognitiveState, number> = {
+  insufficient_data: 1,
+  gross_shape_blindness: 1,
+  feature_neglect: 2,
+  visual_mastery: 2,
+};
+
 function pickDistractors(
   target: string,
   state: CognitiveState,
   previousPool: string[],
-): string[] {
+  confused: string[] = [],
+): { pool: string[]; personal: string[] } {
   const pools = DISTRACTOR_POOLS[target];
   const useHard = state === "feature_neglect" || state === "visual_mastery";
   const base = pools
@@ -333,24 +351,34 @@ function pickDistractors(
     : useHard
       ? DEFAULT_HARD
       : DEFAULT_EASY;
+  const size = base.filter((l) => l !== target).length;
 
-  const pool = base.filter((l) => l !== target);
+  // The child's own confusions lead. The static pool only fills what is left —
+  // it is a fallback for a child we know nothing about, not the default.
+  const personal = confused
+    .filter((l) => l !== target)
+    .slice(0, PERSONAL_SLOTS[state]);
+  let filler = base.filter((l) => l !== target && !personal.includes(l));
 
-  // Rotate at least one letter versus the previous session so the child cannot
-  // memorise a fixed grid (prompts.py distractor rule 2).
+  // Rotate at least one *static* letter versus the previous session so the
+  // child cannot memorise a fixed grid (prompts.py distractor rule 2). A
+  // personal letter is never rotated out: it is there because the child gets it
+  // wrong, and dropping it for variety would undo the point.
+  const candidate = [...personal, ...filler].slice(0, size);
   const isRepeat =
-    previousPool.length === pool.length &&
-    previousPool.every((l, i) => l === pool[i]);
-  if (isRepeat && pools) {
+    previousPool.length === candidate.length &&
+    previousPool.every((l, i) => l === candidate[i]);
+  if (isRepeat && pools && filler.length > 0) {
     const alternatives = (useHard ? pools.easy : pools.hard).filter(
-      (l) => l !== target && !pool.includes(l),
+      (l) => l !== target && !candidate.includes(l),
     );
-    if (alternatives.length > 0) {
-      return [...pool.slice(0, pool.length - 1), alternatives[0]];
-    }
-    return [...pool.slice(1), pool[0]];
+    filler =
+      alternatives.length > 0
+        ? [...filler.slice(0, Math.max(0, size - personal.length - 1)), alternatives[0]]
+        : [...filler.slice(1), filler[0]];
   }
-  return pool;
+
+  return { pool: [...personal, ...filler].slice(0, size), personal };
 }
 
 /**
@@ -411,12 +439,106 @@ export function analyzeLocally(
     visual_aid_intensity: rules.visual_aid_intensity,
     input_mode: rules.input_mode,
     scaffold_intensity: computeScaffold(state, errorRate),
-    distractor_pool: pickDistractors(target, state, previousPool),
+    distractor_pool: pickDistractors(target, state, previousPool).pool,
     feature_to_highlight: FEATURE_BY_LETTER[target] ?? "",
     phonological_note: "",
     hesitation_trigger_stage1_ms: baseline + 8000 * pacing,
     hesitation_trigger_stage2_ms: baseline + 13000 * pacing,
     reasoning,
+    provider_used: "on-device",
+  };
+
+  return {
+    levelConfig,
+    letterMastered: state === "visual_mastery",
+    errorRatePct: Math.round(errorRate * 1000) / 10,
+    state,
+  };
+}
+
+/** Plausible response-time bounds, so one distracted session cannot set absurd timers. */
+const BASELINE_MIN_MS = 3000;
+const BASELINE_MAX_MS = 12000;
+
+/**
+ * Configure a new session from what this child has actually done.
+ *
+ * This replaces calling `analyzeLocally` with an empty attempt list, which is
+ * what opening a letter used to do — and with no attempts there is nothing to
+ * adapt to, so every session started from the static pools, the same 14s/19s
+ * nudge timers and, at best, the last state the child reached on *some other*
+ * letter. Each decision here now comes from the profile:
+ *
+ *  - **state** — this letter's own last diagnosis if the child has one. Only a
+ *    letter they have never finished borrows from the latest state elsewhere,
+ *    capped as before so a new letter never skips shape recognition.
+ *  - **distractors** — the letters this child confuses with this one, first.
+ *  - **nudge timing** — from the child's own median response time, not a
+ *    hardcoded 6s.
+ *  - **scaffold** — from this letter's last error rate, not zero.
+ *
+ * With an empty profile every one of these falls back to exactly what the
+ * engine did before, so a brand-new child gets the standard assessment.
+ */
+export function planSession(
+  userId: string,
+  target: string,
+  profile: LearnerProfile,
+  previousPool: string[] = [],
+): LocalAnalysis {
+  const own = profile.stateByLetter[target];
+  const { state, reasoning: stateReason } = own
+    ? {
+        state: own,
+        reasoning: `Last session on ${target} was diagnosed ${own}; continuing from there.`,
+      }
+    : carryForward(
+        { state: "insufficient_data", reasoning: "No history on this letter yet." },
+        profile.latestState,
+        target,
+      );
+
+  const confused = Object.entries(profile.confusions[target] ?? {})
+    .filter(([l]) => l !== target)
+    .sort((a, b) => b[1] - a[1])
+    .map(([l]) => l);
+  const { pool, personal } = pickDistractors(target, state, previousPool, confused);
+
+  const errorRate = profile.errorRateByLetter[target] ?? 0;
+  const rules = STATE_RULES[state];
+  const baseline =
+    profile.latencyMedianMs !== null
+      ? Math.min(BASELINE_MAX_MS, Math.max(BASELINE_MIN_MS, profile.latencyMedianMs))
+      : 6000;
+
+  const parts = [
+    profile.sessionCount > 0
+      ? `Personalised from ${profile.sessionCount} recorded session${profile.sessionCount === 1 ? "" : "s"} (${profile.source}).`
+      : "No recorded sessions yet: standard first assessment.",
+    stateReason,
+    personal.length > 0
+      ? `Distractors include this child's own confusions: ${personal.join(", ")}.`
+      : "No recorded confusions for this letter; using the standard pool.",
+    profile.latencyMedianMs !== null
+      ? `Nudge timing set from a median response of ${(baseline / 1000).toFixed(1)}s.`
+      : "",
+  ].filter(Boolean);
+
+  const levelConfig: LevelConfig = {
+    user_id: userId,
+    target_alphabet: target,
+    cognitive_state: state,
+    distractor_similarity: rules.distractor_similarity,
+    visual_aid_intensity: rules.visual_aid_intensity,
+    input_mode: rules.input_mode,
+    scaffold_intensity: computeScaffold(state, errorRate),
+    distractor_pool: pool,
+    confused_letters: personal,
+    feature_to_highlight: FEATURE_BY_LETTER[target] ?? "",
+    phonological_note: "",
+    hesitation_trigger_stage1_ms: baseline + 8000,
+    hesitation_trigger_stage2_ms: baseline + 13000,
+    reasoning: parts.join(" "),
     provider_used: "on-device",
   };
 

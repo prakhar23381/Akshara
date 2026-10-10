@@ -17,9 +17,9 @@ interface Card {
 const PAIRS = 3;
 
 /**
- * Match identical letter glyphs. Distractors come from the same confusable
- * pools the adaptive engine uses, rather than a third hand-maintained copy of
- * the similarity table.
+ * Match identical letter glyphs. The other pairs are the letters this child
+ * confuses with the target, then the engine's pool — so the deck asks the child
+ * to tell apart exactly the letters they mix up, rather than a fixed set.
  */
 function buildDeck(target: string, confused: string[]): Card[] {
   const hard = DISTRACTOR_POOLS[target]?.hard ?? ["म", "ग", "ब"];
@@ -44,7 +44,10 @@ function buildDeck(target: string, confused: string[]): Card[] {
 
 export function MemoryStep({ letter, levelConfig, onComplete }: StepProps) {
   const [cards, setCards] = useState<Card[]>(() =>
-    buildDeck(letter, levelConfig.distractor_pool),
+    buildDeck(letter, [
+      ...(levelConfig.confused_letters ?? []),
+      ...levelConfig.distractor_pool,
+    ]),
   );
   const [picked, setPicked] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);

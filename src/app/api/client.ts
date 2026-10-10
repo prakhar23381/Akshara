@@ -7,8 +7,9 @@ import type {
 import { LETTER_SEQUENCE } from "../types/levelConfig";
 import { supabase } from "../lib/supabase";
 import { queueOfflineSession, syncOfflineSessions } from "../lib/offline_sync";
-import { analyzeLocally } from "../lib/adaptiveEngine";
+import { analyzeLocally, planSession } from "../lib/adaptiveEngine";
 import { loadAllSessions } from "../lib/sessionStore";
+import { loadLearnerProfile } from "../lib/learnerProfile";
 import {
   buildStepOrder,
   sessionAttempts,
@@ -169,10 +170,15 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
  * has a profile already, whichever letter earned it. Sessions that produced
  * `insufficient_data` are skipped because they carry no information — they are
  * the initialisation calls themselves.
+ *
+ * It *is* filtered by child. Local storage holds every session played on this
+ * device by anyone, so reading it unfiltered let one child's level seed
+ * another's.
  */
-function readPriorCognitiveState(): CognitiveState | null {
+function readPriorCognitiveState(userId: string): CognitiveState | null {
   try {
     const dated = loadAllSessions()
+      .filter((s) => s.user_id === userId)
       .filter((s) => s.cognitive_state && s.cognitive_state !== "insufficient_data")
       .sort((a, b) => (a.started_at < b.started_at ? 1 : -1));
     return (dated[0]?.cognitive_state as CognitiveState) ?? null;
@@ -189,7 +195,7 @@ export async function analyzeSession(
   const enriched: SessionPayload = {
     ...payload,
     prior_cognitive_state:
-      payload.prior_cognitive_state ?? readPriorCognitiveState(),
+      payload.prior_cognitive_state ?? readPriorCognitiveState(payload.user_id),
   };
 
   if (!backendReachable) {
@@ -217,6 +223,26 @@ export async function analyzeSession(
     queueOfflineSession(enriched);
     return makeFallbackResponse(enriched);
   }
+}
+
+/**
+ * The config for a session about to start, built from the child's history.
+ *
+ * Opening a letter used to call `analyzeSession` with an empty attempt list.
+ * That cannot adapt to anything — there is nothing in it — and when a backend
+ * was reachable it spent a network round trip to learn nothing, since the
+ * server is stateless and had no history either. Session start is now decided
+ * on the device, from the learner profile; `analyzeSession` keeps the job it
+ * can actually do, diagnosing a session that has attempts in it.
+ */
+export async function prepareSessionConfig(
+  userId: string,
+  letter: string,
+): Promise<LevelConfig> {
+  const profile = await loadLearnerProfile(userId);
+  const { levelConfig } = planSession(userId, letter, profile, readLastPool(letter));
+  writeLastPool(letter, levelConfig.distractor_pool);
+  return levelConfig;
 }
 
 /**

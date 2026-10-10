@@ -23,6 +23,13 @@ export interface LevelConfig {
   hesitation_trigger_stage2_ms: number;
   reasoning: string;
   provider_used: string;
+  /**
+   * Letters in `distractor_pool` that came from this child's own recorded
+   * mistakes, strongest first. The games use it to make sure those letters are
+   * actually shown rather than shuffled out. Optional: configs produced by the
+   * backend, and sessions recorded before it existed, simply lack it.
+   */
+  confused_letters?: string[];
 }
 
 export interface QuestionAttempt {

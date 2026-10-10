@@ -19,13 +19,22 @@ type Phase = "default" | "hesitation" | "hint" | "wrong" | "correct";
 const QUESTIONS = 5;
 const FAIL_FORCE = 2;
 
-function makeOptions(target: string, pool: string[]): string[] {
-  const distractors = [...pool.filter((l) => l !== target)];
-  for (let i = distractors.length - 1; i > 0; i--) {
+/**
+ * One question's options: the target and three distractors.
+ *
+ * The child's own confusions are always among them. This used to shuffle the
+ * whole pool and take three, so a letter the child keeps mistaking for the
+ * target was left out of a question by chance. Only the remaining slots are
+ * random, which keeps the five questions varied.
+ */
+function makeOptions(target: string, pool: string[], confused: string[] = []): string[] {
+  const personal = confused.filter((l) => l !== target && pool.includes(l));
+  const rest = pool.filter((l) => l !== target && !personal.includes(l));
+  for (let i = rest.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [distractors[i], distractors[j]] = [distractors[j], distractors[i]];
+    [rest[i], rest[j]] = [rest[j], rest[i]];
   }
-  const opts = [target, ...distractors.slice(0, 3)];
+  const opts = [target, ...[...personal, ...rest].slice(0, 3)];
   for (let i = opts.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [opts[i], opts[j]] = [opts[j], opts[i]];
@@ -53,9 +62,9 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
   const questions = useMemo(
     () =>
       Array.from({ length: QUESTIONS }, () =>
-        makeOptions(letter, levelConfig.distractor_pool),
+        makeOptions(letter, levelConfig.distractor_pool, levelConfig.confused_letters),
       ),
-    [letter, levelConfig.distractor_pool],
+    [letter, levelConfig.distractor_pool, levelConfig.confused_letters],
   );
   const options = questions[index] ?? [];
 

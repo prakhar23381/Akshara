@@ -6,14 +6,21 @@ import { StepDots } from "../StepDots";
 import { useSession } from "../../../contexts/SessionContext";
 import { speakHindi } from "../../../utils/speech";
 import { playSuccessSound, playErrorSound } from "../../../utils/soundEffects";
+import { useHesitationLadder } from "../../../hooks/useHesitationLadder";
 import { buildFillQuestions, QUESTIONS_PER_ROUND } from "./wordQuestions";
 import type { StepProps } from "../types";
 
 export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
   const { recordAttempt } = useSession();
+  // The child's own confusions lead, so the wrong options are the letters this
+  // child actually mixes up with this one rather than a fixed list.
   const questions = useMemo(
-    () => buildFillQuestions(letter, levelConfig.distractor_pool),
-    [letter, levelConfig.distractor_pool],
+    () =>
+      buildFillQuestions(letter, [
+        ...(levelConfig.confused_letters ?? []),
+        ...levelConfig.distractor_pool,
+      ]),
+    [letter, levelConfig.confused_letters, levelConfig.distractor_pool],
   );
   const [index, setIndex] = useState(0);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -54,6 +61,33 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
     else playErrorSound();
     setTimeout(advance, option === q.answer ? 900 : 1400);
   }
+
+  // Stalled? Dim, then hint, then answer for the child — the same ladder
+  // Listen-to-Letter uses. Without it a child who froze here had no way on.
+  const rescue = useCallback(() => {
+    if (locked || !q) return;
+    setChosen(q.answer);
+    setLocked(true);
+    recordAttempt("word_fill", {
+      target_letter: q.answer,
+      selected_letter: q.answer,
+      module_type: "similar",
+      time_to_interact_ms: 0,
+      was_guided_win: true,
+      hover_duration_ms: 0,
+      jitter_count: 0,
+    });
+    playSuccessSound();
+    setTimeout(advance, 1200);
+  }, [locked, q, recordAttempt, advance]);
+
+  const phase = useHesitationLadder({
+    stage1Ms: levelConfig.hesitation_trigger_stage1_ms,
+    stage2Ms: levelConfig.hesitation_trigger_stage2_ms,
+    resetKey: index,
+    active: !locked && Boolean(q),
+    onRescue: rescue,
+  });
 
   if (!q) {
     return (
@@ -99,8 +133,13 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
         keyOf={(o) => o}
         render={(option) => {
           const isAnswer = option === q.answer;
+          const dimmed = !locked && phase !== "default" && !isAnswer;
           const state = !locked
-            ? "bg-white border-gray-300"
+            ? phase === "hint" && isAnswer
+              ? "bg-[#FFD166] border-[#FFD166] animate-pulse"
+              : dimmed
+                ? "bg-white border-gray-300 opacity-30"
+                : "bg-white border-gray-300"
             : option === chosen
               ? isAnswer
                 ? "bg-[#4CAF50] border-[#4CAF50] text-white"
@@ -111,7 +150,7 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
           return (
             <button
               onClick={() => pick(option)}
-              disabled={locked}
+              disabled={locked || dimmed}
               className={`w-full h-full flex items-center justify-center border-4 transition-all min-h-0 ${state}`}
               style={{ borderRadius: "var(--card-radius)" }}
             >

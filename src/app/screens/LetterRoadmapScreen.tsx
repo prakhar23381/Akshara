@@ -5,7 +5,7 @@ import { useSession } from "../contexts/SessionContext";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { LETTER_SEQUENCE } from "../types/levelConfig";
-import { analyzeSession } from "../api/client";
+import { prepareSessionConfig } from "../api/client";
 import { TopBar } from "../components/TopBar";
 import { Lock, Trophy, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
@@ -124,29 +124,21 @@ export function LetterRoadmapScreen() {
     try {
       jumpToLetterIndex(index);
 
-      // Ask for the level config for this letter, then open a session that
-      // every activity in the sequence writes into. The id is minted here —
-      // before the first activity — rather than part-way through the flow.
-      const response = await analyzeSession({
-        user_id: userId,
-        target_alphabet: letter,
-        session_id: `init_${Date.now()}`,
-        session_number: 1,
-        avg_latency_ms: 6000,
-        consecutive_fails_peak: 0,
-        attempts: [],
-      });
-      setLevelConfig(response.level_config);
-      setLastAvgLatencyMs(
-        response.level_config.hesitation_trigger_stage1_ms - 8000 || 6000,
-      );
+      // Build this session from the child's own history — their state on this
+      // letter, the letters they confuse with it, their response times — then
+      // open a session that every activity writes into. This used to ask the
+      // engine about an empty attempt list, which could only ever return the
+      // standard config.
+      const levelConfig = await prepareSessionConfig(userId, letter);
+      setLevelConfig(levelConfig);
+      setLastAvgLatencyMs(levelConfig.hesitation_trigger_stage1_ms - 8000 || 6000);
 
       const prior = progressMap[letter]?.sessions_count ?? 0;
       startSession({
         userId,
         letter,
         sessionNumber: prior + 1,
-        levelConfig: response.level_config,
+        levelConfig,
       });
       navigate("/play");
     } catch (err) {
