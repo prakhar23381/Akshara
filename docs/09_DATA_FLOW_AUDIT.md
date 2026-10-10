@@ -1,6 +1,6 @@
 # Data-flow audit — is anything personalised from the database?
 
-*Audited 2026-10-10 against `main` at `1f3fdec` (what production serves), by tracing every Supabase and `localStorage` access in `src/`. W2 and W3 below are the fixes, on branches `feat/w2-adaptive-games` and `fix/w3-matras`.*
+*Audited 2026-10-10 against `main` at `1f3fdec` (what production serves), by tracing every Supabase and `localStorage` access in `src/`. W2, W3 and R1 below are the fixes, on branches `feat/w2-adaptive-games`, `fix/w3-matras` and `fix/r1-report-data`.*
 
 ## Verdict
 
@@ -56,7 +56,7 @@ The one call that does see a session's attempts is the end-of-session diagnosis.
 - **"Letters mastered" is always 0 for a signed-in child.** `akshara_db_letter_progress` is only written by the guest mock. A signed-in child's progress goes to the real table, which the report never reads.
 - **A new phone or a cleared browser shows an empty report**, although the database holds the sessions.
 
-**Not fixed by W2 or W3.** See `TODO.md` → R1.
+**Fixed in R1** (`fix/r1-report-data`): see below.
 
 ## Do the writes succeed?
 
@@ -90,9 +90,13 @@ What could **not** be verified from here is that rows actually land. Every write
 - Attempts record real consonants.
 - New barakhadi step teaches matras as separate signs.
 
-## Still open
+**R1 (`fix/r1-report-data`):**
 
-- **R1.** The report reads only `localStorage`, unfiltered. Point it at the learner-profile loader, which already reads the database and filters by child.
+- `buildProgressReport(sources)` is now pure.
+- `fetchProgressReport(userId)` gathers one child's records: this device's, filtered to the child, plus, for a signed-in child, `learning_sessions`, `letter_progress` and their profile name from the database, merged by session id.
+- If the database can't be read, the report header says "saved on this device only".
+
+## Still open
 - **Write verification.** Inspect `{ error }` on each Supabase write and surface failures somewhere an adult can see them.
 - **Guest mirror.** Its writes always fail. Remove it, or give guests an anonymous Supabase identity.
 - **Matra data.** The barakhadi step teaches but does not measure. A scored ि/ी, ु/ू check would give the profile matra confusions, the most common dyslexic error in Devanagari.

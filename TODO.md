@@ -95,19 +95,22 @@ future work: **a push to `main` deploys to production by itself** — the Vercel
 GitHub integration is connected. There is no separate "ship it" step to remember,
 and no way to push without shipping.*
 
-## Device feedback, 2026-10-10 — W1–W3 built, W4–W5 open
+## Device feedback, 2026-10-10 — W1–W3 and R1 built, W4–W5 open
 
-W1, W2 and W3 are implemented and logged in `STATUS_LOG.md`. They sit on a
-**stack of branches, each built on the one before**, and none is merged:
+W1, W2, W3 and R1 are implemented and logged in `STATUS_LOG.md`. They sit on
+a **stack of branches, each built on the one before**, and none is merged:
 
 | Branch | Adds | Commit |
 |---|---|---|
 | `fix/w1-child-view-layout` | layout fixes, re-onboarding bug | `29eae34` |
 | `feat/w2-adaptive-games` | learner profile, personal distractors, word-game nudging | `6206fc3` |
-| `fix/w3-matras` | akshara segmentation, ङ/ञ fix, barakhadi step, data audit doc | `d81a8ad`+ |
+| `fix/w3-matras` | akshara segmentation, ङ/ञ fix, barakhadi step, data audit doc, double-tap fix | `d81a8ad`…`3b13a62` |
+| `fix/r1-report-data` | report built per child from database + device | `ee78be8`+ |
 
 - [ ] **V5 · Verify the stack on a device, then merge.** Test the
-      `fix/w3-matras` preview, which contains all three. **Use guest mode on a
+      `fix/r1-report-data` preview, which contains all four. Previews sit
+      behind Vercel login (Deployment Protection): sign in to Vercel on the
+      phone, or use the deployment's Share link. **Use guest mode on a
       preview URL:** the Supabase redirect allowlist (7.6) has no pattern
       matching `akshara-git-…-prakhar23381-iiitdacins-projects.vercel.app`, so
       Google sign-in there will likely land on production instead. Merging to
@@ -121,15 +124,9 @@ W1, W2 and W3 are implemented and logged in `STATUS_LOG.md`. They sit on a
       exist, but the query itself has only run against an empty table under
       the anon key — no signed-in session was available. Sign in, play a
       letter twice, and check the second session's reasoning reads
-      "Personalised from N sessions (database+device)".
-- [ ] **R1 · The learning report never reads the database.**
-      `buildProgressReport()` reads three `localStorage` keys, with **no user
-      filter**. On a shared device every child's sessions merge into one
-      report; a signed-in child is always titled "Guest Explorer" and always
-      has 0 letters mastered (both keys are only written by the guest mock);
-      and a new phone shows an empty report. The learner-profile loader
-      already reads the database and filters by child — point the report at
-      the same source. Detail in `docs/09_DATA_FLOW_AUDIT.md`.
+      "Personalised from N sessions (database+device)". The report reads the
+      database the same way (R1): it should carry the child's own name, and
+      its header must **not** say "saved on this device only".
 - [ ] **R2 · Database writes fail silently.** Every write is fire-and-forget
       and nobody inspects its `{ error }` (supabase-js returns errors rather
       than throwing, so the `.catch()` never fires). Guest-mode mirror writes

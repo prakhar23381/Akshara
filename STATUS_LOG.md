@@ -84,8 +84,21 @@ in full in `docs/09_DATA_FLOW_AUDIT.md`. In short:
   reopens it only when the child genuinely gets a second try. The Listen and
   double-tap cases predate this work.
 
-**End state:** 153 checks pass across 6 files. tsc clean. Build: JS 725.1 kB,
-CSS 37.44 kB. Three Vercel *preview* deployments; production unchanged
+### R1 · The report, per child, from the database (`fix/r1-report-data`, `ee78be8`)
+* `buildProgressReport` read three `localStorage` keys unfiltered: every child
+  on the device merged into one report, a signed-in child titled after
+  `profiles[0]` ("Guest Explorer") with 0 letters mastered, and nothing read
+  from the database. Now pure, fed by `fetchProgressReport(userId)`: device
+  records filtered to the child, plus the database for a signed-in child,
+  merged by session id with the device copy preferred.
+* A failed or slow database read falls back to the device and the header says
+  "saved on this device only".
+* One shared `rowToSession`; `readsDatabase`, `withTimeout` and `normaliseRow`
+  shared between the learner profile and the report.
+* `tests/report.test.ts` 19 → 34 checks.
+
+**End state:** 168 checks pass across 6 files. tsc clean. Build: JS 726.3 kB,
+CSS 37.44 kB. Vercel *preview* deployments only; production unchanged
 (`index-B06-djcU.js`).
 
 ## 2026-10-09
