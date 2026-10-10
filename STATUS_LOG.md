@@ -4,6 +4,31 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-11 (later) — the report design approved, and its data model (W4-P, B1)
+
+* **E2 made top priority** at the user's request: its own section at the top
+  of `TODO.md`. Verified while writing it up: mastery scores 100 toward the
+  roadmap's 75% page unlock, and the backend diagnosis has the same rule
+  (`diagnosis_agent.py:119`).
+* **W4-P · Design approved** — `docs/10_REPORT_DESIGN.md`. Summary → Letters,
+  Skills, Practice, Mix-ups → detail; "right first time" as the base figure;
+  every figure defined in one table. User's decisions: build now and fix E2
+  before shipping; a "Practise next" line; **calendar** weeks (from Monday)
+  and months (from the 1st), compared with the **same span** of the previous
+  period.
+* **B1 · `screens/report-v2/model.ts`** — `buildReportModel(sources, now,
+  range)`, pure. `tests/reportModel.test.ts`, 48 checks on the lab's own
+  scenarios: periods and their edges (Tuesday, Monday 00:30, 31 March), Aarav's
+  week to the number (6 vs 1 sessions, 78% vs 64%, क ↔ ख 7× vs 3), a supplied
+  answer never counted as right, the day boundary in India's time zone, older
+  rows, all 25 children of the class. 268 checks across 9 files.
+* **Corrected during the work:** the plan said the word games mislabel every
+  answer as look-alike. They do not — their distractors really are
+  look-alikes, and the chosen consonant is recorded correctly. Look-alike vs
+  different shape still comes from Listen & tap only, for a different reason:
+  it is the one game where only the distractors vary.
+* `dist/` still byte-identical to the pre-lab build.
+
 ## 2026-10-11 — a fresh report: the brief, and the lab to build it in (`feat/report-v2`)
 
 * **Decided: a fresh report**, not an iteration on W4a, which stays live until

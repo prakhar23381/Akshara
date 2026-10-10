@@ -13,6 +13,7 @@
 | [07_DYSLEXIA_SCIENCE.md](07_DYSLEXIA_SCIENCE.md) | Research backing for every design decision: why each adaptation specifically helps children with dyslexia |
 | [archive/](archive/) | Superseded planning documents, kept for their reasoning |
 | [08_AUTH_SETUP.md](08_AUTH_SETUP.md) | Owning the credentials: creating the Google Cloud OAuth client, enabling the Supabase provider, the two redirect allowlists, which env vars the frontend can actually read |
+| [10_REPORT_DESIGN.md](10_REPORT_DESIGN.md) | The new parent report (W4): structure, wireframes, the exact definition of every figure, periods, visual rules, build steps |
 | [09_DATA_FLOW_AUDIT.md](09_DATA_FLOW_AUDIT.md) | **Read this before touching adaptation or the report.** Which code reads the database (almost none), what the adaptive loop actually used before W2, the report's data defects, and what the learner profile changed |
 
 ## Quick Reference

@@ -16,6 +16,35 @@ the line. P1–P6, L1–L8, C1–C5 and cleanup phases C0–C6 are all in the lo
 
 ---
 
+## PRIORITY — very important
+
+- [ ] **E2 · A supplied answer counts as a RIGHT answer — in the engine and
+      the report.** Found 2026-10-11 by the report lab's struggling-child
+      scenario: "mastered" on 2 of 3 letters while the app supplied 29% of
+      her answers.
+      * **Cause.** When the hesitation ladder answers for a stalled child, the
+        attempt is stored with `selected_letter = target` (plus
+        `was_guided_win: true`). `overallErrorRate()` and `diagnose()` in
+        `lib/adaptiveEngine.ts` count only `target ≠ selected` as wrong, so a
+        supplied answer is never an error.
+      * **Effect — it touches every child.** A child rescued on every hard
+        question can be diagnosed `visual_mastery`, which advances them,
+        unlocks the next roadmap page, and shows the letter as mastered. The
+        W4a report's "% wrong", its colours and "letters mastered" are all
+        flattered the same way. Only "correct without help" (`true_wins`)
+        excludes supplied answers today.
+      * **Decide (needs a plan, it changes the engine for everyone):** count
+        supplied answers as errors; drop them from the rate; or require a
+        minimum unaided share for mastery. The backend diagnosis has the same
+        rule (`backend/IP/agents/diagnosis_agent.py:119`) and must change with
+        it. Mastery scores 100 toward the roadmap's 75% page unlock
+        (`LetterRoadmapScreen.tsx:77`), so a flattered mastery also unlocks
+        pages early.
+      * **Must be fixed before the new report ships** (W4 B5, user's
+        decision 2026-10-11). Until then the new report builds on "right
+        first time" and never charts "% wrong"; its "letters learned" is the
+        engine's mastery and stays flattered until this is fixed.
+
 ## Decisions found during the cleanup
 
 - [ ] **B1 · Two high-severity advisories, both pre-existing.**
@@ -145,34 +174,29 @@ instruction. The branches below are merged; kept for reference only:
 - [ ] **E1 · `IdentifyStep` still runs its own hesitation ladder.** The word
       games share `hooks/useHesitationLadder.ts`; Identify's copy is tangled
       with its slow-audio retry, so folding it in was left out of W2.
-- [ ] **E2 · A supplied answer counts as a right answer in the diagnosis.**
-      Found 2026-10-11 by the lab's struggling-child scenario, which reached
-      "mastered" on 2 of 3 letters with 29% of answers supplied. When the
-      hesitation ladder answers for the child, the attempt is stored with
-      `selected_letter = target`, so `overallErrorRate()` and `diagnose()` in
-      `lib/adaptiveEngine.ts` — and the report's error rate — never see it as
-      wrong. A child who stalls and is rescued on every hard question can be
-      diagnosed `visual_mastery`. Decide: count supplied answers as errors,
-      exclude them from the rate, or require a minimum unaided share for
-      mastery. Changes the engine's behaviour for every child — needs a plan.
 
 - [~] **W4 · A fresh report (decided 2026-10-11).** W4a stays live until the
-      new one replaces it. Brief: recovery context §4. On `feat/report-v2`.
-      The report lab (W4-L) is built — `STATUS_LOG.md`; open `/lab.html`.
-  - [ ] **W4-P · Design plan for the parent report** — wireframes for the
-        summary, Letters, Mix-ups, Practice habits and Skills, the tap-in
-        detail, and the figures the builder must add (week/month windows,
-        per-skill trends). Needs approval before building. Load the `dataviz`
-        skill first. Mind E2: "mistakes" and "mastered" both count a supplied
-        answer as right, so a graphic built on them flatters a child who
-        stalls — "right without help" is the honest base figure.
-  - [ ] **W4-B · Build the parent report** in `screens/report-v2/`, then swap
-        `/report` over to it.
-- [ ] **W4b · Teacher class dashboard.** **Waits on W4** — it was to reuse the
-      W4a layout. W4a (the per-child dashboard) is built — `STATUS_LOG.md`. W4b is the class view: a table of children ×
-      key figures with status colour, who needs attention, the class's most
-      common confusions and hardest letters, tap a child for their W4a report.
-      Depends on W5c (classes).
+      new one replaces it. On `feat/report-v2`. **The design is approved:
+      [docs/10_REPORT_DESIGN.md](docs/10_REPORT_DESIGN.md)** — wireframes,
+      every figure's definition, the build steps. The lab (W4-L), the design
+      (W4-P) and the data model (B1) are done — `STATUS_LOG.md`.
+  - [ ] **B2 · Summary and period switch, in the lab.** `ParentReport` on
+        `buildReportModel`; validate the right/helped/wrong blues with the
+        dataviz script first. **Stop for the user's review in the lab.**
+  - [ ] **B3 · The four sections** (Letters, Skills, Practice, Mix-ups).
+        **User review.**
+  - [ ] **B4 · Detail views** (letter, skill, pair, all sessions) **and
+        Download.** **User review.**
+  - [ ] **B5 · Ship it.** Fix **E2 first**. Split `fetchReportSources()` out
+        of `client.ts`; `/report` → the new report with view and period in
+        the URL; extend `scripts/visual/flow.cjs`; retire W4a's
+        `ReportScreen`. Ships after W5b.
+- [ ] **W4b · Teacher class report.** After the parent report (W4). Three
+      tabs, user-chosen: who needs help, the whole-class grid, class-wide
+      patterns (detail left to the agent's design). Reuses the new report's
+      model and charts; tapping a child opens their parent report. The lab
+      already has a class of 25 (`?scenario=class`). Reachable in the app
+      only once W5c (classes) is built.
 - [ ] **H2 · Calibrate the hint dot per letter.** `FEATURE_HIGHLIGHT_POSITIONS`
       places the guiding dot as a percentage of the *tile*, and was never
       measured against the glyphs. Square tiles (3b/4b fix) bring it close to
