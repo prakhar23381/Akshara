@@ -95,6 +95,65 @@ future work: **a push to `main` deploys to production by itself** — the Vercel
 GitHub integration is connected. There is no separate "ship it" step to remember,
 and no way to push without shipping.*
 
+## Device feedback, 2026-10-10 — W1 landed, W2–W5 open
+
+Nine reports from device testing. W1 is on branch `fix/w1-child-view-layout`
+(commit `29eae34`) and covers 1a·1b·2a·2b·3a·4a·4c·6·7 — see `STATUS_LOG.md`.
+**Every W1 claim is a visual one made without a browser; V1 on a device is what
+confirms them.**
+
+- [ ] **W2 · Make the games actually adapt to the child (report 2c).**
+      The feedback was not about option counts: the games must pick confusable
+      letters from what *this* child gets wrong. **They do not.**
+      `pickDistractors` (`src/app/lib/adaptiveEngine.ts:322`) reads the static
+      `DISTRACTOR_POOLS[target].easy/hard`, chosen by cognitive state alone, and
+      never looks at the child's history. The only per-child behaviour is
+      "rotate one letter if identical to last session", which is
+      anti-memorisation, not personalisation.
+      **The loop is open, and the plumbing is already there pointing the wrong
+      way:** `sessionMetrics.ts` computes `confusion_counts`, the report renders
+      them, and `wordQuestions.distractorsFor(target, confused, n)` takes a
+      `confused` argument it *prefers* — but every caller passes
+      `levelConfig.distractor_pool`, which is static. Closing it means feeding
+      real confusion counts into `pickDistractors` and into the three games.
+- [ ] **W2b · Hesitation nudging in the word games (reports 3c, 4d).**
+      `levelConfig.hesitation_trigger_stage1_ms` / `stage2_ms` exist and are
+      **ignored by both word games**. Only `IdentifyStep` implements the ladder
+      (dim → pulse → answer for the child). A child who stalls in Fill-in or
+      Spelling dead-ends with no help at all.
+- [ ] **W3 · Matras as first-class units (report 9).** Decision taken: teach
+      them separately, not just fix the split — see Reference Decision
+      [2026-10-10]. Two parts:
+      * **The correctness half, which is a live data bug.** Words are split by
+        code point, so the app counts `खिलौना` as 6 letters when it is 3
+        graphemes (78% of the 92 example words carry a matra). Worse, **ङ and ञ
+        log attempts under the wrong letter**: their words (`गंगा`, `चंचल`) do
+        not contain the target, `Math.max(0, findIndex(...))` falls back to
+        index 0, so the child practising ङ is asked to fill ग and the attempt is
+        recorded as `target_letter: "ग"` — feeding the adaptive engine and the
+        report's confusion pairs. For those same two letters
+        `buildSpellingQuestions` skips its loop entirely and renders a spelling
+        question with **one** option. Needs `Intl.Segmenter`.
+      * **The teaching half.** A matra model showing bare consonant, matra mark
+        and combined form as three distinct things. New content across 33
+        letters and probably a new activity. Scope this before building it.
+- [ ] **W4 · Report redesign (reports 5a, 5b, 5c).** Too much space, too little
+      information, too little colour. Decision taken: **use RAG colour on
+      scores**, reversing the earlier single-hue restraint — see Reference
+      Decision [2026-10-10]. Also needs a content brief: which figures earn the
+      space currently empty.
+- [ ] **W5 · Parent / Teacher / Child accounts (report 8).** The deepest item.
+      Today `triggerMathGate(target: "parent" | "teacher")` **never reads
+      `target`** — both buttons run the same gate and both land on `/report`, so
+      the two roles are literally identical in code.
+      The real ask is one adult account managing several children, and that is a
+      schema change, not a screen: `user_profiles.id` **is** `auth.users.id` and
+      every RLS policy is `auth.uid() = user_id`, so one auth account is
+      structurally one child. Needs a new owner/child table, rewritten RLS on
+      `user_profiles`, `learning_sessions` and `letter_progress`, a
+      `user_id` → `child_id` migration, and a child switcher. **On live
+      production data** — plan the migration before writing any of it.
+
 ## Verification
 *No browser in the agent environment — these are yours to run.*
 
