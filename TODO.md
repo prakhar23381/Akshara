@@ -106,6 +106,16 @@ a **stack of branches, each built on the one before**, and none is merged:
 | `feat/w2-adaptive-games` | learner profile, personal distractors, word-game nudging | `6206fc3` |
 | `fix/w3-matras` | akshara segmentation, ङ/ञ fix, barakhadi step, data audit doc, double-tap fix | `d81a8ad`…`3b13a62` |
 | `fix/r1-report-data` | report built per child from database + device | `ee78be8`+ |
+| `feat/w5a-accounts-schema` | migration 002 (accounts, classes, share codes), verify + rollback, PGlite test | — |
+
+- [ ] **D3 · Run migration 002 on the live project.** Yours — the anon key
+      cannot change the schema. Review `backend/migrations/002_accounts.sql`,
+      run it in the Supabase SQL editor, then run `002_verify.sql`: every query
+      states what it should return. Safe for the deployed client (it keeps the
+      old policies, and a trigger covers new sign-ups on it). **W5b's client
+      must not merge before this is applied** — it writes to tables 002
+      creates. If anything looks wrong, `002_rollback.sql` undoes it (it
+      refuses once new-model children have sessions).
 
 - [ ] **V5 · Verify the stack on a device, then merge.** Test the
       `fix/r1-report-data` preview, which contains all four. Previews sit

@@ -97,8 +97,35 @@ in full in `docs/09_DATA_FLOW_AUDIT.md`. In short:
   shared between the learner profile and the report.
 * `tests/report.test.ts` 19 → 34 checks.
 
-**End state:** 168 checks pass across 6 files. tsc clean. Build: JS 726.3 kB,
-CSS 37.44 kB. Vercel *preview* deployments only; production unchanged
+### W5a · Migration 002, accounts (`feat/w5a-accounts-schema`) — written, NOT applied
+* Plan presented and the four decisions taken by the user (§4 of the recovery
+  context): adult-owned children, named classes + share codes, a 4-digit PIN,
+  a dashboard-grid report.
+* `backend/migrations/002_accounts.sql`: six tables, `role` / `pin_hash` on
+  `user_profiles`, `recorded_by` on sessions, the session/progress foreign key
+  re-pointed from `user_profiles` to `children`, guardian policies built on
+  SECURITY DEFINER helpers (a policy on `child_guardians` that queried itself
+  would be rejected as recursive), seven operations, and a temporary trigger
+  that keeps the deployed client's new sign-ups working.
+* **No live row is rewritten.** Every existing account becomes a parent of one
+  child whose id is the account's id, so every existing `user_id` already names
+  the right child and `letter_progress`'s unique key stays correct per child.
+  An earlier design with a separate `child_id` column was dropped: it would
+  have collided on that unique key for a parent's second child, and changing
+  the key breaks the deployed client's progress upsert.
+* **Tested against real Postgres before it goes near the live database.**
+  `tests/test_002.cjs` runs it in PGlite (Postgres in WebAssembly) with
+  Supabase's `auth` schema and roles stubbed: 56 checks — backfill, the old
+  client before and after, teacher / parent / second-parent flows, class codes,
+  share codes (single use, expiry), every forbidden direct write, re-running,
+  and the rollback both ways. **Its first run caught two bugs**: re-running 002
+  invented a child for every new-client adult, and the rollback could not drop
+  the new tables in any order. Both fixed.
+* `002_verify.sql` (read-only checks with expected values, themselves run
+  against a migrated database) and `002_rollback.sql`.
+
+**End state:** 168 app checks pass across 6 files, plus 56 database checks.
+tsc clean. Vercel *preview* deployments only; production unchanged
 (`index-B06-djcU.js`).
 
 ## 2026-10-09
