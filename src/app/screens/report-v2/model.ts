@@ -302,9 +302,15 @@ function series<T>(
 
 const STATUS_BY_BAND = { good: "secure", warning: "learning", critical: "support", none: "learning" } as const;
 
-/** Status from the latest session that has answers, at the engine's own 10% / 30% lines. */
+/**
+ * A letter not yet learned, from its latest session with answers, at the
+ * engine's own 10% / 30% lines. Never "secure": ● means learned, and that is
+ * the engine's mastery alone (user's decision, 2026-10-12) — a letter can be
+ * answered perfectly once and still not be mastered.
+ */
 function statusFrom(rft: number | null): LetterStatus {
-  return rft === null ? "learning" : STATUS_BY_BAND[errorBand(100 - rft)];
+  const s = rft === null ? "learning" : STATUS_BY_BAND[errorBand(100 - rft)];
+  return s === "secure" ? "learning" : s;
 }
 
 function letterEntries(sessions: LearningSession[], progress: any[], now: Date): LetterEntry[] {
@@ -338,8 +344,13 @@ function letterEntries(sessions: LearningSession[], progress: any[], now: Date):
       }
     }
 
-    const status: LetterStatus =
-      history.length > 0 ? statusFrom(latest) : prog ? (prog.mastered ? "secure" : "learning") : "not_started";
+    const status: LetterStatus = learned
+      ? "secure"
+      : history.length > 0
+        ? statusFrom(latest)
+        : prog
+          ? "learning"
+          : "not_started";
     return {
       letter,
       status,

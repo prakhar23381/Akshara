@@ -32,8 +32,13 @@ current state and recovery context in
   header and cards were misaligned on desktop; "14.4 pts" → "14 pts";
   "1 pts" → "1 pt".
 * **Production:** no report code in the bundle; the CSS grows 1.1 KB
-  (Tailwind scans `report-v2`). Put to the user with the review.
-* 330 checks across 10 files, typecheck and build clean.
+  (Tailwind scans `report-v2`). User: keep it.
+* **● now means learned** (user's choice): the engine's mastery and nothing
+  else. A letter not learned is ◐ (70%+ right first time last time) or ▲.
+  Before, ● was "above 90%", and 3 of 295 lab letters showed ● without being
+  mastered. New check: every ● is learned and every learned letter is ●,
+  across every lab child and period.
+* 331 checks across 10 files, typecheck and build clean.
 
 ## 2026-10-12 — E2 and E3: supplied answers, judged statuses, mix-ups (`fix/e2-supplied-answers`)
 

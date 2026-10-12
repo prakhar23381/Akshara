@@ -119,7 +119,7 @@ ONE LETTER                                 ONE MIX-UP PAIR
 | Practice day · minutes | A local date with ≥1 session; minutes from start to end (to the last finished activity if a session never ended) |
 | Speed | Median time to answer, right-first-time answers only (a supplied answer is recorded with time 0) |
 | Writing | Mean tracing score; present only in sessions the planner sent to tracing |
-| Letter status | From the letter's latest session with answers, at the engine's own lines read on right-first-time: **above 90%** secure ●, **70–90%** learning ◐, **below 70%** needs support ▲; not started ○ |
+| Letter status | **● learned** is the engine's mastery (`letterStatuses`), nothing else. A letter not learned takes its latest session with answers, at the engine's own lines read on right-first-time: **70% or more** learning ◐, **below 70%** needs support ▲; not started ○. (Until 2026-10-12, ● was "above 90%", which could show ● on a letter the engine had not mastered; the user chose ● = learned.) |
 | Letters learned | The engine's mastery, judged from the answers with today's rules (`letterStatuses`, E2 + E3) — not the label saved when the session ended |
 | Practise next | The top mix-up this period if it happened twice or more; otherwise the letter practised this period with the lowest right-first-time among those needing support; otherwise nothing |
 

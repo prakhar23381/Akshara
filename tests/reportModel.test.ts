@@ -111,6 +111,24 @@ console.log("\n-- a supplied answer is not a right answer (TODO E2) --");
     m.letters.entries.filter((e) => e.learned).map((e) => `${e.letter}:${e.status}:${e.latestRightFirstTime}`).join(" "));
 }
 
+console.log("\n-- ● means learned, and nothing else (2026-10-12) --");
+{
+  const kids = [parent("week"), parent("month"), parent("struggling"), parent("first")];
+  const sc = buildScenario("class");
+  if (sc.kind === "class") kids.push(...sc.children);
+  let letters = 0;
+  const odd: string[] = [];
+  kids.forEach((c) =>
+    (["week", "month", "all"] as Range[]).forEach((range) =>
+      buildReportModel(c.sources, NOW, range).letters.entries.forEach((e) => {
+        letters++;
+        if ((e.status === "secure") !== e.learned) odd.push(`${c.display_name} ${e.letter} ${range}`);
+      }),
+    ),
+  );
+  ok(`every ● is a learned letter and every learned letter is ● (${letters} checked)`, odd.length === 0, odd.slice(0, 5).join(", "));
+}
+
 console.log("\n-- E3: a check answer counts for the letter it asked for --");
 {
   const K = "क", KH = "ख";

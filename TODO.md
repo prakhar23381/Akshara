@@ -152,13 +152,10 @@ instruction. The branches below are merged; kept for reference only:
       every figure's definition, the build steps. The lab (W4-L), the design
       (W4-P) and the data model (B1) are done — `STATUS_LOG.md`.
   - [~] **B2 · Summary and period switch, in the lab.** Built 2026-10-12
-        (`STATUS_LOG.md`). **Waiting on the user's review in the lab**
-        (`npm run dev` → `/lab.html`), and two questions put with it:
-        * ● is "right first time above 90%" while "learned" is the engine's
-          mastery — 3 of 295 lab letters show ● but are not counted learned.
-          Make ● mean learned?
-        * The report's Tailwind classes reach the production CSS before B5
-          (+1.1 KB; no report JavaScript ships). Keep, or style inline?
+        (`STATUS_LOG.md`). Its two questions are answered (● = learned;
+        keep the CSS — recovery context §4). **Waiting on the user's
+        go-ahead for B3** after looking at the lab (`npm run dev` →
+        `/lab.html`).
   - [ ] **B3 · The four sections** (Letters, Skills, Practice, Mix-ups).
         **User review.**
   - [ ] **B4 · Detail views** (letter, skill, pair, all sessions) **and
