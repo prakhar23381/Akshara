@@ -151,9 +151,14 @@ instruction. The branches below are merged; kept for reference only:
       [docs/10_REPORT_DESIGN.md](docs/10_REPORT_DESIGN.md)** — wireframes,
       every figure's definition, the build steps. The lab (W4-L), the design
       (W4-P) and the data model (B1) are done — `STATUS_LOG.md`.
-  - [ ] **B2 · Summary and period switch, in the lab.** `ParentReport` on
-        `buildReportModel`; validate the right/helped/wrong blues with the
-        dataviz script first. **Stop for the user's review in the lab.**
+  - [~] **B2 · Summary and period switch, in the lab.** Built 2026-10-12
+        (`STATUS_LOG.md`). **Waiting on the user's review in the lab**
+        (`npm run dev` → `/lab.html`), and two questions put with it:
+        * ● is "right first time above 90%" while "learned" is the engine's
+          mastery — 3 of 295 lab letters show ● but are not counted learned.
+          Make ● mean learned?
+        * The report's Tailwind classes reach the production CSS before B5
+          (+1.1 KB; no report JavaScript ships). Keep, or style inline?
   - [ ] **B3 · The four sections** (Letters, Skills, Practice, Mix-ups).
         **User review.**
   - [ ] **B4 · Detail views** (letter, skill, pair, all sessions) **and

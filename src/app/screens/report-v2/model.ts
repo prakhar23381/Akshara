@@ -71,7 +71,7 @@ export interface LetterSessionPoint {
 export interface LetterEntry {
   letter: string;
   status: LetterStatus;
-  /** The engine's mastery — flattered by TODO E2 until that is fixed. */
+  /** The engine's mastery, judged from the answers (`letterStatuses`, E2 + E3). */
   learned: boolean;
   /** When the current run of mastery began; null when unknown (older records). */
   learnedAt: string | null;

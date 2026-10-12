@@ -137,8 +137,11 @@ starting on the 1st), weeks — or months past half a year — for All.
 * Charts hand-built in SVG — no chart library; the app keeps 9 dependencies.
 * One accent, blue `#2a78d6`, for every single-series chart. Status colours
   (`lib/reportBands.ts`) only ever mean status, always with a mark and a word.
-* The right / helped / wrong stack: three ordinal blue steps, validated with the
-  palette script before B2.
+* The right / helped / wrong stack: three ordinal blue steps — right first
+  time `#2a78d6`, app helped `#5598e7`, wrong `#86b6ef` — validated with the
+  palette script on the white card (`--ordinal --surface #ffffff`,
+  2026-10-12: monotone, visible gaps, lightest 2.11:1). In
+  `report-v2/charts/theme.ts` as `MIX`.
 * Changes in green or red text by whether the direction is good (lower is
   better for speed), always with ▲/▼.
 * Solid hairline grids, no dual axes, labels only on the latest and the extreme
@@ -160,7 +163,7 @@ src/app/screens/report-v2/
 | Step | What | Then |
 |---|---|---|
 | B1 | Data model + tests, no UI | done 2026-10-11 |
-| B2 | Summary and period switch, in the lab | user reviews in the lab |
+| B2 | Summary and period switch, in the lab | built 2026-10-12; user reviews in the lab |
 | B3 | The four sections | user reviews |
 | B4 | Detail views and Download | user reviews |
 | B5 | `fetchReportSources()` split out of `client.ts`; `/report` moves to the new report; flow test extended; W4a retired. E2 fixed (2026-10-12) and in `main` first | ships after W5b |

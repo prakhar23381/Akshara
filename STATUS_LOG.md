@@ -15,7 +15,25 @@ current state and recovery context in
   right / wrong / supplied for it (wrong taps the letter it is mistaken for).
   In the scenarios: Aarav 1 check (passed), Ishaan 1, Riya none (no
   masteries left to check), the class 34 in 639 sessions, 5 missed.
-* 330 checks across 10 files.
+* **B2 · the summary and the period switch, in the lab.** `ParentReport`
+  now renders `buildReportModel`: a sticky header (name, Week / Month / All,
+  what is compared), "Practise next", and four cards — Letters (one row of
+  33 status marks on a phone, an 11 × 3 grid with the letters on tablet and
+  desktop), Skills (right first time, its change, a sparkline), Practice
+  (days and minutes; a day strip, a month calendar, or weekly columns for
+  All), Mix-ups (top two pairs, their change). Charts hand-built in
+  `report-v2/charts/`; hover, touch or focus reads any mark. The lab gains
+  a period switch for all frames and keeps it in the URL.
+* **Colours validated first:** right / helped / wrong `#2a78d6` / `#5598e7`
+  / `#86b6ef`, dataviz palette script `--ordinal` on white: all checks pass.
+* **Looked at, not just built:** 5 scenarios × 3 periods × 3 sizes shot in
+  headless Brave, no horizontal overflow, no errors but the known favicon
+  404. Fixed from the shots: the month calendar drew empty future weeks;
+  header and cards were misaligned on desktop; "14.4 pts" → "14 pts";
+  "1 pts" → "1 pt".
+* **Production:** no report code in the bundle; the CSS grows 1.1 KB
+  (Tailwind scans `report-v2`). Put to the user with the review.
+* 330 checks across 10 files, typecheck and build clean.
 
 ## 2026-10-12 — E2 and E3: supplied answers, judged statuses, mix-ups (`fix/e2-supplied-answers`)
 
