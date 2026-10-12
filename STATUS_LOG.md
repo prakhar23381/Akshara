@@ -4,6 +4,35 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-12 (night) — release: W5b + E2/E3 to production; branches pruned
+
+* **Branches surveyed:** 8 already in `main`; `feat/w5b-accounts` ⊂
+  `fix/e2-supplied-answers` ⊂ `feat/report-v2`; and `origin/supabase-url-error`,
+  a May commit (by "v0") switching `supabase.ts` to `process.env.NEXT_PUBLIC_*`
+  — wrong for this Vite app.
+* **Released** (user's go-ahead): `main` fast-forwarded 758865a → **79e93f1**
+  = W5b + E2/E3. The exact commit was verified first in a clean worktree: 276
+  checks, backend 10/10, build clean, CSS byte-identical to production's.
+  Vercel served the new bundle (`index-DlNxO2cT.js`) about 30 s after the
+  push; it contains the E3 planner text, E2's reasoning and W5b's screens; a
+  headless load of akshara-tau showed the sign-in screen with no errors.
+  **Not yet done (user, on production):** 7.6, V7, V6.
+* **Not released:** `feat/report-v2` — B4 and B5 remain.
+* **Branches deleted** (user's choice), locally and on GitHub, every one
+  checked to be in `main` first except the broken one. Tips, to restore with
+  `git push origin <sha>:refs/heads/<name>`: feat/w2-adaptive-games 6206fc3 ·
+  feat/w4a-report-dashboard 9a6b29a · feat/w5a-accounts-schema bcc3897 ·
+  feat/w5b-accounts aedb5c6 · fix/e2-supplied-answers 79e93f1 ·
+  fix/r1-report-data 138fe25 (GitHub) / e23d4ca (local) ·
+  fix/w1-child-view-layout f8da769 · fix/w3-matras 3b13a62 ·
+  supabase-url-error cba1996 · copilot/worktree-2026-04-25T10-25-16 1c18ab8
+  (local only; its stale worktree record, from another machine, pruned).
+  Left: `main` and `feat/report-v2`.
+* **A slip, corrected:** the commit recording this (`fbbc169`) went out with
+  only `TODO.md` — the script editing the other two files stopped on a pattern
+  that did not match, and the commit ran anyway. The follow-up commit adds
+  them.
+
 ## 2026-10-12 (evening) — B3, the report's four sections (`feat/report-v2`)
 
 * **B2 closed:** reviewed by the user; their changes are in the entry below.
