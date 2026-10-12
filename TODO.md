@@ -135,10 +135,6 @@ commits are in `main` (table kept as a record):
       *always* fail — no auth session, and `"guest-user-id"` is not a UUID —
       so either remove the mirror or give guests an anonymous Supabase
       identity.
-- [ ] **M1 · Measure matras, not just teach them.** The barakhadi step is
-      unscored. A short ि/ी, ु/ू check would put matra confusions — the most
-      common dyslexic error in Devanagari — into the learner profile, so the
-      matra step could adapt the way the letter games now do.
 - [ ] **H1 · A Hindi teacher should confirm the new ङ / ञ words.** गङ्गा,
       पङ्खा, अङ्गूर, चञ्चल, पञ्जा, मञ्च are the traditional spellings, chosen because
       the modern anusvara forms do not contain the letter. Also: ण has two
@@ -151,14 +147,11 @@ commits are in `main` (table kept as a record):
       new one replaces it. On `feat/report-v2`. **The design is approved:
       [docs/10_REPORT_DESIGN.md](docs/10_REPORT_DESIGN.md)** — wireframes,
       every figure's definition, the build steps. The lab (W4-L), the design
-      (W4-P), the data model (B1) and the summary (B2, reviewed) are done —
-      `STATUS_LOG.md`.
-  - [~] **B3 · The four sections** (Letters, Skills, Practice, Mix-ups).
-        Built 2026-10-12. **Waiting on the user's review in the lab**
-        (`npm run dev` → `/lab.html`, the View buttons). Do not start B4
-        before it.
+      (W4-P), the data model (B1), the summary (B2) and the four sections
+      (B3), both reviewed, are done — `STATUS_LOG.md`.
   - [ ] **B4 · Detail views** (letter, skill, pair, all sessions) **and
-        Download.** **User review.**
+        Download.** Next: a plan, the user's approval, the build, then the
+        user's review in the lab.
   - [ ] **B5 · Ship it.** W5b and E2 are in `main` (released 2026-10-12),
         so `feat/report-v2` fast-forwards onto it. Split `fetchReportSources()` out
         of `client.ts`; `/report` → the new report with view and period in
@@ -183,6 +176,19 @@ commits are in `main` (table kept as a record):
       classroom tablet picks the class, then the child. The database side is
       built and tested (`join_class`, `create_child_share_code`, …); this is
       the client.
+- [ ] **W6 · Matras — a major feature (user, 2026-10-12).** The app teaches
+      matras but cannot tell whether a child knows them: the barakhadi step
+      (`MatraStep.tsx`) shows consonant + sign = syllable in three sittings
+      and records nothing. Matra confusions — ि/ी, ु/ू, े/ै, ो/ौ — are the
+      most common dyslexic reading error in Devanagari. To build:
+      1. a scored matra game (hear a syllable, choose it among look-alike
+         signs), each answer recorded the way a letter answer is;
+      2. matras in the learner profile and the engine, so the matra step
+         adapts the way the letter games do (which pairs, how often);
+      3. the report's Matras row turns on. It stays on the dashboard as
+         "not measured yet" until then (B3 review, user).
+      Needs its own design first: which matras, on which consonants, and
+      what counts as knowing one are the user's calls. Replaces M1.
 - [ ] **V7 · Try the signed-in path for real — on production, now.** W5b is
       live since 2026-10-12 (`79e93f1`). Its guest path is click-tested end to
       end; the signed-in path calls the same operations through Supabase and

@@ -124,6 +124,11 @@ back; the period switch stays and scopes the section.
   bars (the summary shows four); "Look-alike or different shape?" — the
   share of wrong Listen & tap answers on each kind, as two bars.
 
+**Reviewed (user, 2026-10-12):** no changes. The line explaining "Look-alike
+or different shape?" stays; the Matras row stays, "not measured yet", until
+W6 measures matras; All shows no "Learned this …" letters, because the grid
+already marks every learned one.
+
 Tapping a letter, a skill or a pair, and "All sessions", are B4.
 
 ## 4. Detail views
@@ -203,6 +208,6 @@ src/app/screens/report-v2/
 |---|---|---|
 | B1 | Data model + tests, no UI | done 2026-10-11 |
 | B2 | Summary and period switch, in the lab | done 2026-10-12, reviewed (changes in §2) |
-| B3 | The four sections | built 2026-10-12; user reviews in the lab |
+| B3 | The four sections | done 2026-10-12, reviewed (no changes) |
 | B4 | Detail views and Download | user reviews |
 | B5 | `fetchReportSources()` split out of `client.ts`; `/report` moves to the new report; flow test extended; W4a retired. E2 fixed (2026-10-12) and in `main` first | ships after W5b |

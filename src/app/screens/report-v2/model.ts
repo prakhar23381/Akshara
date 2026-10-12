@@ -89,7 +89,7 @@ export interface SkillEntry {
   label: string;
   unit: "%" | "s";
   lowerIsBetter: boolean;
-  /** False for a skill the app does not measure yet (matras, TODO M1). */
+  /** False for a skill the app does not measure yet (matras, TODO W6). */
   measured: boolean;
   measure: Measure;
   series: Point[];

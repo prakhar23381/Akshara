@@ -4,6 +4,16 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-12 (night, later) — B3 reviewed; matras become W6
+
+* **B3 closed:** reviewed by the user in the lab, no changes. Their answers:
+  the line explaining "Look-alike or different shape?" stays; the Matras row
+  stays on the dashboard as "not measured yet"; "Learned this week" is
+  rightly absent from All.
+* **W6 · Matras** added to `TODO.md` as a major feature (user), replacing M1:
+  a scored matra game, matras in the engine, then the report's row.
+* B4 (detail views and Download) is next; it starts with a plan.
+
 ## 2026-10-12 (night) — release: W5b + E2/E3 to production; branches pruned
 
 * **Branches surveyed:** 8 already in `main`; `feat/w5b-accounts` ⊂
