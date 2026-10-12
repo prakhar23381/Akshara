@@ -4,6 +4,29 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-12 (evening) — B3, the report's four sections (`feat/report-v2`)
+
+* **B2 closed:** reviewed by the user; their changes are in the entry below.
+* **B3 · the four sections, in the lab.** A summary card's title (a 44px
+  button with ›) opens its section; "‹ Summary" goes back; the period switch
+  stays and scopes it. Letters: the key, "Learned this week" chips, all 33 at
+  reading size (6 a row on a phone, 11 wider). Skills: right first time with
+  the right · app helped · wrong bar (the validated blues) and its trend, then
+  a row per skill — figure, change, small trend; Writing and Matras say when
+  there is nothing to show. Practice: days, sessions and minutes with their
+  change; the heatmap; minutes a day (a week for All) as columns; finished
+  vs stopped early. Mix-ups: the total and every pair as bars; look-alike vs
+  different shape as two share bars (Listen & tap only).
+* **New charts:** `StackBar`, `Columns`; a compact `Sparkline`; shared
+  `Card` / `Hero` in `views/shared.tsx`. The lab gains View buttons and keeps
+  the view in the URL (`view=`), as the app will at B5.
+* **Checked:** every section shot for three children, three sizes and two or
+  three periods — no overflow, no errors but the favicon; a click-through in
+  the lab, 20/20: each title opens its section, the address follows, the
+  period switch works inside, ‹ Summary returns, ‹ › months move (and stop
+  at the first month with practice). 333 checks, typecheck and build clean;
+  no report code in the bundle (CSS 39.9 KB).
+
 ## 2026-10-12 (later) — the report work catches up with E2 and E3 (`feat/report-v2`)
 
 * **Merged `fix/e2-supplied-answers` into `feat/report-v2`.** The new report's

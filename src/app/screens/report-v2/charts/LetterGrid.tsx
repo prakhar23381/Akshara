@@ -70,7 +70,18 @@ const describe = (e: LetterEntry) => {
  * All 33 letters with their status. `strip` is one row of marks — the phone
  * summary; `grid` is 11 × 3 with the letters themselves — tablet and desktop.
  */
-export function LetterGrid({ entries, variant }: { entries: LetterEntry[]; variant: "strip" | "grid" }) {
+export function LetterGrid({
+  entries,
+  variant,
+  columns = "grid-cols-11",
+  glyphClass = "t-1",
+}: {
+  entries: LetterEntry[];
+  variant: "strip" | "grid";
+  /** Tailwind grid columns for `grid`: 11 × 3 by default, 6 a row on a phone in the section. */
+  columns?: string;
+  glyphClass?: string;
+}) {
   const [active, setActive] = useState<number | null>(null);
   const [ref, width] = useWidth<HTMLDivElement>();
   const label = `Letter status: ${ORDER
@@ -103,8 +114,7 @@ export function LetterGrid({ entries, variant }: { entries: LetterEntry[]; varia
         <div
           role="img"
           aria-label={label}
-          className="grid gap-1"
-          style={{ gridTemplateColumns: "repeat(11, minmax(0, 1fr))" }}
+          className={`grid gap-1 ${columns}`}
           onPointerLeave={() => setActive(null)}
         >
           {entries.map((e, i) => (
@@ -119,7 +129,7 @@ export function LetterGrid({ entries, variant }: { entries: LetterEntry[]; varia
               onPointerDown={() => setActive(i)}
             >
               <span
-                className="t-1 leading-tight"
+                className={`${glyphClass} leading-tight`}
                 style={{ fontFamily: FONT_DEVANAGARI, color: e.status === "not_started" ? MUTED : INK }}
               >
                 {e.letter}

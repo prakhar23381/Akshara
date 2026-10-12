@@ -107,6 +107,25 @@ PRACTICE                                  └───────────�
 
 Month and All are heatmaps (§2, B2 review): the month calendar and the year grid.
 
+**As built (B3, 2026-10-12)** — the sketches above, with the B2 review's
+choices carried through. A card's title opens its section; "‹ Summary" goes
+back; the period switch stays and scopes the section.
+
+* **Letters:** the key with counts, "Learned this week" as letter chips, and
+  all 33 letters at reading size — six a row on a phone, eleven wider.
+* **Skills:** "Right first time" — the figure, its change, the right first
+  time · app helped · wrong bar with counts, the trend; "By skill" — a row
+  per skill with its figure, its change and a small trend; Writing says when
+  there was no tracing, Matras "not measured yet".
+* **Practice:** "At a glance" — days, sessions, minutes, each with its
+  change; "Day by day" — the same heatmap as the summary; "Minutes a day"
+  (a week for All) as columns; "Finished or stopped early" as one bar.
+* **Mix-ups:** "Every pair" — the total and its change, then every pair as
+  bars (the summary shows four); "Look-alike or different shape?" — the
+  share of wrong Listen & tap answers on each kind, as two bars.
+
+Tapping a letter, a skill or a pair, and "All sessions", are B4.
+
 ## 4. Detail views
 
 ```
@@ -183,7 +202,7 @@ src/app/screens/report-v2/
 | Step | What | Then |
 |---|---|---|
 | B1 | Data model + tests, no UI | done 2026-10-11 |
-| B2 | Summary and period switch, in the lab | built 2026-10-12; user reviews in the lab |
-| B3 | The four sections | user reviews |
+| B2 | Summary and period switch, in the lab | done 2026-10-12, reviewed (changes in §2) |
+| B3 | The four sections | built 2026-10-12; user reviews in the lab |
 | B4 | Detail views and Download | user reviews |
 | B5 | `fetchReportSources()` split out of `client.ts`; `/report` moves to the new report; flow test extended; W4a retired. E2 fixed (2026-10-12) and in `main` first | ships after W5b |

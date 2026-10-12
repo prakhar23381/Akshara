@@ -150,14 +150,12 @@ instruction. The branches below are merged; kept for reference only:
       new one replaces it. On `feat/report-v2`. **The design is approved:
       [docs/10_REPORT_DESIGN.md](docs/10_REPORT_DESIGN.md)** — wireframes,
       every figure's definition, the build steps. The lab (W4-L), the design
-      (W4-P) and the data model (B1) are done — `STATUS_LOG.md`.
-  - [~] **B2 · Summary and period switch, in the lab.** Built 2026-10-12
-        (`STATUS_LOG.md`). Its two questions are answered (● = learned;
-        keep the CSS — recovery context §4). **Waiting on the user's
-        go-ahead for B3** after looking at the lab (`npm run dev` →
-        `/lab.html`).
-  - [ ] **B3 · The four sections** (Letters, Skills, Practice, Mix-ups).
-        **User review.**
+      (W4-P), the data model (B1) and the summary (B2, reviewed) are done —
+      `STATUS_LOG.md`.
+  - [~] **B3 · The four sections** (Letters, Skills, Practice, Mix-ups).
+        Built 2026-10-12. **Waiting on the user's review in the lab**
+        (`npm run dev` → `/lab.html`, the View buttons). Do not start B4
+        before it.
   - [ ] **B4 · Detail views** (letter, skill, pair, all sessions) **and
         Download.** **User review.**
   - [ ] **B5 · Ship it.** E2 is fixed (`fix/e2-supplied-answers`, must be in

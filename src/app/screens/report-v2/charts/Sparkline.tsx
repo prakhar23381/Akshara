@@ -8,6 +8,8 @@ import { useWidth } from "./useWidth";
  * is a gap, not a line drawn through it. The latest point carries the end dot.
  * Hover, touch-drag or focus (then ←/→) reads any bucket; the same values are
  * in the section's "Show numbers" table, so the readout never gates them.
+ * `compact` is the inline version for a row of skills: no readout, no focus —
+ * the row opens the skill's detail instead.
  */
 export function Sparkline({
   points,
@@ -17,6 +19,7 @@ export function Sparkline({
   min = 0,
   max = 100,
   height = 40,
+  compact = false,
 }: {
   points: Point[];
   /** What the line is, for screen readers: "Right first time, by day". */
@@ -26,6 +29,7 @@ export function Sparkline({
   min?: number;
   max?: number;
   height?: number;
+  compact?: boolean;
 }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [active, setActive] = useState<number | null>(null);
@@ -74,13 +78,17 @@ export function Sparkline({
         height={height}
         role="img"
         aria-label={summary}
-        tabIndex={0}
-        onPointerMove={onMove}
-        onPointerDown={onMove}
-        onPointerLeave={() => setActive(null)}
-        onFocus={() => setActive(last ?? null)}
-        onBlur={() => setActive(null)}
-        onKeyDown={onKey}
+        {...(compact
+          ? {}
+          : {
+              tabIndex: 0,
+              onPointerMove: onMove,
+              onPointerDown: onMove,
+              onPointerLeave: () => setActive(null),
+              onFocus: () => setActive(last ?? null),
+              onBlur: () => setActive(null),
+              onKeyDown: onKey,
+            })}
         style={{ display: "block", touchAction: "pan-y", outline: "none" }}
       >
         {shown !== null && (
@@ -116,9 +124,11 @@ export function Sparkline({
           ) : null,
         )}
       </svg>
-      <div className="t--1 h-5 tabular-nums" style={{ color: readout ? INK : INK2 }} aria-live="polite">
-        {readout ?? " "}
-      </div>
+      {!compact && (
+        <div className="t--1 h-5 tabular-nums" style={{ color: readout ? INK : INK2 }} aria-live="polite">
+          {readout ?? "\u00a0"}
+        </div>
+      )}
     </div>
   );
 }

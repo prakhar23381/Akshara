@@ -2,6 +2,11 @@ import { useMemo, useState } from "react";
 import type { ReportSources } from "../../api/client";
 import { buildReportModel, type Range, type ReportModel } from "./model";
 import { Summary } from "./views/Summary";
+import { LettersView } from "./views/Letters";
+import { SkillsView } from "./views/Skills";
+import { PracticeView } from "./views/Practice";
+import { MixUpsView } from "./views/MixUps";
+import type { View } from "./views/shared";
 import { parseDay } from "./charts/days";
 import { GRID, INK, INK2, PAGE } from "./charts/theme";
 
@@ -10,11 +15,11 @@ import { GRID, INK, INK2, PAGE } from "./charts/theme";
  *
  * Takes one child's records and a "today" instead of loading them, so the
  * report lab can render it with any scenario. Not routed yet: `/report` still
- * serves the W4a `ReportScreen` until B5. B2 is the summary and the period
- * switch; the sections (B3) and detail views (B4) come next.
+ * serves the W4a `ReportScreen` until B5. The summary and the period switch
+ * (B2), the four sections a card's title opens (B3); detail views are B4.
  *
- * The period can be controlled (the app will keep it in the URL) or left to
- * the report.
+ * The period and the view can each be controlled (the app will keep both in
+ * the URL, so the phone's back button goes up a level) or left to the report.
  */
 export interface ParentReportProps {
   sources: ReportSources;
@@ -22,9 +27,18 @@ export interface ParentReportProps {
   avatar?: string;
   range?: Range;
   onRangeChange?: (range: Range) => void;
+  view?: View;
+  onViewChange?: (view: View) => void;
   /** Shows a back button; the app returns to the adult home. */
   onBack?: () => void;
 }
+
+const TITLES: Record<Exclude<View, "summary">, string> = {
+  letters: "Letters",
+  skills: "Skills",
+  practice: "Practice",
+  mixups: "Mix-ups",
+};
 
 const RANGES: { id: Range; label: string }[] = [
   { id: "week", label: "Week" },
@@ -41,10 +55,22 @@ function caption(model: ReportModel): string {
     : "Everything so far";
 }
 
-export function ParentReport({ sources, today, avatar, range: controlled, onRangeChange, onBack }: ParentReportProps) {
+export function ParentReport({
+  sources,
+  today,
+  avatar,
+  range: controlled,
+  onRangeChange,
+  view: controlledView,
+  onViewChange,
+  onBack,
+}: ParentReportProps) {
   const [own, setOwn] = useState<Range>("week");
   const range = controlled ?? own;
   const setRange = (r: Range) => (onRangeChange ? onRangeChange(r) : setOwn(r));
+  const [ownView, setOwnView] = useState<View>("summary");
+  const view = controlledView ?? ownView;
+  const setView = (v: View) => (onViewChange ? onViewChange(v) : setOwnView(v));
   const model = useMemo(() => buildReportModel(sources, today, range), [sources, today, range]);
 
   return (
@@ -101,12 +127,34 @@ export function ParentReport({ sources, today, avatar, range: controlled, onRang
 
       <main style={{ padding: "var(--pad-screen)" }}>
         <div className="mx-auto max-w-5xl">
-          {model.hasAnySessions ? (
-            <Summary model={model} today={today} />
-          ) : (
+          {!model.hasAnySessions ? (
             <p className="t-0 rounded-2xl bg-white p-4" style={{ boxShadow: `inset 0 0 0 1px ${GRID}` }}>
               No sessions yet. When {sources.displayName} plays, what they practise shows up here.
             </p>
+          ) : view === "summary" ? (
+            <Summary model={model} today={today} onOpen={setView} />
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setView("summary")}
+                  className="t-0 inline-flex items-center gap-1 rounded-full pl-2 pr-4 font-semibold bg-white"
+                  style={{ minHeight: "var(--tap-min)", color: INK, boxShadow: `inset 0 0 0 1px ${GRID}` }}
+                >
+                  <span aria-hidden className="t-1 leading-none">
+                    ‹
+                  </span>
+                  Summary
+                </button>
+                <h2 className="t-2 font-bold" style={{ color: INK }}>
+                  {TITLES[view]}
+                </h2>
+              </div>
+              {view === "letters" && <LettersView model={model} />}
+              {view === "skills" && <SkillsView model={model} />}
+              {view === "practice" && <PracticeView model={model} today={today} />}
+              {view === "mixups" && <MixUpsView model={model} />}
+            </div>
           )}
           <footer className="t--1 flex flex-col gap-1 mt-4" style={{ color: INK2 }}>
             {model.dataSource === "device" && (

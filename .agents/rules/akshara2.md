@@ -94,8 +94,8 @@ git add . && git commit -m "feat/fix: <descriptive-message>"
 │   │   ├── screens/     profile (add a child) · resume · roadmap · report · my-progress
 │   │   │   ├── account/ RoleScreen · PinSetupScreen · UnlockScreen · AdultHomeScreen
 │   │   │   ├── report-v2/ model (every figure) · ParentReport · ClassReport — the new reports (W4), not routed yet
-│   │   │   │   ├── views/  Summary
-│   │   │   │   └── charts/ theme · heat · Delta · Sparkline · DayStrip · Calendar · YearHeatmap · BarList · LetterGrid · days · useWidth
+│   │   │   │   ├── views/  Summary · Letters · Skills · Practice · MixUps · shared
+│   │   │   │   └── charts/ theme · heat · Delta · Sparkline · DayStrip · Calendar · YearHeatmap · BarList · StackBar · Columns · LetterGrid · days · useWidth
 │   │   │   └── play/    PlayScreen · PlayLayout · StepDots · types
 │   │   │       └── steps/  Intro · Pronunciation · ExampleWords · Matra · Tracing
 │   │   │                   Memory · Identify · WordFill · WordSpelling · Reward

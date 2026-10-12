@@ -1,5 +1,4 @@
-import type { ReactNode } from "react";
-import type { Range, ReportModel } from "../model";
+import type { ReportModel } from "../model";
 import { BarList } from "../charts/BarList";
 import { Calendar } from "../charts/Calendar";
 import { DayStrip } from "../charts/DayStrip";
@@ -7,66 +6,49 @@ import { Delta } from "../charts/Delta";
 import { LetterGrid, StatusLegend } from "../charts/LetterGrid";
 import { Sparkline } from "../charts/Sparkline";
 import { YearHeatmap } from "../charts/YearHeatmap";
-import { parseDay } from "../charts/days";
-import { ACCENT, ACCENT_WASH, FONT_DEVANAGARI, GRID, INK, INK2 } from "../charts/theme";
+import { bucketLabel } from "./Skills";
+import { ACCENT, ACCENT_WASH, INK } from "../charts/theme";
+import { Card, Glyph, Muted, PERIOD_WORD, PREVIOUS_WORD, pct, type View } from "./shared";
 
 /**
  * The summary (design §2): what to practise next, then one card each for
  * Letters, Skills, Practice and Mix-ups. Phone: one column. Tablet and
  * desktop: Letters across the top, the other three in a row — or, for All,
  * Practice across the page for the year's heatmap, Skills and Mix-ups below.
- * Every figure is scoped by the period switch in the header.
+ * Every figure is scoped by the period switch in the header; each card's title
+ * opens its section.
  */
-export function Summary({ model, today }: { model: ReportModel; today: Date }) {
+export function Summary({
+  model,
+  today,
+  onOpen,
+}: {
+  model: ReportModel;
+  today: Date;
+  onOpen?: (view: View) => void;
+}) {
   const all = model.range === "all";
+  const open = (v: View) => (onOpen ? () => onOpen(v) : undefined);
   return (
     <div className="flex flex-col gap-3 md:grid md:grid-cols-6 md:gap-4">
       <PractiseNext model={model} />
-      <LettersCard model={model} />
+      <LettersCard model={model} onOpen={open("letters")} />
       {all ? (
         <>
-          <PracticeCard model={model} today={today} className="md:col-span-6" />
-          <SkillsCard model={model} className="md:col-span-3" />
-          <MixupsCard model={model} className="md:col-span-3" />
+          <PracticeCard model={model} today={today} className="md:col-span-6" onOpen={open("practice")} />
+          <SkillsCard model={model} className="md:col-span-3" onOpen={open("skills")} />
+          <MixupsCard model={model} className="md:col-span-3" onOpen={open("mixups")} />
         </>
       ) : (
         <>
-          <SkillsCard model={model} className="md:col-span-2" />
-          <PracticeCard model={model} today={today} className="md:col-span-2" />
-          <MixupsCard model={model} className="md:col-span-2" />
+          <SkillsCard model={model} className="md:col-span-2" onOpen={open("skills")} />
+          <PracticeCard model={model} today={today} className="md:col-span-2" onOpen={open("practice")} />
+          <MixupsCard model={model} className="md:col-span-2" onOpen={open("mixups")} />
         </>
       )}
     </div>
   );
 }
-
-const PERIOD_WORD: Record<Range, string> = { week: "this week", month: "this month", all: "so far" };
-const PREVIOUS_WORD: Record<Range, string> = { week: "same days last week", month: "same days last month", all: "" };
-const pct = (v: number) => `${Math.round(v)}%`;
-
-function Card({ title, children, className = "" }: { title: string; children: ReactNode; className?: string }) {
-  return (
-    <section
-      className={`rounded-2xl bg-white p-4 flex flex-col gap-3 min-w-0 ${className}`}
-      style={{ boxShadow: `inset 0 0 0 1px ${GRID}` }}
-    >
-      <h2 className="t-1 font-bold leading-tight" style={{ color: INK }}>
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-const Muted = ({ children }: { children: ReactNode }) => (
-  <p className="t--1" style={{ color: INK2 }}>
-    {children}
-  </p>
-);
-
-const Glyph = ({ children }: { children: ReactNode }) => (
-  <span style={{ fontFamily: FONT_DEVANAGARI }}>{children}</span>
-);
 
 function PractiseNext({ model }: { model: ReportModel }) {
   const next = model.practiseNext;
@@ -91,10 +73,12 @@ function PractiseNext({ model }: { model: ReportModel }) {
   );
 }
 
-function LettersCard({ model }: { model: ReportModel }) {
+type CardProps = { model: ReportModel; onOpen?: () => void };
+
+function LettersCard({ model, onOpen }: CardProps) {
   const { counts, learned, entries } = model.letters;
   return (
-    <Card title="Letters" className="md:col-span-6">
+    <Card title="Letters" className="md:col-span-6" onOpen={onOpen}>
       <StatusLegend
         counts={counts}
         extra={
@@ -113,18 +97,11 @@ function LettersCard({ model }: { model: ReportModel }) {
   );
 }
 
-function SkillsCard({ model, className }: { model: ReportModel; className: string }) {
+function SkillsCard({ model, className, onOpen }: CardProps & { className: string }) {
   const { rightFirstTime: r, series, mix } = model.skills;
-  const monthly = series.length > 1 && Date.parse(series[1].start) - Date.parse(series[0].start) > 20 * 86_400_000;
-  const by = model.range === "week" ? "day" : monthly ? "month" : "week";
-  const bucket = (start: string) => {
-    const d = parseDay(start);
-    if (by === "day") return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
-    if (by === "month") return d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
-    return `Week of ${d.toLocaleDateString(undefined, { day: "numeric", month: "short" })}`;
-  };
+  const { by, format: bucket } = bucketLabel(model);
   return (
-    <Card title="Skills" className={className}>
+    <Card title="Skills" className={className} onOpen={onOpen}>
       {r.value === null ? (
         <Muted>No answers {PERIOD_WORD[model.range]} yet.</Muted>
       ) : (
@@ -156,10 +133,10 @@ function SkillsCard({ model, className }: { model: ReportModel; className: strin
   );
 }
 
-function PracticeCard({ model, today, className }: { model: ReportModel; today: Date; className: string }) {
+function PracticeCard({ model, today, className, onOpen }: CardProps & { today: Date; className: string }) {
   const { days, minutes, elapsedDays, byDay, history } = model.practice;
   return (
-    <Card title="Practice" className={className}>
+    <Card title="Practice" className={className} onOpen={onOpen}>
       {model.range === "week" && (
         <>
           <p className="t-0" style={{ color: INK }}>
@@ -178,10 +155,10 @@ function PracticeCard({ model, today, className }: { model: ReportModel; today: 
 /** Pairs shown on the summary; the Mix-ups section lists them all. */
 const TOP_PAIRS = 4;
 
-function MixupsCard({ model, className }: { model: ReportModel; className: string }) {
+function MixupsCard({ model, className, onOpen }: CardProps & { className: string }) {
   const pairs = model.mixups.pairs.slice(0, TOP_PAIRS);
   return (
-    <Card title="Mix-ups" className={className}>
+    <Card title="Mix-ups" className={className} onOpen={onOpen}>
       {pairs.length === 0 ? (
         <Muted>No mix-ups {PERIOD_WORD[model.range]}.</Muted>
       ) : (

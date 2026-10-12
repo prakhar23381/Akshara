@@ -308,8 +308,9 @@ renders one report alone.
 | `src/lab/fixtures/play.ts` | `createPlayer()` plays scripted sessions through the real `planSession` / `analyzeLocally`; `rowsOf()` stores them through the app's own `upsertSession`; `progressOf()`; a seeded `rng()`. `"?"` in a script means the app supplied the answer |
 | `src/lab/fixtures/scenarios.ts` | `LAB_TODAY` (fixed at 11 Oct 2026), `SCENARIOS`, `buildScenario()`: a new child, one session, Aarav's week (shared with `scripts/visual/seed.ts`), a month of 13 letters, a struggling child, and a class of 25 |
 | `screens/report-v2/ParentReport.tsx` · `ClassReport.tsx` | the new reports (design: `docs/10_REPORT_DESIGN.md`). They take records and a date instead of loading them, and are not routed until B5. `ParentReport`: sticky header with the Week / Month / All switch (controlled or its own), the summary (B2); `ClassReport` is still a placeholder |
-| `screens/report-v2/views/Summary.tsx` | practise next, then Letters · Skills · Practice · Mix-ups cards |
-| `screens/report-v2/charts/` | hand-built SVG/HTML, no library: `Sparkline` · `DayStrip` · `Calendar` (a month, ‹ › months) · `YearHeatmap` (a year, ‹ › years) · `BarList` (mix-ups) · `LetterGrid` (+ `StatusMark`, `StatusLegend`) · `Delta`; colours in `theme.ts`, the practice heat scale and its key in `heat.tsx` |
+| `screens/report-v2/views/Summary.tsx` | practise next, then Letters · Skills · Practice · Mix-ups cards; a card's title opens its section |
+| `screens/report-v2/views/Letters.tsx` · `Skills.tsx` · `Practice.tsx` · `MixUps.tsx` | the four sections (B3); `shared.tsx` holds `Card`, `Hero` and the period words |
+| `screens/report-v2/charts/` | hand-built SVG/HTML, no library: `Sparkline` · `DayStrip` · `Calendar` (a month, ‹ › months) · `YearHeatmap` (a year, ‹ › years) · `BarList` (mix-ups) · `StackBar` (parts of a whole) · `Columns` · `LetterGrid` (+ `StatusMark`, `StatusLegend`) · `Delta`; colours in `theme.ts`, the practice heat scale and its key in `heat.tsx` |
 
 Screenshots of every scenario at every size, against the dev server:
 `scripts/visual/README.md` → "The report lab".
