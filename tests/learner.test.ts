@@ -197,6 +197,14 @@ console.log("\n-- mix-ups count for both letters --");
   ok("two make it due a check", p.checks[0]?.letter === "क", JSON.stringify(p.checks));
   ok("naming the letter it was picked for", p.checks[0]?.pickedFor[0] === "ब");
   ok("but it is still mastered until the check", p.stateByLetter["क"] === "visual_mastery");
+
+  const plan = planSession("c", "भ", p).levelConfig;
+  ok("the next session carries one check question for क", plan.check?.letter === "क", JSON.stringify(plan.check));
+  ok("with the letter it was mistaken for among its options", plan.check?.confused[0] === "ब" && plan.check.pool.includes("ब"));
+  ok("never offering क as its own distractor", !plan.check?.pool.includes("क"));
+  ok("and the reasoning says why", /checks क: mastered, but picked by mistake 2 times/.test(plan.reasoning), plan.reasoning);
+  ok("a session on क itself carries no check for क", planSession("c", "क", p).levelConfig.check === undefined);
+  ok("a child with nothing due gets no check", planSession("c", "भ", EMPTY_PROFILE).levelConfig.check === undefined);
 }
 
 // ── planning a session ──────────────────────────────────────────────────────

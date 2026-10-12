@@ -502,6 +502,8 @@ const BASELINE_MAX_MS = 12000;
  *  - **nudge timing** — from the child's own median response time, not a
  *    hardcoded 6s.
  *  - **scaffold** — from this letter's last error rate, not zero.
+ *  - **a check question** — when a letter the child has mastered keeps being
+ *    picked by mistake, one question asks for it (TODO E3, letterStatus.ts).
  *
  * With an empty profile every one of these falls back to exactly what the
  * engine did before, so a brand-new child gets the standard assessment.
@@ -532,6 +534,24 @@ export function planSession(
 
   const errorRate = profile.errorRateByLetter[target] ?? 0;
   const rules = STATE_RULES[state];
+
+  // A mix-up is evidence about both letters, but it never takes mastery away
+  // by itself: the letter is asked for once, among the letters it was mistaken
+  // for, and only that answer decides. Never this session's own letter.
+  const due = profile.checks.find((c) => c.letter !== target);
+  const check = due
+    ? {
+        letter: due.letter,
+        confused: due.pickedFor.filter((l) => l !== due.letter).slice(0, 3),
+        pool: [
+          ...new Set([
+            ...due.pickedFor,
+            ...(DISTRACTOR_POOLS[due.letter]?.hard ?? DEFAULT_HARD),
+          ]),
+        ].filter((l) => l !== due.letter),
+      }
+    : undefined;
+
   const baseline =
     profile.latencyMedianMs !== null
       ? Math.min(BASELINE_MAX_MS, Math.max(BASELINE_MIN_MS, profile.latencyMedianMs))
@@ -548,6 +568,9 @@ export function planSession(
     profile.latencyMedianMs !== null
       ? `Nudge timing set from a median response of ${(baseline / 1000).toFixed(1)}s.`
       : "",
+    due
+      ? `One question checks ${due.letter}: mastered, but picked by mistake ${due.picks} times since (for ${due.pickedFor.join(", ")}).`
+      : "",
   ].filter(Boolean);
 
   const levelConfig: LevelConfig = {
@@ -561,6 +584,7 @@ export function planSession(
     distractor_pool: pool,
     confused_letters: personal,
     include_matras: true,
+    ...(check ? { check } : {}),
     feature_to_highlight: FEATURE_BY_LETTER[target] ?? "",
     phonological_note: "",
     hesitation_trigger_stage1_ms: baseline + 8000,
