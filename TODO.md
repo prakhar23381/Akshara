@@ -99,7 +99,8 @@ and no way to push without shipping.*
 
 W1, W2, W3 and R1 are logged in `STATUS_LOG.md`. **They are in production,
 unverified on a device** — `main` was fast-forwarded to `bcc3897` on the user's
-instruction. The branches below are merged; kept for reference only:
+instruction. The branches below were merged, and deleted on 2026-10-12; their
+commits are in `main` (table kept as a record):
 
 | Branch | Adds | Commit |
 |---|---|---|
@@ -158,11 +159,11 @@ instruction. The branches below are merged; kept for reference only:
         before it.
   - [ ] **B4 · Detail views** (letter, skill, pair, all sessions) **and
         Download.** **User review.**
-  - [ ] **B5 · Ship it.** E2 is fixed (`fix/e2-supplied-answers`, must be in
-        `main` first). Split `fetchReportSources()` out
+  - [ ] **B5 · Ship it.** W5b and E2 are in `main` (released 2026-10-12),
+        so `feat/report-v2` fast-forwards onto it. Split `fetchReportSources()` out
         of `client.ts`; `/report` → the new report with view and period in
         the URL; extend `scripts/visual/flow.cjs`; retire W4a's
-        `ReportScreen`. Ships after W5b.
+        `ReportScreen`.
 - [ ] **W4b · Teacher class report.** After the parent report (W4). Three
       tabs, user-chosen: who needs help, the whole-class grid, class-wide
       patterns (detail left to the agent's design). Reuses the new report's
@@ -182,15 +183,20 @@ instruction. The branches below are merged; kept for reference only:
       classroom tablet picks the class, then the child. The database side is
       built and tested (`join_class`, `create_child_share_code`, …); this is
       the client.
-- [ ] **V7 · Try the signed-in path for real.** W5b's guest path is
-      click-tested end to end; the signed-in path calls the same operations
-      through Supabase and every column and function name is verified against
-      the live project, but no Google account has run it. Sign in, choose a
-      role, set a PIN, add a child, play, check the report.
-- [ ] **D4 · Migration 003, once W5b is in production.** Drop
-      `trg_legacy_profile_child` and the old `users_own_*` policies — only
-      after no deployed client predates 002. Until then the trigger is what
-      keeps old cached clients' sign-ups working.
+- [ ] **V7 · Try the signed-in path for real — on production, now.** W5b is
+      live since 2026-10-12 (`79e93f1`). Its guest path is click-tested end to
+      end; the signed-in path calls the same operations through Supabase and
+      every column and function name is verified against the live project,
+      but no Google account has run it. Sign in, choose a role, set a PIN, add
+      a child, play, check the report. With E2 live, also look at a child who
+      played before: letters may have gone from mastered to learning, and a
+      page they had played on must still be open. Do 7.6 first.
+- [ ] **D4 · Migration 003.** W5b is in production since 2026-10-12; wait a
+      day or two for tabs still open on the old client, and for V7. Drop
+      `trg_legacy_profile_child` and the old `users_own_sessions` /
+      `users_own_progress` policies — **keep `users_own_profile`**, the only
+      policy on `user_profiles`. Until then the trigger is what keeps old
+      cached clients' sign-ups working.
 
 ## Verification
 *Layout can now be checked headlessly (`scripts/visual/`); these need a real
