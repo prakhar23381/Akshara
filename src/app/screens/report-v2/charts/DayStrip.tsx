@@ -1,12 +1,13 @@
 import { useState } from "react";
 import type { DayEntry } from "../model";
-import { ACCENT, GRID, INK, INK2, MUTED } from "./theme";
+import { GRID, INK, INK2, MUTED } from "./theme";
 import { addDays, dayKey, describeDay, mondayOf, parseDay, WEEKDAY_INITIALS } from "./days";
+import { HeatLegend, heatColor, heatLevel } from "./heat";
 
 /**
- * A week, Monday first: a filled square for a day with practice, a hairline
- * square for a day without, nothing for a day still to come. Hover or touch a
- * day for its sessions and minutes.
+ * A week, Monday first, each day coloured by the minutes practised — the same
+ * key as the month calendar and the year heatmap. A day still to come is an
+ * outline. Hover or touch a day for its sessions and minutes.
  */
 export function DayStrip({ byDay, today }: { byDay: DayEntry[]; today: Date }) {
   const [active, setActive] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export function DayStrip({ byDay, today }: { byDay: DayEntry[]; today: Date }) {
         {days.map((key, i) => {
           const entry = byDay.find((d) => d.date === key);
           const future = key > todayKey;
-          const on = (entry?.sessions ?? 0) > 0;
+          const level = heatLevel(entry?.minutes ?? 0, entry?.sessions ?? 0);
           return (
             <div
               key={key}
@@ -38,12 +39,17 @@ export function DayStrip({ byDay, today }: { byDay: DayEntry[]; today: Date }) {
                 {WEEKDAY_INITIALS[i]}
               </span>
               <span
-                className="block rounded"
+                className="block rounded-md w-full"
                 style={{
-                  width: 22,
-                  height: 22,
-                  background: on ? ACCENT : "transparent",
-                  boxShadow: on || future ? "none" : `inset 0 0 0 1px ${GRID}`,
+                  maxWidth: 40,
+                  aspectRatio: "1",
+                  background: future ? "transparent" : heatColor(level),
+                  boxShadow:
+                    key === todayKey
+                      ? `inset 0 0 0 2px ${INK}`
+                      : future
+                        ? `inset 0 0 0 1px ${GRID}`
+                        : "none",
                   outline: active === key ? `2px solid ${INK2}` : "none",
                   outlineOffset: 2,
                 }}
@@ -53,6 +59,7 @@ export function DayStrip({ byDay, today }: { byDay: DayEntry[]; today: Date }) {
         })}
       </div>
       <Readout text={active ? describeDay(active, byDay.find((d) => d.date === active), active > todayKey) : null} />
+      <HeatLegend />
     </div>
   );
 }

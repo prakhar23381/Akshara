@@ -62,6 +62,22 @@ Summary ─┬─ Letters ──────── one letter (e.g. ग)
 Tablet and desktop: Letters becomes an 11×3 grid across the top, the other
 three cards in a row beneath. One hero figure per view. No verdict.
 
+**Changed at the B2 review (user, 2026-10-12)** — the wireframe above is the
+approved starting point; these replace it where they differ:
+
+* Card titles are prominent (larger, bold).
+* Letters: no sentence. A key as on a map — each mark with its count
+  (● 1 learned ▲1 this week · ◐ 2 learning · ▲ 1 needs support · ○ 29 not
+  started). ● means learned: the engine's mastery and nothing else.
+* Practice is a heatmap on one key — each day coloured by minutes practised
+  (none · under 10 · 10–19 · 20–29 · 30+): a day strip for Week; the whole
+  month as a calendar, with its name and ‹ › to other months, for Month; the
+  calendar year as a GitHub-style grid, with ‹ › to other years, for All
+  (Practice then spans the page).
+* Mix-ups: bars, not sentences — up to four pairs, each with a tick at the
+  same days of the previous period and ✦ for a first-time pair, explained by
+  a key. Nothing about pairs not shown.
+
 ## 3. Sections
 
 *Section figures are illustrative; the summary's are Aarav's real ones.*
@@ -89,7 +105,7 @@ PRACTICE                                  └───────────�
 └──────────────────────────────┘
 ```
 
-Month turns the practice strip into a calendar; All shows weekly columns.
+Month and All are heatmaps (§2, B2 review): the month calendar and the year grid.
 
 ## 4. Detail views
 
@@ -135,6 +151,10 @@ starting on the 1st), weeks — or months past half a year — for All.
 ## 6. Visual rules (dataviz method)
 
 * Charts hand-built in SVG — no chart library; the app keeps 9 dependencies.
+* Practice heat: none `#edece7` (neutral, off the ramp), then `#86b6ef`,
+  `#5598e7`, `#256abf`, `#104281` for under 10 / 10–19 / 20–29 / 30+
+  minutes — validated with the palette script (`--ordinal`, on white). In
+  `report-v2/charts/heat.tsx`.
 * One accent, blue `#2a78d6`, for every single-series chart. Status colours
   (`lib/reportBands.ts`) only ever mean status, always with a mark and a word.
 * The right / helped / wrong stack: three ordinal blue steps — right first

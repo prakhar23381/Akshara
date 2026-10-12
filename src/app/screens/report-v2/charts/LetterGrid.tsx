@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { LetterEntry, LetterStatus } from "../model";
 import { BAND } from "../../../lib/reportBands";
-import { FONT_DEVANAGARI, INK, MUTED, STATUS_BAND, STATUS_WORD, statusColor } from "./theme";
+import { FONT_DEVANAGARI, INK, INK2, MUTED, STATUS_BAND, STATUS_WORD, statusColor } from "./theme";
 import { Readout } from "./DayStrip";
 import { useWidth } from "./useWidth";
 
@@ -31,6 +31,34 @@ export function StatusMark({ status, size = 10 }: { status: LetterStatus; size?:
   );
 }
 
+const ORDER: LetterStatus[] = ["secure", "learning", "support", "not_started"];
+
+/**
+ * The key to the letter marks, as on a map — each mark with its count and
+ * word — so the marks need no sentence to explain them. `extra` sits beside
+ * "learned" (the change against the previous period).
+ */
+export function StatusLegend({
+  counts,
+  extra,
+}: {
+  counts: Record<LetterStatus, number>;
+  extra?: ReactNode;
+}) {
+  return (
+    <ul className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      {ORDER.map((s) => (
+        <li key={s} className="t-0 inline-flex items-center gap-1.5" style={{ color: s === "not_started" ? INK2 : INK }}>
+          <StatusMark status={s} size={13} />
+          <span className="font-semibold tabular-nums">{counts[s]}</span>
+          <span>{STATUS_WORD[s]}</span>
+          {s === "secure" && extra}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 const describe = (e: LetterEntry) => {
   const word = STATUS_WORD[e.status];
   if (e.status === "not_started") return `${e.letter} · ${word}`;
@@ -45,7 +73,7 @@ const describe = (e: LetterEntry) => {
 export function LetterGrid({ entries, variant }: { entries: LetterEntry[]; variant: "strip" | "grid" }) {
   const [active, setActive] = useState<number | null>(null);
   const [ref, width] = useWidth<HTMLDivElement>();
-  const label = `Letter status: ${(["secure", "learning", "support", "not_started"] as LetterStatus[])
+  const label = `Letter status: ${ORDER
     .map((s) => `${entries.filter((e) => e.status === s).length} ${STATUS_WORD[s]}`)
     .join(", ")}`;
 

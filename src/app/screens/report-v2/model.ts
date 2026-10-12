@@ -163,6 +163,11 @@ export interface ReportModel {
     /** Days elapsed in the current period, today included. */
     elapsedDays: number;
     byDay: DayEntry[];
+    /**
+     * Every day with practice, in any period, oldest first — what the month
+     * calendar and the year heatmap browse back through.
+     */
+    history: DayEntry[];
     finished: number;
     stopped: number;
     inProgress: number;
@@ -463,6 +468,16 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
   const minutes = (list: LearningSession[]) => Math.round(list.reduce((m, s) => m + minutesOf(s), 0));
   const days = (list: LearningSession[]) => new Set(list.map((s) => localDate(new Date(s.started_at)))).size;
   const dayStart = current.from ?? firstRecord ?? atMidnight(now);
+  const history: DayEntry[] = [];
+  const byDate = new Map<string, LearningSession[]>();
+  sessions.forEach((s) => {
+    const key = localDate(new Date(s.started_at));
+    byDate.set(key, [...(byDate.get(key) ?? []), s]);
+  });
+  [...byDate.keys()].sort().forEach((date) => {
+    const those = byDate.get(date)!;
+    history.push({ date, sessions: those.length, minutes: minutes(those) });
+  });
   const byDay: DayEntry[] = [];
   for (let d = atMidnight(dayStart); d < now; d = addDays(d, 1)) {
     const key = localDate(d);
@@ -535,6 +550,7 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
       days: measure(days(cur), days(prev), previous !== null),
       elapsedDays: byDay.length,
       byDay,
+      history,
       finished: cur.filter((s) => s.status === "completed").length,
       stopped: cur.filter((s) => s.status === "abandoned").length,
       inProgress: cur.filter((s) => s.status === "in_progress").length,

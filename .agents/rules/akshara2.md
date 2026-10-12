@@ -95,7 +95,7 @@ git add . && git commit -m "feat/fix: <descriptive-message>"
 │   │   │   ├── account/ RoleScreen · PinSetupScreen · UnlockScreen · AdultHomeScreen
 │   │   │   ├── report-v2/ model (every figure) · ParentReport · ClassReport — the new reports (W4), not routed yet
 │   │   │   │   ├── views/  Summary
-│   │   │   │   └── charts/ theme · Delta · Sparkline · DayStrip · Calendar · WeekColumns · LetterGrid · days · useWidth
+│   │   │   │   └── charts/ theme · heat · Delta · Sparkline · DayStrip · Calendar · YearHeatmap · BarList · LetterGrid · days · useWidth
 │   │   │   └── play/    PlayScreen · PlayLayout · StepDots · types
 │   │   │       └── steps/  Intro · Pronunciation · ExampleWords · Matra · Tracing
 │   │   │                   Memory · Identify · WordFill · WordSpelling · Reward

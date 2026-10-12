@@ -38,7 +38,17 @@ current state and recovery context in
   Before, ● was "above 90%", and 3 of 295 lab letters showed ● without being
   mastered. New check: every ● is learned and every learned letter is ●,
   across every lab child and period.
-* 331 checks across 10 files, typecheck and build clean.
+* **B2 review changes (user):** card titles larger and bold; Letters shows a
+  map-style key (mark · count · word) instead of a sentence; Practice became
+  a heatmap on one minutes key — the week strip, the whole month with its name
+  and ‹ › to other months, and for All the calendar year as a GitHub-style
+  grid with ‹ › years (full width); Mix-ups became aligned bars with a tick
+  for the previous period and ✦ for a first-time pair, and no longer mentions
+  pairs it does not show. The model gains `practice.history` (every practice
+  day) for browsing back. Heat colours validated with the palette script.
+  Shot again at every size: no overflow; fixed from the shots a "new" tag
+  that overflowed narrow cards and bars that did not line up.
+* 333 checks across 10 files, typecheck and build clean.
 
 ## 2026-10-12 — E2 and E3: supplied answers, judged statuses, mix-ups (`fix/e2-supplied-answers`)
 

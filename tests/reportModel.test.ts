@@ -77,6 +77,11 @@ const aarav = parent("week");
     m.letters.learned.value === buildProgressReport(aarav.sources).letters_mastered);
   ok("the session list is newest first", m.practice.list[0].letter === "घ" && m.practice.list.length === 6);
   ok("a week's trend has a point per day", m.skills.series.length === 7 && m.skills.series[0].start === "2026-10-05");
+  const h = m.practice.history;
+  ok("the day history spans every period: Aarav's 7 practice days from 3 Oct",
+    h.length === 7 && h[0].date === "2026-10-03" && h.every((d, i) => i === 0 || d.date > h[i - 1].date), JSON.stringify(h.map((d) => d.date)));
+  ok("…with the same minutes as the week's own days",
+    m.practice.byDay.every((d) => d.sessions === 0 || h.find((x) => x.date === d.date)?.minutes === d.minutes));
   ok("the same records give the same report",
     JSON.stringify(m) === JSON.stringify(buildReportModel(aarav.sources, NOW, "week")));
 }
