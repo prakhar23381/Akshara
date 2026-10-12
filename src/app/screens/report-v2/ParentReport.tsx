@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Download } from "lucide-react";
-import type { ReportSources } from "../../api/client";
+import type { ReportSources } from "../../api/reportSources";
 import { buildReportModel, type Range, type ReportModel, type SkillId } from "./model";
 import { Summary } from "./views/Summary";
 import { LettersView } from "./views/Letters";
@@ -19,8 +19,8 @@ import { GRID, INK, INK2, PAGE, SURFACE } from "./charts/theme";
  * The new parent report (W4; design: docs/10_REPORT_DESIGN.md).
  *
  * Takes one child's records and a "today" instead of loading them, so the
- * report lab can render it with any scenario. Not routed yet: `/report` still
- * serves the W4a `ReportScreen` until B5. The summary and the period switch
+ * report lab can render it with any scenario; `/report` loads them
+ * (`screens/ParentReportScreen.tsx`, B5). The summary and the period switch
  * (B2), the four sections a card's title opens (B3), and the detail views and
  * Download (B4).
  *
@@ -194,9 +194,10 @@ export function ParentReport({
       <main style={{ padding: "var(--pad-screen)" }}>
         <div className="mx-auto max-w-5xl">
           {!model.hasAnySessions ? (
-            <p className="t-0 rounded-2xl bg-white p-4" style={{ boxShadow: `inset 0 0 0 1px ${GRID}` }}>
-              No sessions yet. When {sources.displayName} plays, what they practise shows up here.
-            </p>
+            <div className="rounded-2xl bg-white p-4 flex flex-col gap-3 items-start" style={{ boxShadow: `inset 0 0 0 1px ${GRID}` }}>
+              <p className="t-0">No sessions yet. When {sources.displayName} plays, what they practise shows up here.</p>
+              {onBack && <PillButton onClick={onBack}>‹ Back to your children</PillButton>}
+            </div>
           ) : view === "summary" ? (
             <Summary model={model} today={today} onOpen={setView} />
           ) : (

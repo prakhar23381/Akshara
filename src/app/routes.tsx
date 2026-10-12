@@ -7,7 +7,7 @@ import { ResumeScreen } from "./screens/ResumeScreen";
 import { LetterRoadmapScreen } from "./screens/LetterRoadmapScreen";
 import { PlayScreen } from "./screens/play/PlayScreen";
 import { HomeRedirect } from "./screens/HomeRedirect";
-import { ReportScreen } from "./screens/ReportScreen";
+import { ParentReportScreen } from "./screens/ParentReportScreen";
 import { ChildProgressScreen } from "./screens/ChildProgressScreen";
 import { RoleScreen } from "./screens/account/RoleScreen";
 import { PinSetupScreen } from "./screens/account/PinSetupScreen";
@@ -42,7 +42,9 @@ export const router = createBrowserRouter([
   { path: "/profile/name", element: adult(<ProfileNameScreen />) },
   { path: "/profile/age", element: adult(<ProfileAgeScreen />) },
   { path: "/profile/avatar", element: adult(<ProfileAvatarScreen />) },
-  { path: "/report", element: adult(<ReportScreen />) },
+  // The parent report: ?child=…&range=…&view=… (ParentReportScreen). The W4a
+  // dashboard it replaced is in .legacy/screens/ReportScreen.tsx.
+  { path: "/report", element: adult(<ParentReportScreen />) },
 
   // Child area
   { path: "/resume", element: child(<ResumeScreen />) },

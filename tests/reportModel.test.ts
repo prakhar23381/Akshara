@@ -74,6 +74,12 @@ const aarav = parent("week");
   ok("ग ↔ घ is new this week", second.a === "ग" && second.b === "घ" && second.isNew && second.previous === 0);
   ok("practise next: क and ख", m.practiseNext?.kind === "mixup" && m.practiseNext.count === 7);
   ok("29 letters not started", m.letters.counts.not_started === 29);
+  ok("learned this week: the change is the letters learned this week (क)",
+    m.letters.learned.change === 1 && m.letters.learnedInPeriod.join() === "क", JSON.stringify(m.letters.learned));
+  const monday = buildReportModel(aarav.sources, new Date("2026-10-12T12:30:00Z"), "week");
+  ok("on the Monday after, nothing is learned 'this week' — क was last week's",
+    monday.letters.learned.change === 0 && monday.letters.learnedInPeriod.length === 0 && monday.letters.learned.value === 1,
+    JSON.stringify(monday.letters.learned));
   ok("letters learned agrees with the current report",
     m.letters.learned.value === buildProgressReport(aarav.sources).letters_mastered);
   ok("the session list is newest first", m.practice.list[0].letter === "घ" && m.practice.list.length === 6);

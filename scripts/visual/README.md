@@ -54,11 +54,14 @@ errors. A `favicon.ico` 404 is expected, because the app ships no favicon.
 `flow.cjs` drives the whole adult-and-child journey through the real build:
 guest sign-in, role, PIN (with a deliberate mismatch), adding a child,
 "Play as", trying to reach the adult home and a report without the PIN, a
-wrong PIN, the right one, reload, and a second tab.
+wrong PIN, the right one, reload, and a second tab. Given the scenarios file,
+it then walks the parent report with Aarav's week: a section, a letter, the
+browser's back button, the period (no history entry), a deep link and a
+reload, a bad address, and Download (printing is counted, not opened).
 
 ```bash
-node scripts/visual/flow.cjs /tmp/pptr /tmp/shots http://localhost:4173
-# RESULT 23 passed, 0 failed
+node scripts/visual/flow.cjs /tmp/pptr /tmp/shots http://localhost:4173 /tmp/scenarios.json
+# RESULT 37 passed, 0 failed   (23 without the scenarios file)
 ```
 
 Screenshots show states; this shows transitions. Its first run found two

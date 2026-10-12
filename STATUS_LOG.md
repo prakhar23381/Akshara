@@ -4,6 +4,36 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-12 (evening, IST) — B5: the new report at `/report`; W4 done
+
+* **The user's instruction:** "perform B5" (after reviewing B4 and the
+  deepened sections in the lab).
+* **Split:** `api/reportSources.ts` — `ReportSources`, `mergeRows()` and
+  `fetchReportSources()`, moved out of `client.ts`; `fetchProgressReport()`
+  is now that plus `buildProgressReport()`, so the child's own progress view
+  is unchanged. `client.ts` re-exports the type and `mergeRows`.
+* **Routed:** `/report` → `screens/ParentReportScreen.tsx` →
+  `report-v2/ParentReport`, with `?child=…&range=…&view=…` in the address.
+  Opening a view adds a history entry (the phone's back button goes up a
+  level); the report's own "‹" goes back through it when it came from there;
+  the period replaces the address. The adult home's Report button already
+  passes `?child=`. The empty report has a way back to the children.
+* **Retired:** W4a's `ReportScreen` → `.legacy/screens/ReportScreen.tsx`.
+  Its reasoning panel goes with it; the new report explains through "What
+  the app will check next" and the figures.
+* **Found on the real build, on a Monday (the lab is fixed on a Sunday):**
+  "▲ 1 this week" against letters learned last week — the learned count was
+  compared with the same moment last week. A running total now compares with
+  the start of the period, so the change is the letters learned this week
+  (design §5). And "0 of 1 days". Both fixed; two checks added.
+* **Verified on a production build** (`vite preview`, seed data from the
+  engine): `flow.cjs` 37 passed (23 → 37: the report walk — a section, a
+  letter, browser back, the period without a history entry, a deep link and
+  a reload, a bad address, Download); the report's screenshots at three
+  sizes, no overflow, no errors but the expected favicon 404. 382 checks
+  across 10 test files. Bundle: CSS 37.7 KB (production's 38.3 KB — W4a's
+  classes left with it), JS +56 KB (+17 KB gzipped).
+
 ## 2026-10-12 (later still) — the four sections deepened (`feat/report-v2`)
 
 * **Asked by the user at the B4 review:** the sections showed little beyond

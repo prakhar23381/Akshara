@@ -1,8 +1,11 @@
 // Drive the whole account journey by clicking, as a new parent would:
 // sign in as a guest, choose a role, set a PIN (with a deliberate mismatch),
 // add a child, hand the device over, try to get back without the PIN, unlock,
-// open the child's report, reload, and open a second tab.
-//   node flow.cjs <puppeteer-core dir> <out dir> <base url>
+// open the child's report, reload, and open a second tab. Given the scenarios
+// file (seed.ts), it then walks the parent report with a week of sessions:
+// sections, a letter, the phone's back button, the period, reload, a deep
+// link and Download.
+//   node flow.cjs <puppeteer-core dir> <out dir> <base url> [scenarios.json]
 // Its first run caught two race conditions and an unfocusable control that
 // the unit tests and screenshots had all missed.
 const path = require("node:path");
@@ -75,7 +78,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await pin("2468");
   ok("the right PIN goes where the adult was heading", (await where()) === "/report", await where());
   await sleep(800);
-  ok("the report is Kiran's (empty: nothing played yet)", (await text()).includes("No sessions recorded yet"), (await text()).slice(0, 120));
+  ok("the report is Kiran's (empty: nothing played yet)",
+    (await text()).includes("Kiran") && (await text()).includes("No sessions yet"), (await text()).slice(0, 120));
   await click("Back to your children"); await sleep(600);
   ok("and back to the children", (await where()) === "/home", await where());
 
@@ -90,6 +94,76 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await p2.evaluate(() => location.pathname));
 
   await p.screenshot({ path: path.join(OUT, "flow-end.png") });
+
+  // ── The parent report, with Aarav's week (scenarios.json → "report") ──
+  if (process.argv[5]) {
+    const { scenarios } = JSON.parse(require("node:fs").readFileSync(process.argv[5], "utf8"));
+    const r = await b.newPage();
+    await r.setViewport({ width: 390, height: 844 });
+    r.on("pageerror", (e) => errors.push(e.message));
+    await r.evaluateOnNewDocument((seed) => {
+      if (!sessionStorage.getItem("__report")) {
+        localStorage.clear();
+        for (const [k, v] of Object.entries(seed)) {
+          if (k.startsWith("session:")) sessionStorage.setItem(k.slice(8), v);
+          else localStorage.setItem(k, v);
+        }
+        sessionStorage.setItem("__report", "1");
+      }
+      // Download opens the print dialog; count it instead.
+      window.print = () => { window.__printed = (window.__printed || 0) + 1; };
+    }, scenarios.report);
+    const q = () => r.evaluate(() => Object.fromEntries(new URLSearchParams(location.search)));
+    const rtext = () => r.evaluate(() => document.body.innerText);
+    const press = async (sel) => {
+      const done = await r.evaluate((sel) => {
+        const el = sel.startsWith("text=")
+          ? [...document.querySelectorAll("button")].find((e) => e.textContent.replace(/\s+/g, " ").trim().includes(sel.slice(5)))
+          : document.querySelector(sel);
+        if (!el) return false; el.click(); return true;
+      }, sel);
+      if (!done) throw new Error(`nothing to press for ${sel} at ${await r.evaluate(() => location.search)}`);
+      await sleep(500);
+    };
+    const depth = () => r.evaluate(() => history.length);
+
+    await r.goto(BASE + "/report?range=all", { waitUntil: "networkidle0" }); await sleep(900);
+    ok("the parent report opens on Aarav's summary",
+      (await rtext()).includes("Aarav") &&
+      (await r.$$eval("h2", (h) => h.map((x) => x.textContent))).filter((t) => ["Letters", "Skills", "Practice", "Mix-ups"].includes(t)).length === 4,
+      (await rtext()).slice(0, 160));
+    await press('button[aria-label="Letters: open"]');
+    ok("a card opens its section, in the address", (await q()).view === "letters", JSON.stringify(await q()));
+    await press('button[aria-label^="क · learned"]');
+    ok("a letter opens its view: view=letter:क", (await q()).view === "letter:क", JSON.stringify(await q()));
+    ok("…over the whole history", (await rtext()).includes("The whole history"));
+    await r.goBack({ waitUntil: "networkidle0" }); await sleep(500);
+    ok("the phone's back button goes up a level", (await q()).view === "letters", JSON.stringify(await q()));
+    await press("text=Summary");
+    ok("the report's own ‹ goes up too", (await q()).view === undefined && (await q()).range === "all", JSON.stringify(await q()));
+    const before = await depth();
+    await press('button[aria-pressed="false"]');
+    ok("changing the period changes the address…", (await q()).range === "week", JSON.stringify(await q()));
+    ok("…without a history entry to step back through", (await depth()) === before, `${before} → ${await depth()}`);
+
+    await r.goto(BASE + "/report?range=all&view=" + encodeURIComponent("pair:क-ख"), { waitUntil: "networkidle0" }); await sleep(900);
+    ok("a deep link opens a pair", (await rtext()).includes("Which way round") && (await rtext()).includes("mix-ups in all"));
+    await r.reload({ waitUntil: "networkidle0" }); await sleep(900);
+    ok("and survives a reload", (await q()).view === "pair:क-ख" && (await rtext()).includes("Which way round"), JSON.stringify(await q()));
+    await r.goto(BASE + "/report?range=all&view=skill:sound", { waitUntil: "networkidle0" }); await sleep(900);
+    ok("a skill by address, with its letters", (await rtext()).includes("Sound → letter") && (await rtext()).includes("By letter"));
+    await r.goto(BASE + "/report?range=all&view=nonsense", { waitUntil: "networkidle0" }); await sleep(900);
+    ok("a view that does not exist shows the summary", (await rtext()).includes("Mix-ups") && !(await rtext()).includes("‹ Summary"));
+
+    await press("text=Download"); await sleep(900);
+    ok("Download lays out the document and opens printing once",
+      (await r.evaluate(() => window.__printed)) === 1 && (await rtext()).includes("Aarav: practice report"));
+    await r.evaluate(() => window.dispatchEvent(new Event("afterprint"))); await sleep(400);
+    ok("…then the report comes back", (await rtext()).includes("Download") && !(await rtext()).includes("Back to the report"));
+    await r.screenshot({ path: path.join(OUT, "flow-report.png") });
+  } else {
+    console.log("  (no scenarios file: the report walk is skipped)");
+  }
   ok("no runtime errors along the way", errors.length === 0, errors.join(" | "));
   console.log(`\nRESULT ${pass} passed, ${fail} failed`);
   await b.close();

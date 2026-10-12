@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ReportSources } from "../../../api/client";
+import type { ReportSources } from "../../../api/reportSources";
 import { letterDetail, type LetterSessionPoint } from "../model";
 import { StackBar } from "../charts/StackBar";
 import { StatusMark } from "../charts/LetterGrid";

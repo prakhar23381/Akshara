@@ -149,7 +149,7 @@ function PracticeCard({ model, today, className, onOpen }: CardProps & { today: 
       {model.range === "week" && (
         <>
           <p className="t-0" style={{ color: INK }}>
-            <span className="font-semibold">{days.value}</span> of {elapsedDays} days ·{" "}
+            <span className="font-semibold">{days.value}</span> of {elapsedDays} day{elapsedDays === 1 ? "" : "s"} ·{" "}
             <span className="font-semibold">{minutes.value}</span> min
           </p>
           <DayStrip byDay={byDay} today={today} />

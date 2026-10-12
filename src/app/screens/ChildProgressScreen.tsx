@@ -13,8 +13,8 @@ import { LETTER_SEQUENCE } from "../types/levelConfig";
  * Shows effort and letters earned, and never an error rate, accuracy score or
  * rescue count. A child being screened for a reading difficulty should not be
  * handed a tally of how often they were wrong — that is what drives the
- * avoidance the rest of the app is built to prevent. The clinical figures live
- * at /progress, which is for adults.
+ * avoidance the rest of the app is built to prevent. The full figures live
+ * at /report, which is for adults.
  *
  * Fits the viewport with no scrolling: the collection grid takes the remaining
  * height and its tiles size themselves from it.

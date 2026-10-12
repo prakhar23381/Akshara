@@ -17,7 +17,7 @@ src/
 └── app/
     ├── App.tsx         provider tree + the auth gate
     ├── routes.tsx      the router (15 entries, ONE activity URL)
-    ├── api/            client.ts
+    ├── api/            client.ts · reportSources.ts
     ├── components/     11 presentational primitives
     ├── contexts/       Auth · ProfileSetup · Session
     ├── data/           letterContent.ts · letterPaths.ts
@@ -166,14 +166,23 @@ device.
 | Export | Purpose |
 |---|---|
 | `analyzeSession(payload)` | attaches `prior_cognitive_state` itself, calls the backend, falls back to `analyzeLocally()` |
-| `buildProgressReport()` | assembles the whole parent report **on the device** from stored sessions |
-| `fetchProgressReport()` | the report accessor used by screens |
+| `buildProgressReport()` | the child's progress figures, **on the device** from stored sessions (`ChildProgressScreen`) |
+| `fetchProgressReport()` | `fetchReportSources()` then `buildProgressReport()` |
 | `checkHealth()` | backend liveness |
 | `FALLBACK_LEVEL_CONFIG` | the static config used when nothing else is available |
 | `ProgressReport`, `SessionSummary`, `LetterStat`, `ModuleBreakdown` | report types |
 
 Private helpers worth knowing: `getAuthHeaders()`, `readPriorCognitiveState()`,
 `readLastPool()` / `writeLastPool()`, `makeFallbackResponse()`.
+
+### `api/reportSources.ts`
+| Export | Purpose |
+|---|---|
+| `ReportSources` | one child's `learning_sessions` and `letter_progress` rows, their name, and where they came from (`database+device` or `device`) |
+| `fetchReportSources(childId, fallbackName?)` | this device's rows for the child, merged with the database's for a signed-in child (2.5 s timeout, then the device alone, and says so) |
+| `mergeRows()` | database and device rows for the same sessions, device copy preferred |
+
+`client.ts` re-exports `ReportSources` and `mergeRows`.
 
 ---
 
@@ -242,10 +251,11 @@ Every step has that same shape and none knows what follows it.
 | `ResumeScreen` | 131 | resume or start fresh |
 | `LetterRoadmapScreen` | 346 | all 33 consonants, 4 paged pages, ≥75% unlock threshold |
 | `ChildProgressScreen` | 136 | the child's own view — effort and letters earned, never an error rate |
-| `ReportScreen` | 741 | the adult report: Overview · Sessions · Letters, behind the parent math gate |
+| `ParentReportScreen` | 123 | `/report`: loads one of the adult's children (`?child=`) and renders `report-v2/ParentReport`, with the period and the view in the address (`&range=month&view=letter:क`). Opening a view adds a history entry, so the phone's back button goes up a level; the period replaces the address |
 
-`/report` is the merge of `ParentDashboardScreen` (480 lines) and
-`ProgressScreen` (419), which were two overlapping adult reports.
+`/report` was W4a's `ReportScreen` until 2026-10-12 (B5); it is in
+`.legacy/screens/`, as are `ParentDashboardScreen` and `ProgressScreen`, the
+two overlapping reports W4a had merged.
 
 ---
 
@@ -307,7 +317,7 @@ renders one report alone.
 | `src/lab/Lab.tsx` | the workbench and the frames. Styled inline (see Styles). Any view by address (`view=letter:क`, `pair:क-ख`, `skill:sound`, `sessions`); `print=1` (the Paper button) shows the Download document |
 | `src/lab/fixtures/play.ts` | `createPlayer()` plays scripted sessions through the real `planSession` / `analyzeLocally`; `rowsOf()` stores them through the app's own `upsertSession`; `progressOf()`; a seeded `rng()`. `"?"` in a script means the app supplied the answer |
 | `src/lab/fixtures/scenarios.ts` | `LAB_TODAY` (fixed at 11 Oct 2026), `SCENARIOS`, `buildScenario()`: a new child, one session, Aarav's week (shared with `scripts/visual/seed.ts`), a month of 13 letters, a struggling child, and a class of 25 |
-| `screens/report-v2/ParentReport.tsx` · `ClassReport.tsx` | the new reports (design: `docs/10_REPORT_DESIGN.md`). They take records and a date instead of loading them, and are not routed until B5. `ParentReport`: sticky header with the Week / Month / All switch (controlled or its own) and Download, the summary (B2), the sections (B3), the detail views (B4). A view is a string — `letter:क`, `pair:क-ख`, `skill:sound`, `sessions` — so the app can keep it in the URL (`parseView`, `upOf` in `views/shared.tsx`); `ClassReport` is still a placeholder |
+| `screens/report-v2/ParentReport.tsx` · `ClassReport.tsx` | the new reports (design: `docs/10_REPORT_DESIGN.md`). They take records and a date instead of loading them; `/report` loads them (`ParentReportScreen`, B5). `ClassReport` is not routed until W5c. `ParentReport`: sticky header with the Week / Month / All switch (controlled or its own) and Download, the summary (B2), the sections (B3), the detail views (B4). A view is a string — `letter:क`, `pair:क-ख`, `skill:sound`, `sessions` — so the app can keep it in the URL (`parseView`, `upOf` in `views/shared.tsx`); `ClassReport` is still a placeholder |
 | `screens/report-v2/PrintReport.tsx` | the Download document: summary, sections and session table in one column at 680px, inside `PrintContext` (views drop their tablet columns and their screen-only controls) |
 | `screens/report-v2/views/Summary.tsx` | practise next, then Letters · Skills · Practice · Mix-ups cards; a card's title opens its section |
 | `screens/report-v2/views/Letters.tsx` · `Skills.tsx` · `Practice.tsx` · `MixUps.tsx` | the four sections (B3); `shared.tsx` holds `Card`, `Hero`, the period words, the view names and `PrintContext` |
@@ -320,5 +330,5 @@ Screenshots of every scenario at every size, against the dev server:
 ## Tests
 
 `tests/*.test.ts`, run by `scripts/run-tests.mjs` via `npm run test` (which runs
-`tsc --noEmit` first), one RESULT line per file: 380 checks across 10 files
-(2026-10-12, on `feat/report-v2`).
+`tsc --noEmit` first), one RESULT line per file: 382 checks across 10 files
+(2026-10-12).

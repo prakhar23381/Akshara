@@ -96,7 +96,7 @@ There are 15 route entries, but only **one activity URL**.
 | `/resume` `/roadmap` | home |
 | **`/play`** | **`PlayScreen` — the entire activity sequence for one letter** |
 | `/my-progress` | `ChildProgressScreen` — effort and letters earned, never an error rate |
-| `/report` | `ReportScreen` — the adult/clinical view, behind the parent math gate |
+| `/report` | `ParentReportScreen` → `report-v2/ParentReport` — the parent report, adult area (behind the PIN); `?child=…&range=…&view=…` (B5, 2026-10-12) |
 | `/progress` `/parent-dashboard` | redirect → `/report` |
 | `*` | redirect → `/roadmap` |
 
@@ -205,8 +205,10 @@ is verified identical on both sides for all 5 prior states.
 
 ### The report is built on the device
 
-`buildProgressReport()` in `api/client.ts` assembles the parent report from
-stored sessions; `ReportScreen` renders it. This is a deliberate reversal of the
+`buildReportModel()` in `screens/report-v2/model.ts` builds the parent report
+from stored sessions (`fetchReportSources()` gathers them); `ParentReport`
+renders it. (`buildProgressReport()` in `api/client.ts` still serves the
+child's own progress view.) This is a deliberate reversal of the
 original design, for two reasons: the report is the artifact a specialist reads,
 so every figure must be traceable to a recorded attempt — generated prose cannot
 carry that guarantee — and a server-side report needs a server, a database and an

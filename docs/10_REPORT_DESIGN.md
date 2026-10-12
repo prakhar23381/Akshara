@@ -1,7 +1,7 @@
 # The new parent report — design
 
-*Approved 2026-10-11 (TODO W4-P). Replaces the W4a dashboard, which stays at
-`/report` until step B5. Built in the report lab (`/lab.html`, see
+*Approved 2026-10-11 (TODO W4-P). Replaced the W4a dashboard at `/report` on
+2026-10-12 (B5; W4a is in `.legacy/screens/`). Built in the report lab (`/lab.html`, see
 [05_FRONTEND_REFERENCE.md](05_FRONTEND_REFERENCE.md)). Figures:
 `src/app/screens/report-v2/model.ts`, tested in `tests/reportModel.test.ts`.*
 
@@ -26,8 +26,9 @@ Summary ─┬─ Letters ──────── one letter (e.g. ग)
 * **Week / Month / All** sits once, in the sticky header, and scopes every
   figure at every level.
 * Every figure with a change (▲▼) opens its trend.
-* Each view has its own URL (`/report?child=…&range=week&view=letter&letter=ग`),
-  so the phone's back button goes up a level.
+* Each view has its own URL (`/report?child=…&range=week&view=letter:ग`; also
+  `pair:क-ख`, `skill:sound`, `sessions`), so the phone's back button goes up a
+  level. Opening a view adds a history entry; the period replaces it.
 
 ## 2. Summary (phone; Aarav's week from the lab, real figures)
 
@@ -218,7 +219,7 @@ stay charts you read (B2).
 | Speed | Median time to answer, right-first-time answers only (a supplied answer is recorded with time 0) |
 | Writing | Mean tracing score; present only in sessions the planner sent to tracing |
 | Letter status | **● learned** is the engine's mastery (`letterStatuses`), nothing else. A letter not learned takes its latest session with answers, at the engine's own lines read on right-first-time: **70% or more** learning ◐, **below 70%** needs support ▲; not started ○. (Until 2026-10-12, ● was "above 90%", which could show ● on a letter the engine had not mastered; the user chose ● = learned.) |
-| Letters learned | The engine's mastery, judged from the answers with today's rules (`letterStatuses`, E2 + E3) — not the label saved when the session ended |
+| Letters learned | The engine's mastery, judged from the answers with today's rules (`letterStatuses`, E2 + E3) — not the label saved when the session ended. A running total, so its change is what was gained **since the period began** (= the letters "learned this week"), not against the same moment of the last period: on a Monday that would credit last week's letters to this one (found at B5) |
 | Practise next | The top mix-up this period if it happened twice or more; otherwise the letter practised this period with the lowest right-first-time among those needing support; otherwise nothing |
 | Mixed up most with | The letter a letter is mixed up with most, either way round, over everything |
 | Roadmap pages | The roadmap's own rule (`lib/letterStatus.ts`): a letter scores 100 learned, 60 while it mixes up look-alikes, 25 while it mixes up different shapes, 0 with too few answers; a page's figure is the average; a page opens when the one before averages 75%, or once the child has played on it |
@@ -276,4 +277,4 @@ src/app/screens/report-v2/
 | B2 | Summary and period switch, in the lab | done 2026-10-12, reviewed (changes in §2) |
 | B3 | The four sections | done 2026-10-12, reviewed (no changes) |
 | B4 | Detail views and Download | built 2026-10-12; user reviews in the lab |
-| B5 | `fetchReportSources()` split out of `client.ts`; `/report` moves to the new report; flow test extended; W4a retired. E2 fixed (2026-10-12) and in `main` first | ships after W5b |
+| B5 | `fetchReportSources()` split out of `client.ts`; `/report` moves to the new report; flow test extended; W4a retired. E2 fixed (2026-10-12) and in `main` first | done 2026-10-12 |

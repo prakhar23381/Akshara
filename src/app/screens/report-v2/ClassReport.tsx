@@ -1,4 +1,4 @@
-import type { ReportSources } from "../../api/client";
+import type { ReportSources } from "../../api/reportSources";
 
 /**
  * The teacher's class report — PLACEHOLDER.

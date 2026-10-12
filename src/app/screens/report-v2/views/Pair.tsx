@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ReportSources } from "../../../api/client";
+import type { ReportSources } from "../../../api/reportSources";
 import { pairDetail } from "../model";
 import { Columns } from "../charts/Columns";
 import { NumbersTable, Table } from "../charts/NumbersTable";

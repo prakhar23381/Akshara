@@ -1,4 +1,4 @@
-import type { ReportSources } from "../../app/api/client";
+import type { ReportSources } from "../../app/api/reportSources";
 import { LETTER_SEQUENCE, type LevelConfig } from "../../app/types/levelConfig";
 import type { LearningSession } from "../../app/types/session";
 import { createPlayer, progressOf, rng, rowsOf, SUPPLIED, type SessionScript } from "./play";

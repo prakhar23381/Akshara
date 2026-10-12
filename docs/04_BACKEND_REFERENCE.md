@@ -447,10 +447,11 @@ When a new letter starts with INSUFFICIENT_DATA, the prior state is carried forw
 > database and an API key to be reachable at all, while the hosted app has none
 > of the three.
 >
-> `src/app/api/client.ts → buildProgressReport()` now assembles it on the device
-> from stored sessions, and `src/app/screens/ReportScreen.tsx` renders it. The
-> long-form text that used to be the LLM's job is a print view over the same
-> data. Registering this blueprint again would give the UI two sources of truth
+> The parent report is assembled on the device from stored sessions —
+> `src/app/screens/report-v2/model.ts → buildReportModel()`, rendered by
+> `ParentReport` at `/report` (since 2026-10-12; before, W4a's
+> `ReportScreen`, now in `.legacy/`). Its Download is a print view over the
+> same data. Registering this blueprint again would give the UI two sources of truth
 > for the same numbers.
 >
 > The description below is kept for reference.

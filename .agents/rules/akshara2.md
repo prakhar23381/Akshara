@@ -93,7 +93,7 @@ git add . && git commit -m "feat/fix: <descriptive-message>"
 │   │   │                sessionMetrics · sessionStore · supabase
 │   │   ├── screens/     profile (add a child) · resume · roadmap · report · my-progress
 │   │   │   ├── account/ RoleScreen · PinSetupScreen · UnlockScreen · AdultHomeScreen
-│   │   │   ├── report-v2/ model (every figure) · ParentReport · PrintReport · ClassReport — the new reports (W4), not routed yet
+│   │   │   ├── report-v2/ model (every figure) · ParentReport (at /report via ParentReportScreen) · PrintReport · ClassReport (not routed yet)
 │   │   │   │   ├── views/  Summary · Letters · Skills · Practice · MixUps · shared
 │   │   │   │   └── charts/ theme · heat · Delta · Sparkline · DayStrip · Calendar · YearHeatmap · BarList · StackBar · Columns · LetterGrid · days · useWidth
 │   │   │   └── play/    PlayScreen · PlayLayout · StepDots · types

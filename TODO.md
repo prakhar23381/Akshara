@@ -139,27 +139,37 @@ commits are in `main` (table kept as a record):
       पङ्खा, अङ्गूर, चञ्चल, पञ्जा, मञ्च are the traditional spellings, chosen because
       the modern anusvara forms do not contain the letter. Also: ण has two
       example words and ष one, so those sessions have fewer word questions.
-- [ ] **E1 · `IdentifyStep` still runs its own hesitation ladder.** The word
-      games share `hooks/useHesitationLadder.ts`; Identify's copy is tangled
-      with its slow-audio retry, so folding it in was left out of W2.
+- [ ] **E4 · One hesitation ladder in every game a child can stall in**
+      (user, 2026-10-12; absorbs E1). The ladder: wrong options dim at
+      `hesitation_trigger_stage1_ms`, the right one pulses at `stage2_ms`, and
+      12 s later the answer is supplied — timings from the child's own response
+      times. Audit 2026-10-12: Identify, Word Fill and Word Spelling have it;
+      Memory and Tracing have nothing.
+  - [ ] **Memory.** No timer, hint or rescue; Next stays locked until every
+        pair is matched (`MemoryStep.tsx`). Decide what dim / pulse / supply
+        mean for face-down cards.
+  - [ ] **Tracing.** No timer or nudge (the guide replays only on "👁️ Guide"),
+        and Next stays locked until a trace passes with **no attempt cap** —
+        a child who cannot reach the threshold is stuck for good
+        (`TracingStep.tsx`). Decide the nudges (e.g. replay the guide when
+        idle) and the way out (e.g. unlock after N tries, as Identify does
+        after 2 misses).
+  - [ ] **Standardise.** Every ladder through `hooks/useHesitationLadder.ts`,
+        with the same timings, the same visuals and the same record of a
+        supplied answer (a miss, per E2). Identify still runs its own copy,
+        tangled with its slow-audio retry — folding it in was left out of W2.
+        Memory and Tracing report outcomes, not attempts, so recording a
+        supplied finish needs a field on those outcomes and a decision on how
+        the engine and report read it.
 
-- [~] **W4 · A fresh report (decided 2026-10-11).** W4a stays live until the
-      new one replaces it. On `feat/report-v2`. **The design is approved:
-      [docs/10_REPORT_DESIGN.md](docs/10_REPORT_DESIGN.md)** — wireframes,
-      every figure's definition, the build steps. The lab (W4-L), the design
-      (W4-P), the data model (B1), the summary (B2) and the four sections
-      (B3), both reviewed, are done — `STATUS_LOG.md`.
-  - [~] **B4 · Detail views** (letter, skill, pair, all sessions) **and
-        Download.** Built 2026-10-12. At its review the user asked for far
-        more detailed sections and chose the additions (design §3,
-        "Deepened") — built too. **Waiting on the user's review in the
-        lab** (`npm run dev` → `/lab.html`; the sections, a tap into one, or
-        the Paper button for Download). Do not start B5 before it.
-  - [ ] **B5 · Ship it.** W5b and E2 are in `main` (released 2026-10-12),
-        so `feat/report-v2` fast-forwards onto it. Split `fetchReportSources()` out
-        of `client.ts`; `/report` → the new report with view and period in
-        the URL; extend `scripts/visual/flow.cjs`; retire W4a's
-        `ReportScreen`.
+- [ ] **V8 · Look at the new parent report on production, on a phone.** W4 is
+      done (`STATUS_LOG.md`, B5). From the adult home, a child's report: the
+      summary, a section, a letter, the phone's back button, Week / Month /
+      All, and Download → "Save as PDF" (the print dialog on a phone differs
+      from a desktop's). For a signed-in child the footer must not say "saved
+      on this device only" (also V6). Early in a week the Week view is nearly
+      empty — by the calendar-week choice; say if that should change. If it
+      is wrong: Vercel → Deployments → promote the `79e93f1` deployment.
 - [ ] **W4b · Teacher class report.** After the parent report (W4). Three
       tabs, user-chosen: who needs help, the whole-class grid, class-wide
       patterns (detail left to the agent's design). Reuses the new report's

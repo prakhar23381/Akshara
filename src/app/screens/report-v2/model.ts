@@ -1,4 +1,4 @@
-import type { ReportSources } from "../../api/client";
+import type { ReportSources } from "../../api/reportSources";
 import { rowToSession } from "../../lib/sessionStore";
 import { errorBand } from "../../lib/reportBands";
 import { diagnose } from "../../lib/adaptiveEngine";
@@ -779,7 +779,10 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
     legacySessions,
     letters: {
       entries,
-      learned: measure(learnedBy(now), previous ? learnedBy(previous.to) : null, previous !== null),
+      // A running total: its change is what was gained since the period
+      // began — the letters learned this week — not against the same moment
+      // last week, which on a Monday would credit last week's letters to this one.
+      learned: measure(learnedBy(now), current.from ? learnedBy(current.from) : null, current.from !== null),
       learnedInPeriod: entries
         .filter((e) => e.learned && e.learnedAt !== null && inPeriod(e.learnedAt, current))
         .map((e) => e.letter),
