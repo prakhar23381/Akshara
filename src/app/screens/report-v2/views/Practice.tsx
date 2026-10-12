@@ -8,14 +8,16 @@ import { Delta } from "../charts/Delta";
 import { StackBar } from "../charts/StackBar";
 import { YearHeatmap } from "../charts/YearHeatmap";
 import { dayKey, dayLabel, mondayOf, parseDay } from "../charts/days";
-import { INK, INK2, MIX } from "../charts/theme";
+import { ACCENT, GRID, INK, INK2, MIX } from "../charts/theme";
+import type { ActivityType } from "../../../types/session";
 import { Card, MoreLink, Muted, PERIOD_WORD, useColumns, type View } from "./shared";
 
 /**
  * Practice (design §3): days, sessions and minutes with their change; the
  * period's heatmap (the same one the summary shows); minutes a day — or a
  * week, for All; and how many sessions were finished or stopped early,
- * with the way on to every session (B4).
+ * with the way on to every session (B4). Deeper than the summary: the step a
+ * stopped session stopped at, and days in a row.
  */
 export function PracticeView({ model, today, onOpen }: { model: ReportModel; today: Date; onOpen?: (view: View) => void }) {
   const p = model.practice;
@@ -77,12 +79,77 @@ export function PracticeView({ model, today, onOpen }: { model: ReportModel; tod
             ]}
           />
         )}
+        {p.stoppedAt.length > 0 && <StoppedAt rows={p.stoppedAt} stopped={p.stopped} />}
         {p.list.length > 0 && (
           <MoreLink onClick={onOpen ? () => onOpen("sessions") : undefined}>
             All {p.list.length} session{p.list.length === 1 ? "" : "s"} {when}
           </MoreLink>
         )}
       </Card>
+      <Card title="Days in a row">
+        <div className="grid grid-cols-2 gap-3">
+          <Stat
+            label={
+              p.streak.current === 0
+                ? "no practice yesterday or today"
+                : p.history[p.history.length - 1]?.date === dayKey(today)
+                  ? "up to today"
+                  : "up to yesterday · none today yet"
+            }
+            value={`${p.streak.current} day${p.streak.current === 1 ? "" : "s"}`}
+            delta={null}
+          />
+          <Stat label="the longest so far" value={`${p.streak.longest} day${p.streak.longest === 1 ? "" : "s"}`} delta={null} />
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/** What a parent calls each step of a session. */
+const STEP: Record<ActivityType, string> = {
+  intro: "Meeting the letter",
+  pronunciation: "Hearing its sound",
+  example_words: "Example words",
+  matras: "Barakhadi (matras)",
+  tracing: "Tracing",
+  memory: "Matching game",
+  identify: "Listen & tap",
+  word_fill: "Finish the word",
+  word_spelling: "Spell the word",
+};
+
+/** For the sessions stopped early, the step each stopped at — the first it did not finish. */
+function StoppedAt({ rows, stopped }: { rows: { step: ActivityType; count: number }[]; stopped: number }) {
+  const most = Math.max(1, ...rows.map((r) => r.count));
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="t-0 font-semibold" style={{ color: INK }}>
+        Where {stopped === 1 ? "it" : "they"} stopped
+      </span>
+      <div className="grid items-center gap-x-3 gap-y-2" style={{ gridTemplateColumns: "max-content minmax(0, 1fr) max-content" }}>
+        {rows.map((r) => (
+          <div
+            key={r.step}
+            className="col-span-3 grid grid-cols-subgrid items-center"
+            role="group"
+            aria-label={`Stopped at ${STEP[r.step]}: ${r.count} time${r.count === 1 ? "" : "s"}`}
+          >
+            <span className="t--1" style={{ color: INK }} aria-hidden>
+              {STEP[r.step]}
+            </span>
+            <span className="relative block rounded" style={{ height: 10, background: GRID }} aria-hidden>
+              <span
+                className="absolute left-0 top-0 h-full"
+                style={{ width: `${(r.count / most) * 100}%`, minWidth: 4, background: ACCENT, borderRadius: "0 4px 4px 0" }}
+              />
+            </span>
+            <span className="t--1 font-semibold tabular-nums" style={{ color: INK }} aria-hidden>
+              {r.count}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

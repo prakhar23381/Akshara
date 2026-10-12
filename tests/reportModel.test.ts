@@ -142,6 +142,9 @@ console.log("\n-- E3: a check answer counts for the letter it asked for --");
   play({ letter: K, when: "2026-10-05T10:00:00Z", identify: [K, K, K, K, K], words: [K, K, K, K, K, K] });
   // Two taps of क in place of ख: क is due a check.
   play({ letter: KH, when: "2026-10-06T10:00:00Z", identify: [KH, K, KH, KH, KH], words: [KH, KH, K, KH, KH, KH] });
+  const due = buildReportModel({ rows: rowsOf(history), progress: [], displayName: "Check", source: "device" }, NOW, "all").letters.checks;
+  ok("the report lists क as due a check, picked twice for ख",
+    due.length === 1 && due[0].letter === K && due[0].picks === 2 && due[0].pickedFor[0] === KH, JSON.stringify(due));
   // The planner makes the fifth Listen & tap question a check on क; the
   // script's wrong fifth answer means the child tapped ख for it.
   const last = play({ letter: KH, when: "2026-10-08T10:00:00Z", identify: [KH, KH, KH, KH, "थ"], words: [KH, KH, KH, KH, KH, KH] });
@@ -155,6 +158,7 @@ console.log("\n-- E3: a check answer counts for the letter it asked for --");
   ok("…and says whose session it was", k.history[1].sessionLetter === KH && k.history[0].sessionLetter === K);
   ok("ख's own figures leave the check out", kh.latestRightFirstTime === 100, String(kh.latestRightFirstTime));
   ok("the mix-up is counted once, as क ↔ ख", m.mixups.pairs.some((p) => p.a === K && p.b === KH));
+  ok("once asked, the check is no longer due", m.letters.checks.length === 0, JSON.stringify(m.letters.checks));
 }
 
 console.log("\n-- detail views: a letter and a pair, whole history (B4) --");
@@ -221,6 +225,59 @@ console.log("\n-- skills, letter by letter (B4) --");
     Math.abs(weighted - sound.measure.value!) < 0.5, `${weighted} vs ${sound.measure.value}`);
   ok("in alphabet order", sound.byLetter.map((l) => l.letter).join("") === "कखगघ", sound.byLetter.map((l) => l.letter).join(""));
   ok("matras have none", skill("matras").byLetter.length === 0);
+}
+
+console.log("\n-- the sections' extra detail (B3, deepened) --");
+{
+  const K = "क", KH = "ख";
+  const m = buildReportModel(aarav.sources, NOW, "week");
+  const all = buildReportModel(aarav.sources, NOW, "all");
+  const k = m.letters.entries.find((e) => e.letter === K)!;
+  ok("क is mixed up most with ख, as often as the pair over everything",
+    k.mixedUpMost?.letter === KH && k.mixedUpMost.count === all.mixups.pairs.find((p) => p.a === K && p.b === KH)!.count,
+    JSON.stringify(k.mixedUpMost));
+  ok("…the same letter the letter's own view leads with",
+    letterDetail(aarav.sources, NOW, K).mixedUpWith[0].letter === k.mixedUpMost!.letter);
+  ok("a letter never played has no mix-up", m.letters.entries.find((e) => e.letter === "ङ")!.mixedUpMost === null);
+
+  const pages = m.letters.pages;
+  ok("four roadmap pages, 10 · 10 · 10 · 3 letters", pages.length === 4 && pages.map((p) => p.letters.length).join() === "10,10,10,3");
+  ok("their learned letters are the learned count",
+    pages.reduce((n, p) => n + p.learned, 0) === m.letters.counts.secure);
+  ok("their started letters are every letter not 'not started'",
+    pages.reduce((n, p) => n + p.started, 0) === 33 - m.letters.counts.not_started);
+  ok("Aarav: page 1 open, page 2 not yet", pages[0].open && !pages[1].open, JSON.stringify(pages.map((p) => [p.average, p.open])));
+  const ishaan = buildReportModel(parent("month").sources, NOW, "week").letters.pages;
+  ok("Ishaan has played on page 2, so it is open", ishaan[1].open && ishaan[1].started > 0, JSON.stringify(ishaan.map((p) => [p.average, p.open, p.started])));
+
+  const skill = (id: string) => m.skills.entries.find((e) => e.id === id)!;
+  ok("a skill's answer mix is its answers", ["sound", "lookalike", "words"].every((id) => skill(id).mix!.total === skill(id).n));
+  ok("…and Listen & tap plus the word games are every answer",
+    skill("sound").mix!.total + skill("words").mix!.total === m.skills.mix.total);
+  ok("…the helped answers too", skill("sound").mix!.helped + skill("words").mix!.helped === m.skills.mix.helped);
+  ok("writing and speed are not answers", skill("writing").mix === null && skill("speed").mix === null);
+
+  ok("every session stopped early has a step it stopped at",
+    m.practice.stoppedAt.reduce((n, x) => n + x.count, 0) === m.practice.stopped, JSON.stringify(m.practice.stoppedAt));
+  const days = all.practice.history.map((d) => d.date);
+  ok("Aarav: 6 days in a row, up to yesterday", m.practice.streak.current === 6, `${JSON.stringify(m.practice.streak)} ${days}`);
+  ok("…and that is the longest", m.practice.streak.longest === 6, JSON.stringify(m.practice.streak));
+  ok("the streak does not depend on the period", JSON.stringify(all.practice.streak) === JSON.stringify(m.practice.streak));
+
+  ok("a resolved pair is not a pair this period, and had its chance",
+    m.mixups.resolved.every((r) => r.before > 0 && r.askedNow > 0 && !m.mixups.pairs.some((p) => p.a === r.a && p.b === r.b)),
+    JSON.stringify(m.mixups.resolved));
+  ok("All has no 'before'", all.mixups.resolved.length === 0);
+
+  const { history, play } = createPlayer("better-child", { idPrefix: "be77e700", metrics: true });
+  play({ letter: K, when: "2026-09-29T10:00:00Z", identify: [K, KH, K, KH, K], words: [K, K, K, K, K, K] });
+  play({ letter: K, when: "2026-10-06T10:00:00Z", identify: [K, K, K, K, K], words: [K, K, K, K, K, K] });
+  const better = buildReportModel({ rows: rowsOf(history), progress: [], displayName: "Better", source: "device" }, NOW, "week");
+  const r = better.mixups.resolved.find((x) => x.a === K && x.b === KH);
+  ok("क ↔ ख last week, none this week while क was practised: no longer mixed up",
+    r !== undefined && r.before === 2 && r.askedNow === 11, JSON.stringify(better.mixups.resolved));
+  ok("…and a two-day gap breaks the streak", better.practice.streak.current === 0 && better.practice.streak.longest === 1,
+    JSON.stringify(better.practice.streak));
 }
 
 console.log("\n-- nothing yet, or nothing to compare --");

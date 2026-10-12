@@ -4,6 +4,30 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-12 (later still) — the four sections deepened (`feat/report-v2`)
+
+* **Asked by the user at the B4 review:** the sections showed little beyond
+  their summary cards (Letters was nearly a copy); "the full sections should
+  be a lot more detailed". The user chose the additions from a list of four
+  per section — design §3, "Deepened"; the rest are listed there for later.
+* **Model:** `LetterEntry.mixedUpMost`; `letters.pages` (the roadmap's own
+  `pageAverage` / `pageOpen`) and `letters.checks` (`checksDue`);
+  `SkillEntry.mix`; `practice.stoppedAt` (the first undone step of the
+  session's own `buildStepOrder`) and `practice.streak`; `mixups.resolved`.
+  `reportModel.test.ts` 82 → 104 checks — among them a child whose check
+  comes due and then clears, and one whose क ↔ ख stops.
+* **Views:** Letters — letter by letter, roadmap pages, what the app will
+  check next; Skills — help needed by skill, letters × skills; Practice —
+  where they stopped, days in a row; Mix-ups — bars split by which way round,
+  no longer mixed up. Long cards break between rows on paper.
+* **Verified:** screenshots of the four sections for Aarav, Ishaan (month)
+  and Riya at three sizes — no errors, no overflow; fixed from them, letter
+  rows that wrapped mid-phrase on a phone and a one-session "trend" that was
+  a dot. The click-through is 31 checks; its scroll check never scrolled
+  before (the Letters page was too short) and now starts 552px down. PDFs:
+  week 7 pages, month 11.
+* **Tests:** 380 checks across 10 files.
+
 ## 2026-10-12 (late night) — B4, detail views and Download (`feat/report-v2`)
 
 * **Plan approved by the user.** Their choice: Letter and Pair cover the

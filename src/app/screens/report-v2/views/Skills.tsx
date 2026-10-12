@@ -1,17 +1,21 @@
-import type { ReportModel, SkillEntry } from "../model";
+import type { AnswerMix, ReportModel, SkillEntry, SkillId } from "../model";
 import { Delta } from "../charts/Delta";
 import { NumbersTable } from "../charts/NumbersTable";
 import { Sparkline } from "../charts/Sparkline";
 import { StackBar } from "../charts/StackBar";
 import { parseDay } from "../charts/days";
-import { GRID, INK, INK2, MIX } from "../charts/theme";
-import { Card, Hero, Muted, PERIOD_WORD, pct, useColumns, usePrinting, type View } from "./shared";
+import { HEAT, heatInk } from "../charts/heat";
+import { LETTER_SEQUENCE } from "../../../types/levelConfig";
+import { FONT_DEVANAGARI, GRID, INK, INK2, MIX, MUTED } from "../charts/theme";
+import { Card, Hero, Muted, PERIOD_WORD, pct, secsText, useColumns, usePrinting, type View } from "./shared";
 
 /**
  * Skills (design §3): right first time with how every answer went — right
  * first time, app helped, wrong — then one row per skill: its figure, its
  * change, and a small trend; a row opens the skill (B4). Matras are listed as
- * not measured, so their absence is visible rather than silent.
+ * not measured, so their absence is visible rather than silent. Deeper than
+ * the summary: where the app had to help, skill by skill, and every letter
+ * against every skill in one grid.
  */
 export function SkillsView({ model, onOpen }: { model: ReportModel; onOpen?: (view: View) => void }) {
   const { rightFirstTime: r, mix, series, entries } = model.skills;
@@ -68,9 +72,190 @@ export function SkillsView({ model, onOpen }: { model: ReportModel; onOpen?: (vi
           ))}
         </ul>
       </Card>
+      <HelpCard entries={entries} when={when} />
+      <LetterSkillGrid entries={entries} when={when} onOpen={onOpen} />
     </div>
   );
 }
+
+/** Where the app steps in: each answered skill's answers, right first time · helped · wrong. */
+function HelpCard({ entries, when }: { entries: SkillEntry[]; when: string }) {
+  const rows = entries.filter((e): e is SkillEntry & { mix: AnswerMix } => e.mix !== null && e.mix.total > 0);
+  return (
+    <Card title="Help needed, by skill">
+      {rows.length === 0 ? (
+        <Muted>No answers {when} yet.</Muted>
+      ) : (
+        <>
+          <ul className="t--1 flex flex-wrap gap-x-4 gap-y-1" style={{ color: INK2 }}>
+            {(["first", "helped", "wrong"] as const).map((k) => (
+              <li key={k} className="inline-flex items-center gap-1.5">
+                <span aria-hidden className="inline-block" style={{ width: 12, height: 12, borderRadius: 3, background: MIX[k] }} />
+                {k === "first" ? "right first time" : k === "helped" ? "app helped" : "wrong"}
+              </li>
+            ))}
+          </ul>
+          <ul className="flex flex-col gap-3">
+            {rows.map((e) => (
+              <li
+                key={e.id}
+                className="flex flex-col gap-1"
+                aria-label={`${e.label}: ${e.mix.first} right first time, ${e.mix.helped} helped, ${e.mix.wrong} wrong, of ${e.mix.total}`}
+              >
+                <div className="flex items-baseline justify-between gap-2" aria-hidden>
+                  <span className="t-0" style={{ color: INK }}>
+                    {e.label}
+                  </span>
+                  <span className="t--1 tabular-nums" style={{ color: INK2 }}>
+                    <span className="font-semibold" style={{ color: INK }}>
+                      {e.mix.helped}
+                    </span>{" "}
+                    helped ·{" "}
+                    <span className="font-semibold" style={{ color: INK }}>
+                      {e.mix.wrong}
+                    </span>{" "}
+                    wrong · of {e.mix.total}
+                  </span>
+                </div>
+                <span className="flex w-full overflow-hidden rounded" style={{ height: 12, gap: 2 }} aria-hidden>
+                  {(["first", "helped", "wrong"] as const)
+                    .filter((k) => e.mix[k] > 0)
+                    .map((k) => (
+                      <span key={k} style={{ width: `${(e.mix[k] / e.mix.total) * 100}%`, minWidth: 3, background: MIX[k] }} />
+                    ))}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <Muted>Look-alike letters are part of Listen &amp; tap, so they are inside its bar as well.</Muted>
+        </>
+      )}
+    </Card>
+  );
+}
+
+const GRID_SKILLS: { id: SkillId; head: string }[] = [
+  { id: "sound", head: "Sound" },
+  { id: "lookalike", head: "Look-alike" },
+  { id: "words", head: "Words" },
+  { id: "writing", head: "Writing" },
+  { id: "speed", head: "Speed" },
+];
+/** Lower bounds of the four shades, in percent. */
+const BANDS = [0, 50, 70, 90];
+const BAND_WORDS = ["under 50%", "50–69%", "70–89%", "90%+"];
+const shadeOf = (v: number) => BANDS.reduce((level, from, i) => (v >= from ? i : level), 0);
+
+/**
+ * Every letter of the period against every skill: one table, each percentage
+ * shaded on the accent's ramp (darker is better) with the figure written in
+ * it, so the shade never carries it alone. Speed is seconds, unshaded.
+ */
+function LetterSkillGrid({
+  entries,
+  when,
+  onOpen,
+}: {
+  entries: SkillEntry[];
+  when: string;
+  onOpen?: (view: View) => void;
+}) {
+  const open = !!onOpen && !usePrinting();
+  const skills = GRID_SKILLS.map((g) => ({ ...g, entry: entries.find((e) => e.id === g.id)! }));
+  const sorted = [...new Set(skills.flatMap((s) => s.entry.byLetter.map((l) => l.letter)))].sort(
+    (a, b) => indexOf(a) - indexOf(b),
+  );
+  return (
+    <Card title="Letters × skills" className="md:col-span-2">
+      {sorted.length === 0 ? (
+        <Muted>No letters practised {when} yet.</Muted>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="t--1 w-full tabular-nums" style={{ borderCollapse: "separate", borderSpacing: 3, color: INK }}>
+              <caption className="sr-only">Each letter practised {when}, against each skill</caption>
+              <thead>
+                <tr>
+                  <th scope="col" className="text-left font-semibold pb-1" style={{ color: INK2 }}>
+                    Letter
+                  </th>
+                  {skills.map((s) => (
+                    <th key={s.id} scope="col" className="font-semibold pb-1 text-center" style={{ color: INK2 }}>
+                      {s.head}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((l) => (
+                  <tr key={l}>
+                    <th scope="row" className="text-left font-normal">
+                      {open ? (
+                        <button
+                          onClick={() => onOpen!(`letter:${l}`)}
+                          aria-label={`${l}: open`}
+                          className="t-1 inline-flex items-center gap-1"
+                          style={{ minHeight: "var(--tap-min)", fontFamily: FONT_DEVANAGARI, color: INK }}
+                        >
+                          {l}
+                          <span aria-hidden className="t-0" style={{ color: INK2 }}>
+                            ›
+                          </span>
+                        </button>
+                      ) : (
+                        <span className="t-1" style={{ fontFamily: FONT_DEVANAGARI }}>
+                          {l}
+                        </span>
+                      )}
+                    </th>
+                    {skills.map((s) => {
+                      const v = s.entry.byLetter.find((x) => x.letter === l);
+                      if (!v) {
+                        return (
+                          <td key={s.id} className="text-center rounded" style={{ color: MUTED, height: 36 }}>
+                            —
+                          </td>
+                        );
+                      }
+                      if (s.id === "speed") {
+                        return (
+                          <td key={s.id} className="text-center rounded" style={{ height: 36, boxShadow: `inset 0 0 0 1px ${GRID}` }}>
+                            {secsText(v.value)}
+                          </td>
+                        );
+                      }
+                      const level = shadeOf(v.value);
+                      return (
+                        <td
+                          key={s.id}
+                          className="text-center rounded font-semibold"
+                          style={{ height: 36, background: HEAT[level], color: heatInk(level + 1) }}
+                        >
+                          {pct(v.value)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="t--1 flex flex-wrap items-center gap-x-3 gap-y-1" style={{ color: INK2 }}>
+            {HEAT.map((c, i) => (
+              <span key={c} className="inline-flex items-center gap-1">
+                <span aria-hidden className="inline-block" style={{ width: 12, height: 12, borderRadius: 3, background: c }} />
+                {BAND_WORDS[i]}
+              </span>
+            ))}
+            <span>right first time (writing: tracing score) · speed in seconds</span>
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
+const indexOf = (l: string) => (LETTER_SEQUENCE as readonly string[]).indexOf(l);
 
 function SkillRow({
   entry: e,

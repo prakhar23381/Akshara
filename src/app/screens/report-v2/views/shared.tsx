@@ -95,11 +95,14 @@ export function Card({
   children,
   className = "",
   onOpen,
+  breakable = false,
 }: {
   title: string;
   children: ReactNode;
   className?: string;
   onOpen?: () => void;
+  /** A long list on paper: break between its rows rather than move the whole card to a new page. */
+  breakable?: boolean;
 }) {
   const printing = usePrinting();
   const heading = (
@@ -109,7 +112,7 @@ export function Card({
   );
   return (
     <section
-      className={`rounded-2xl bg-white p-4 flex flex-col gap-3 min-w-0 print:break-inside-avoid ${className}`}
+      className={`rounded-2xl bg-white p-4 flex flex-col gap-3 min-w-0 ${breakable ? "" : "print:break-inside-avoid"} ${className}`}
       style={{ boxShadow: `inset 0 0 0 1px ${GRID}` }}
     >
       {onOpen && !printing ? (

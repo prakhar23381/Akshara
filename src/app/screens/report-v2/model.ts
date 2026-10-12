@@ -2,9 +2,12 @@ import type { ReportSources } from "../../api/client";
 import { rowToSession } from "../../lib/sessionStore";
 import { errorBand } from "../../lib/reportBands";
 import { diagnose } from "../../lib/adaptiveEngine";
-import { letterStatuses } from "../../lib/letterStatus";
+import {
+  checksDue, letterStatuses, pageAverage, pageLetters, pageOpen, TOTAL_PAGES,
+  type DueCheck, type LetterStatus as EngineStatus,
+} from "../../lib/letterStatus";
 import { LETTER_SEQUENCE, type QuestionAttempt } from "../../types/levelConfig";
-import type { ActivityType, LearningSession } from "../../types/session";
+import { buildStepOrder, type ActivityType, type LearningSession } from "../../types/session";
 
 /**
  * Every figure the new parent report shows, computed in one place.
@@ -82,6 +85,20 @@ export interface LetterEntry {
   lastPractised: string | null;
   /** Every session on this letter up to now, oldest first. */
   history: LetterSessionPoint[];
+  /** The letter it is mixed up with most, either way round, over everything. */
+  mixedUpMost: { letter: string; count: number } | null;
+}
+
+/** A page of the child's roadmap: ten letters, opened by the page before it. */
+export interface RoadmapPage {
+  /** 0-based, as the roadmap counts. */
+  page: number;
+  letters: string[];
+  /** The roadmap's own figure: each letter's points (learned 100, …), averaged. */
+  average: number;
+  open: boolean;
+  learned: number;
+  started: number;
 }
 
 export type SkillId = "sound" | "lookalike" | "words" | "writing" | "speed" | "matras";
@@ -106,6 +123,8 @@ export interface SkillEntry {
   series: Point[];
   /** Answers (or tracing scores) behind the value, this period. */
   n: number;
+  /** How the answers went — null for writing, speed and matras, which are not answers. */
+  mix: AnswerMix | null;
   /**
    * This period, letter by letter, in alphabet order — the letter asked for
    * (the session's letter, for writing). Letters with nothing to show are left out.
@@ -201,6 +220,9 @@ export interface ReportModel {
     learned: Measure;
     learnedInPeriod: string[];
     counts: Record<LetterStatus, number>;
+    pages: RoadmapPage[];
+    /** Learned letters due a check question (E3), the most often mistaken first. */
+    checks: DueCheck[];
   };
   skills: {
     rightFirstTime: Measure;
@@ -223,11 +245,20 @@ export interface ReportModel {
     finished: number;
     stopped: number;
     inProgress: number;
+    /** For the sessions stopped early: the first planned step left undone, most first. */
+    stoppedAt: { step: ActivityType; count: number }[];
+    /** Days in a row with practice: up to today (or yesterday, if not yet today), and the most ever. */
+    streak: { current: number; longest: number };
     list: SessionRow[];
   };
   mixups: {
     total: Measure;
     pairs: MixupPair[];
+    /**
+     * Pairs mixed up before this period and not in it, although at least one
+     * of the two letters was asked for in it. Empty for "all".
+     */
+    resolved: { a: string; b: string; before: number; askedNow: number }[];
     /** Listen & tap only: the same task, with only the distractors differing. */
     shape: {
       lookalike: { wrong: number; answers: number };
@@ -370,9 +401,23 @@ function statusFrom(rft: number | null): LetterStatus {
   return s === "secure" ? "learning" : s;
 }
 
-function letterEntries(sessions: LearningSession[], progress: any[], now: Date): LetterEntry[] {
+function letterEntries(
+  sessions: LearningSession[],
+  progress: any[],
+  now: Date,
+  statuses: Record<string, EngineStatus> = letterStatuses(sessions, progress),
+): LetterEntry[] {
   const before = sessions.filter((s) => Date.parse(s.started_at) < now.getTime());
-  const statuses = letterStatuses(before, progress);
+  const wrong = before.flatMap(answersOf).filter((a) => kindOf(a) === "wrong");
+  const mixedUpMost = (letter: string) => {
+    const counts = new Map<string, number>();
+    wrong.forEach((a) => {
+      const other = a.target_letter === letter ? a.selected_letter : a.selected_letter === letter ? a.target_letter : null;
+      if (other !== null) counts.set(other, (counts.get(other) ?? 0) + 1);
+    });
+    const top = [...counts.entries()].sort((x, y) => y[1] - x[1] || ORDER(x[0]) - ORDER(y[0]))[0];
+    return top ? { letter: top[0], count: top[1] } : null;
+  };
   return LETTER_SEQUENCE.map((letter) => {
     const own = before.filter((s) => s.letter === letter);
     const prog = progress.find((p) => p.letter === letter);
@@ -418,8 +463,38 @@ function letterEntries(sessions: LearningSession[], progress: any[], now: Date):
       sessions: own.length || prog?.sessions_count || 0,
       lastPractised: own[own.length - 1]?.started_at ?? null,
       history,
+      mixedUpMost: mixedUpMost(letter),
     };
   });
+}
+
+// ── Practice: where a session stopped, and days in a row ──────────────────────
+
+/** The first step of the session's own plan that it did not finish. */
+function stoppedAtOf(s: LearningSession): ActivityType | null {
+  const done = (t: ActivityType) => !!s.activities.find((a) => a.type === t)?.completed_at;
+  return buildStepOrder(s.level_config).find((t) => !done(t)) ?? null;
+}
+
+function streaksOf(days: string[], today: Date): { current: number; longest: number } {
+  const set = new Set(days);
+  let longest = 0;
+  let run = 0;
+  let prev: Date | null = null;
+  [...set].sort().forEach((key) => {
+    const [y, m, d] = key.split("-").map(Number);
+    const day = new Date(y, m - 1, d);
+    run = prev && localDate(addDays(prev, 1)) === key ? run + 1 : 1;
+    longest = Math.max(longest, run);
+    prev = day;
+  });
+  let current = 0;
+  let d = set.has(localDate(today)) ? atMidnight(today) : addDays(atMidnight(today), -1);
+  while (set.has(localDate(d))) {
+    current++;
+    d = addDays(d, -1);
+  }
+  return { current, longest };
 }
 
 // ── Mix-ups ──────────────────────────────────────────────────────────────────
@@ -484,7 +559,7 @@ export function letterDetail(src: ReportSources, now: Date, letter: string): Let
   const sessions = sessionsOf(src, now);
   const entry: LetterEntry = letterEntries(sessions, src.progress, now).find((e) => e.letter === letter) ?? {
     letter, status: "not_started", learned: false, learnedAt: null, latestRightFirstTime: null,
-    sessions: 0, lastPractised: null, history: [],
+    sessions: 0, lastPractised: null, history: [], mixedUpMost: null,
   };
   const answers = sessions.flatMap(answersOf);
   const own = answers.filter((a) => a.target_letter === letter);
@@ -561,7 +636,19 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
   const buckets = bucketsFor(range, current, firstRecord);
 
   // ── Letters
-  const entries = letterEntries(sessions, src.progress, now);
+  const statuses = letterStatuses(sessions, src.progress);
+  const entries = letterEntries(sessions, src.progress, now, statuses);
+  const pages: RoadmapPage[] = Array.from({ length: TOTAL_PAGES }, (_, page) => {
+    const letters = pageLetters(page);
+    return {
+      page,
+      letters,
+      average: Math.round(pageAverage(page, statuses)),
+      open: pageOpen(page, statuses),
+      learned: letters.filter((l) => statuses[l]?.mastered).length,
+      started: letters.filter((l) => entries.find((e) => e.letter === l)?.status !== "not_started").length,
+    };
+  });
   const learnedBy = (t: Date) =>
     entries.filter((e) => e.learned && (e.learnedAt === null || Date.parse(e.learnedAt) < t.getTime())).length;
   const counts: Record<LetterStatus, number> = { secure: 0, learning: 0, support: 0, not_started: 0 };
@@ -580,6 +667,7 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
       measure: measure(rightFirstTime(c), rightFirstTime(p), hasPrev),
       series: series(buckets, allAnswers.filter(pick), (a) => a.at, rightFirstTime),
       n: c.length,
+      mix: mixOf(c),
       byLetter: byLetter(c, (a) => a.target_letter, rightFirstTime),
     };
   };
@@ -596,6 +684,7 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
       measure: measure(scores(tracing(cur)), scores(tracing(prev)), hasPrev),
       series: series(buckets, tracing(sessions), (t) => t.at, scores),
       n: tracing(cur).length,
+      mix: null,
       byLetter: byLetter(tracing(cur), (t) => t.letter, scores),
     },
     {
@@ -603,11 +692,12 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
       measure: measure(medianSecs(curAnswers), medianSecs(prevAnswers), hasPrev),
       series: series(buckets, allAnswers, (a) => a.at, medianSecs),
       n: firstTime(curAnswers).length,
+      mix: null,
       byLetter: byLetter(firstTime(curAnswers), (a) => a.target_letter, medianSecs),
     },
     {
       id: "matras", label: "Matras", unit: "%", lowerIsBetter: false, measured: false,
-      measure: { value: null, previous: null, change: null }, series: [], n: 0, byLetter: [],
+      measure: { value: null, previous: null, change: null }, series: [], n: 0, mix: null, byLetter: [],
     },
   ];
 
@@ -652,6 +742,16 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
       };
     })
     .sort((x, y) => y.count - x.count || ORDER(x.a) - ORDER(y.a));
+  const resolved = current.from
+    ? [...earlierPairs.entries()]
+        .filter(([key]) => !nowPairs.has(key))
+        .map(([, e]) => ({
+          a: e.a, b: e.b, before: e.aChoseB + e.bChoseA,
+          askedNow: curAnswers.filter((x) => x.target_letter === e.a || x.target_letter === e.b).length,
+        }))
+        .filter((r) => r.askedNow > 0)
+        .sort((x, y) => y.before - x.before || ORDER(x.a) - ORDER(y.a))
+    : [];
   const identify = curAnswers.filter((a) => a.activity === "identify");
   const split = (list: Answer[]) => ({ wrong: list.filter((a) => kindOf(a) === "wrong").length, answers: list.length });
 
@@ -684,6 +784,8 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
         .filter((e) => e.learned && e.learnedAt !== null && inPeriod(e.learnedAt, current))
         .map((e) => e.letter),
       counts,
+      pages,
+      checks: checksDue(statuses),
     },
     skills: {
       rightFirstTime: measure(rightFirstTime(curAnswers), rightFirstTime(prevAnswers), hasPrev),
@@ -701,6 +803,15 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
       finished: cur.filter((s) => s.status === "completed").length,
       stopped: cur.filter((s) => s.status === "abandoned").length,
       inProgress: cur.filter((s) => s.status === "in_progress").length,
+      stoppedAt: [...cur
+        .filter((s) => s.status === "abandoned")
+        .map(stoppedAtOf)
+        .filter((t): t is ActivityType => t !== null)
+        .reduce((m, t) => m.set(t, (m.get(t) ?? 0) + 1), new Map<ActivityType, number>())
+        .entries()]
+        .map(([step, count]) => ({ step, count }))
+        .sort((x, y) => y.count - x.count),
+      streak: streaksOf(history.map((d) => d.date), now),
       list: [...cur].reverse().map((s) => {
         const answers = answersOf(s);
         return {
@@ -712,6 +823,7 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
     mixups: {
       total: measure(wrongNow.length, wrongBefore.length, previous !== null),
       pairs,
+      resolved,
       shape: {
         lookalike: split(identify.filter((a) => a.module_type !== "dissimilar")),
         different: split(identify.filter((a) => a.module_type === "dissimilar")),

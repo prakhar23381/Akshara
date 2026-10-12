@@ -320,5 +320,5 @@ Screenshots of every scenario at every size, against the dev server:
 ## Tests
 
 `tests/*.test.ts`, run by `scripts/run-tests.mjs` via `npm run test` (which runs
-`tsc --noEmit` first), one RESULT line per file: 358 checks across 10 files
+`tsc --noEmit` first), one RESULT line per file: 380 checks across 10 files
 (2026-10-12, on `feat/report-v2`).

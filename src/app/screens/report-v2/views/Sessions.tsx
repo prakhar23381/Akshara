@@ -16,7 +16,7 @@ export function SessionsView({ model }: { model: ReportModel }) {
   const { list, minutes } = model.practice;
   const when = PERIOD_WORD[model.range];
   return (
-    <Card title={`${list.length} session${list.length === 1 ? "" : "s"} ${when}`}>
+    <Card title={`${list.length} session${list.length === 1 ? "" : "s"} ${when}`} breakable>
       {list.length === 0 ? (
         <Muted>No sessions {when}.</Muted>
       ) : (

@@ -129,6 +129,31 @@ or different shape?" stays; the Matras row stays, "not measured yet", until
 W6 measures matras; All shows no "Learned this …" letters, because the grid
 already marks every learned one.
 
+**Deepened (user, 2026-10-12, at the B4 review).** A section showed little
+beyond its summary card; the user asked for sections "a lot more detailed"
+and chose what each adds:
+
+* **Letters:** *Letter by letter* — every letter played, weakest first, with
+  its status, last right first time, sessions, last practised, the letter it
+  is mixed up with most and a small trend; each opens the letter. *Roadmap
+  pages* — the four pages as the child sees them: the roadmap's own score, a
+  mark at 75%, open or not. *What the app will check next* — learned letters
+  due a check question (E3), and why.
+* **Skills:** *Help needed, by skill* — right first time · app helped · wrong
+  for each answered skill. *Letters × skills* — every letter of the period
+  against sound, look-alike, words, writing and speed, each percentage shaded
+  under 50 / 50–69 / 70–89 / 90+ with its figure written in it.
+* **Practice:** *Where they stopped* — for sessions stopped early, the step
+  each stopped at. *Days in a row* — now and the longest.
+* **Mix-ups:** each pair's bar split by which way round; *No longer mixed up*
+  — pairs from before the period that did not happen in it, although their
+  letters were asked for.
+
+Not chosen, for later if wanted: when each letter was learned (a timeline),
+the weakest letter named on each skill row, hesitation (hover time and changes
+of mind), time of day and session length, the latest sessions inline, mix-ups
+over time, the letters most involved.
+
 
 ## 4. Detail views
 
@@ -195,6 +220,14 @@ stay charts you read (B2).
 | Letter status | **● learned** is the engine's mastery (`letterStatuses`), nothing else. A letter not learned takes its latest session with answers, at the engine's own lines read on right-first-time: **70% or more** learning ◐, **below 70%** needs support ▲; not started ○. (Until 2026-10-12, ● was "above 90%", which could show ● on a letter the engine had not mastered; the user chose ● = learned.) |
 | Letters learned | The engine's mastery, judged from the answers with today's rules (`letterStatuses`, E2 + E3) — not the label saved when the session ended |
 | Practise next | The top mix-up this period if it happened twice or more; otherwise the letter practised this period with the lowest right-first-time among those needing support; otherwise nothing |
+| Mixed up most with | The letter a letter is mixed up with most, either way round, over everything |
+| Roadmap pages | The roadmap's own rule (`lib/letterStatus.ts`): a letter scores 100 learned, 60 while it mixes up look-alikes, 25 while it mixes up different shapes, 0 with too few answers; a page's figure is the average; a page opens when the one before averages 75%, or once the child has played on it |
+| Check next | A learned letter chosen by mistake twice since (E3); the next session on another letter asks for it once |
+| Help needed | Per answered skill, the answers this period by kind: right first time, app helped, wrong. Look-alike answers are inside Listen & tap's too |
+| Letters × skills | Each skill's figure for one letter this period (the letter asked for; for writing, the session's letter). Shaded on the practice heat ramp, darker is better; speed unshaded |
+| Where they stopped | For a session stopped early, the first step of its own plan (`buildStepOrder`) it did not finish |
+| Days in a row | Consecutive local dates with a session, up to today — or up to yesterday while today has none — and the longest run ever. The same in every period |
+| No longer mixed up | A pair mixed up before the period, not in it, and at least one of its letters asked for in it — so its absence was a chance taken, not a letter left alone. None for All |
 
 **Periods — user-chosen.** Calendar periods in the device's time zone: a week
 runs from **Monday**, a month from the **1st**, each up to now. Changes compare

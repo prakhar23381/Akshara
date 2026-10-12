@@ -1,5 +1,5 @@
 import type { MixupPair } from "../model";
-import { ACCENT, FONT_DEVANAGARI, INK, INK2 } from "./theme";
+import { ACCENT, FONT_DEVANAGARI, INK, INK2, MIX, SURFACE } from "./theme";
 
 /**
  * Mix-ups as bars: the pair, a bar as long as the times it happened, the
@@ -7,13 +7,17 @@ import { ACCENT, FONT_DEVANAGARI, INK, INK2 } from "./theme";
  * "fewer" is read off the bar rather than written out; ✦ marks a pair never
  * seen before. The key below explains both, and only the pairs shown — the
  * section lists them all. One grid, so every bar starts at the same x. With
- * `onSelect` each row is a 44px button into the pair's view.
+ * `onSelect` each row is a 44px button into the pair's view. With `split`
+ * (the section) each bar is in two parts, which way round: the left letter
+ * asked for and the right one chosen, then the other way — two steps of the
+ * accent's ramp with a 2px gap, named in the key.
  */
 export function BarList({
   pairs,
   compare,
   previousLabel,
   onSelect,
+  split = false,
 }: {
   pairs: MixupPair[];
   /** False for "all", which has nothing to compare with. */
@@ -21,6 +25,7 @@ export function BarList({
   /** "same days last week" */
   previousLabel: string;
   onSelect?: (a: string, b: string) => void;
+  split?: boolean;
 }) {
   const prevOf = (p: MixupPair) => (compare && !p.isNew ? p.previous ?? 0 : 0);
   const max = Math.max(1, ...pairs.map((p) => Math.max(p.count, prevOf(p))));
@@ -38,17 +43,27 @@ export function BarList({
           const prev = prevOf(p);
           const said = `${p.a} and ${p.b}: mixed up ${p.count} times${
             p.isNew && compare ? ", for the first time" : compare && p.previous !== null ? `, ${p.previous} the ${previousLabel}` : ""
-          }`;
+          }${split ? `; ${p.aChoseB} asked for ${p.a}, ${p.bChoseA} asked for ${p.b}` : ""}`;
           const cells = (
             <>
               <span className="t-1 whitespace-nowrap" style={{ color: INK, fontFamily: FONT_DEVANAGARI }} aria-hidden>
                 {p.a} ↔ {p.b}
               </span>
               <span className="relative block" style={{ height: 22 }} aria-hidden>
-                <span
-                  className="absolute left-0"
-                  style={{ top: 5, height: 12, width: at(p.count), minWidth: 4, background: ACCENT, borderRadius: "0 4px 4px 0" }}
-                />
+                {split ? (
+                  <span
+                    className="absolute left-0 flex overflow-hidden"
+                    style={{ top: 5, height: 12, width: at(p.count), minWidth: 4, gap: 2, background: SURFACE, borderRadius: "0 4px 4px 0" }}
+                  >
+                    {p.aChoseB > 0 && <span style={{ flex: p.aChoseB, background: MIX.first }} />}
+                    {p.bChoseA > 0 && <span style={{ flex: p.bChoseA, background: MIX.wrong }} />}
+                  </span>
+                ) : (
+                  <span
+                    className="absolute left-0"
+                    style={{ top: 5, height: 12, width: at(p.count), minWidth: 4, background: ACCENT, borderRadius: "0 4px 4px 0" }}
+                  />
+                )}
                 {prev > 0 && (
                   <span
                     className="absolute"
@@ -82,12 +97,25 @@ export function BarList({
           );
         })}
       </ul>
-      {(ticks || fresh) && (
+      {(ticks || fresh || split) && (
         <div className="t--1 flex flex-wrap items-center gap-x-4 gap-y-1" style={{ color: INK2 }}>
-          <span className="inline-flex items-center gap-1">
-            <span aria-hidden className="inline-block" style={{ width: 14, height: 8, background: ACCENT, borderRadius: "0 3px 3px 0" }} />
-            now
-          </span>
+          {split ? (
+            <>
+              <span className="inline-flex items-center gap-1">
+                <span aria-hidden className="inline-block" style={{ width: 14, height: 8, background: MIX.first, borderRadius: 2 }} />
+                asked for the left letter
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span aria-hidden className="inline-block" style={{ width: 14, height: 8, background: MIX.wrong, borderRadius: 2 }} />
+                asked for the right one
+              </span>
+            </>
+          ) : (
+            <span className="inline-flex items-center gap-1">
+              <span aria-hidden className="inline-block" style={{ width: 14, height: 8, background: ACCENT, borderRadius: "0 3px 3px 0" }} />
+              now
+            </span>
+          )}
           {ticks && (
             <span className="inline-flex items-center gap-1">
               <span aria-hidden className="inline-block" style={{ width: 2, height: 12, background: INK }} />
