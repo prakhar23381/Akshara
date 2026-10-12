@@ -32,7 +32,24 @@ current state and recovery context in
   a reload, a bad address, Download); the report's screenshots at three
   sizes, no overflow, no errors but the expected favicon 404. 382 checks
   across 10 test files. Bundle: CSS 37.7 KB (production's 38.3 KB — W4a's
-  classes left with it), JS +56 KB (+17 KB gzipped).
+  classes left with it), JS +56 KB (+17 KB gzipped). The exact commit was
+  also tested and built in a clean worktree: the same 382 checks, the same
+  files byte for byte.
+* **Released:** `main` 79e93f1 → **0f727b8**, a fast-forward (14 commits: the
+  lab and B1–B5). Pushed to `main` and `feat/report-v2` in one command, both
+  Vercel deployments failed before building — "Git information retrieval
+  failed" — and production stayed on `79e93f1`; the user spotted it in the
+  dashboard. `vercel redeploy <failed production url> --target production`
+  cloned `main` at `0f727b8` and built `index-BKjcQ_cj.js` /
+  `index-rHpd6o3a.css` — the files the flow test had passed on — Ready in
+  31 s, aliased to akshara-tau (`akshara-3cjgujwb3`).
+* **Not checked live:** the page itself. Vercel's Security Checkpoint now
+  challenges this machine — most likely its own polling while waiting for
+  the deploy (72 requests, 5 s apart) — and refuses headless browsers
+  ("Code 21"). **User, on production: V8.** Rollback: promote
+  `akshara-n3aic9chh` (`79e93f1`).
+* `feat/report-v2` is the same commit as `main` and can be deleted; the
+  working copy is on `main`.
 
 ## 2026-10-12 (later still) — the four sections deepened (`feat/report-v2`)
 

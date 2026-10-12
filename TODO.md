@@ -169,7 +169,9 @@ commits are in `main` (table kept as a record):
       from a desktop's). For a signed-in child the footer must not say "saved
       on this device only" (also V6). Early in a week the Week view is nearly
       empty — by the calendar-week choice; say if that should change. If it
-      is wrong: Vercel → Deployments → promote the `79e93f1` deployment.
+      is wrong: Vercel → Deployments → promote `akshara-n3aic9chh`
+      (`79e93f1`). If the site shows a "Security Checkpoint" page first, it
+      should pass by itself in a real browser (see `STATUS_LOG.md`, B5).
 - [ ] **W4b · Teacher class report.** After the parent report (W4). Three
       tabs, user-chosen: who needs help, the whole-class grid, class-wide
       patterns (detail left to the agent's design). Reuses the new report's
