@@ -4,6 +4,19 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-12 (later) — the report work catches up with E2 and E3 (`feat/report-v2`)
+
+* **Merged `fix/e2-supplied-answers` into `feat/report-v2`.** The new report's
+  "letters learned" is the judged mastery (`letterStatuses`), and a letter's
+  answers are the questions that asked for it, so a check answer files under
+  the letter it asked for. Both branches pushed; `main` untouched.
+* **The lab's children answer check questions.** `fixtures/play.ts` makes the
+  fifth Listen & tap answer the planned check, keeping the script's
+  right / wrong / supplied for it (wrong taps the letter it is mistaken for).
+  In the scenarios: Aarav 1 check (passed), Ishaan 1, Riya none (no
+  masteries left to check), the class 34 in 639 sessions, 5 missed.
+* 330 checks across 10 files.
+
 ## 2026-10-12 — E2 and E3: supplied answers, judged statuses, mix-ups (`fix/e2-supplied-answers`)
 
 Branched from `feat/w5b-accounts` (`aedb5c6`), so it ships after W5b and

@@ -151,10 +151,6 @@ instruction. The branches below are merged; kept for reference only:
       [docs/10_REPORT_DESIGN.md](docs/10_REPORT_DESIGN.md)** — wireframes,
       every figure's definition, the build steps. The lab (W4-L), the design
       (W4-P) and the data model (B1) are done — `STATUS_LOG.md`.
-  - [ ] **Lab fixtures play the E3 check question.** `src/lab/fixtures/play.ts`
-        ignores `levelConfig.check`, so the lab's children never answer one,
-        though production sessions will. When a check is planned, the last
-        Listen & tap answer should ask for that letter. Before B2's review.
   - [ ] **B2 · Summary and period switch, in the lab.** `ParentReport` on
         `buildReportModel`; validate the right/helped/wrong blues with the
         dataviz script first. **Stop for the user's review in the lab.**

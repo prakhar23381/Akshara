@@ -88,6 +88,22 @@ export function createPlayer(uid: string, opts: PlayerOptions = {}) {
     const module: ModuleType = levelConfig.distractor_similarity === "low" ? "dissimilar" : "similar";
     const ms = script.ms ?? 4200;
     const idAttempts = attempts(letter, identify, module, ms);
+
+    // A planned check question (E3) is the last Listen & tap question, as in
+    // the app. The script's fifth answer says how it went — right, wrong or
+    // supplied — so scenarios keep their shape: right taps the check letter,
+    // wrong taps the letter it is mistaken for, supplied stays supplied.
+    const check = levelConfig.check;
+    if (check && idAttempts.length >= 5) {
+      const pick = identify[4];
+      const mistaken = check.confused[0] ?? letter;
+      idAttempts[4] = {
+        ...idAttempts[4],
+        target_letter: check.letter,
+        selected_letter: pick === SUPPLIED || pick === letter ? check.letter : mistaken,
+        module_type: "similar",
+      };
+    }
     const wordAttempts = attempts(letter, words, "similar", ms + 1000);
 
     const t0 = Date.parse(when);

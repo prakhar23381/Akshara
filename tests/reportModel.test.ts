@@ -118,12 +118,10 @@ console.log("\n-- E3: a check answer counts for the letter it asked for --");
   play({ letter: K, when: "2026-10-05T10:00:00Z", identify: [K, K, K, K, K], words: [K, K, K, K, K, K] });
   // Two taps of क in place of ख: क is due a check.
   play({ letter: KH, when: "2026-10-06T10:00:00Z", identify: [KH, K, KH, KH, KH], words: [KH, KH, K, KH, KH, KH] });
-  const last = play({ letter: KH, when: "2026-10-08T10:00:00Z", identify: [KH, KH, KH, KH, KH], words: [KH, KH, KH, KH, KH, KH] });
-  const identify = last.activities.find((a) => a.type === "identify")!;
-  if (identify.outcome?.kind === "questions") {
-    // The check question, asked for क and answered ख.
-    identify.outcome.attempts.push({ ...identify.outcome.attempts[0], target_letter: K, selected_letter: KH });
-  }
+  // The planner makes the fifth Listen & tap question a check on क; the
+  // script's wrong fifth answer means the child tapped ख for it.
+  const last = play({ letter: KH, when: "2026-10-08T10:00:00Z", identify: [KH, KH, KH, KH, "थ"], words: [KH, KH, KH, KH, KH, KH] });
+  ok("the fixture plays the planned check", last.level_config.check?.letter === K, JSON.stringify(last.level_config.check));
   const m = buildReportModel({ rows: rowsOf(history), progress: [], displayName: "Check", source: "device" }, NOW, "all");
   const k = m.letters.entries.find((e) => e.letter === K)!;
   const kh = m.letters.entries.find((e) => e.letter === KH)!;
