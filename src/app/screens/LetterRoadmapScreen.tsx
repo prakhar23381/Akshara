@@ -3,21 +3,20 @@ import { useNavigate } from "react-router";
 import { useLevelConfig } from "../hooks/useLevelConfig";
 import { useSession } from "../contexts/SessionContext";
 import { useAccount } from "../contexts/AccountContext";
-import { supabase } from "../lib/supabase";
 import { LETTER_SEQUENCE } from "../types/levelConfig";
 import { prepareSessionConfig } from "../api/client";
+import { loadLetterStatuses } from "../lib/learnerProfile";
+import {
+  completionScore,
+  pageAverage,
+  pageOpen,
+  LETTERS_PER_PAGE,
+  TOTAL_PAGES,
+  type LetterStatus,
+} from "../lib/letterStatus";
 import { TopBar } from "../components/TopBar";
 import { Lock, Trophy, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
-
-interface ProgressData {
-  mastered: boolean;
-  last_cognitive_state: string;
-  sessions_count: number;
-}
-
-const LETTERS_PER_PAGE = 10;
-const TOTAL_PAGES = 4;
 
 export function LetterRoadmapScreen() {
   const navigate = useNavigate();
@@ -28,7 +27,9 @@ export function LetterRoadmapScreen() {
   const { setLevelConfig, jumpToLetterIndex, setLastAvgLatencyMs } = useLevelConfig();
   const { startSession } = useSession();
 
-  const [progressMap, setProgressMap] = useState<Record<string, ProgressData>>({});
+  const [statuses, setStatuses] = useState<Record<string, LetterStatus>>({});
+  // Saved session counts, which number the next session on a letter.
+  const [sessionsCount, setSessionsCount] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0); // 0, 1, 2, 3
   const [startingLetter, setStartingLetter] = useState<string | null>(null);
@@ -39,26 +40,15 @@ export function LetterRoadmapScreen() {
       return;
     }
 
+    // Each letter's status is judged from the child's answers on every load,
+    // not read from the label saved when the session ended (see letterStatus.ts).
     async function fetchProgress() {
       try {
-        const { data, error } = await supabase
-          .from("letter_progress")
-          .select("letter, mastered, last_cognitive_state, sessions_count")
-          .eq("user_id", userId);
-
-        if (error) {
-          console.error("[Roadmap] Failed to fetch progress:", error);
-        } else if (data) {
-          const mapping: Record<string, ProgressData> = {};
-          data.forEach((row) => {
-            mapping[row.letter] = {
-              mastered: row.mastered ?? false,
-              last_cognitive_state: row.last_cognitive_state ?? "insufficient_data",
-              sessions_count: row.sessions_count ?? 0,
-            };
-          });
-          setProgressMap(mapping);
-        }
+        const { statuses, saved } = await loadLetterStatuses(userId);
+        setStatuses(statuses);
+        setSessionsCount(
+          Object.fromEntries(saved.map((row) => [row.letter, row.sessions_count ?? 0])),
+        );
       } catch (e) {
         console.error("[Roadmap] Error:", e);
       } finally {
@@ -70,42 +60,14 @@ export function LetterRoadmapScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  // Compute completion score from last cognitive state
-  const getCompletionScore = (letter: string): number => {
-    const prog = progressMap[letter];
-    if (!prog) return 0;
-    if (prog.mastered || prog.last_cognitive_state === "visual_mastery") return 100;
-    if (prog.last_cognitive_state === "feature_neglect") return 60;
-    if (prog.last_cognitive_state === "gross_shape_blindness") return 25;
-    return 0; // insufficient_data or default
-  };
+  const getCompletionScore = (letter: string): number => completionScore(statuses[letter]);
 
-  // Determine if a page is unlocked (requires previous page average progress to be >= 75%)
-  const isPageUnlocked = (pageIndex: number): boolean => {
-    if (pageIndex === 0) return true; // Page 1 is always unlocked
+  // The previous page averaging 75% opens a page — and a page the child has
+  // already played on stays open, so a corrected mastery never takes it away.
+  const isPageUnlocked = (pageIndex: number): boolean => pageOpen(pageIndex, statuses);
 
-    // Get previous page letters
-    const prevPageLetters = LETTER_SEQUENCE.slice(
-      (pageIndex - 1) * LETTERS_PER_PAGE,
-      pageIndex * LETTERS_PER_PAGE
-    );
-
-    // Calculate average progress
-    const totalScore = prevPageLetters.reduce((sum, letter) => sum + getCompletionScore(letter), 0);
-    const avgScore = totalScore / prevPageLetters.length;
-
-    return avgScore >= 75; // 75% average completion score to unlock the next page
-  };
-
-  // Calculate current page average completion score
-  const getPageAverageScore = (pageIndex: number): number => {
-    const pageLetters = LETTER_SEQUENCE.slice(
-      pageIndex * LETTERS_PER_PAGE,
-      Math.min((pageIndex + 1) * LETTERS_PER_PAGE, LETTER_SEQUENCE.length)
-    );
-    const totalScore = pageLetters.reduce((sum, letter) => sum + getCompletionScore(letter), 0);
-    return Math.round(totalScore / pageLetters.length);
-  };
+  const getPageAverageScore = (pageIndex: number): number =>
+    Math.round(pageAverage(pageIndex, statuses));
 
   const handleNextPage = () => {
     if (currentPage < TOTAL_PAGES - 1 && isPageUnlocked(currentPage + 1)) {
@@ -136,7 +98,7 @@ export function LetterRoadmapScreen() {
       setLevelConfig(levelConfig);
       setLastAvgLatencyMs(levelConfig.hesitation_trigger_stage1_ms - 8000 || 6000);
 
-      const prior = progressMap[letter]?.sessions_count ?? 0;
+      const prior = sessionsCount[letter] ?? 0;
       startSession({
         userId,
         letter,

@@ -222,6 +222,25 @@ ok("a database-only session reaches the session list", (fromDb.sessions ?? []).s
 ok("and is ordered by time among device sessions", fromDb.sessions?.[0]?.session_id === "s-remote", fromDb.sessions?.[0]?.session_id);
 ok("the report records its source", fromDb.data_source === "database+device");
 
+console.log("\n-- mastery is judged from the answers (E2) --");
+{
+  // Saved as mastered when a supplied answer still counted as right.
+  const supplied = [...Array(7)].map(() => attempt("ख", "ख")).concat([...Array(4)].map(() => attempt("ख", "ख", true)));
+  const flattered = session({
+    session_id: "s-flattered",
+    letter: "ख",
+    cognitive_state: "visual_mastery",
+    activities: [{ type: "identify", started_at: "", completed_at: "t", outcome: { kind: "questions", attempts: supplied } }],
+  });
+  const savedRow = { user_id: "child-1", letter: "ख", mastered: true, sessions_count: 1, last_cognitive_state: "visual_mastery" };
+  const judged = buildProgressReport({ rows: [{ ...flattered, schema_version: 2 }], progress: [savedRow], displayName: "Aarav", source: "device" });
+  ok("a saved 'mastered' is not taken on trust", judged.letter_stats["ख"]?.mastered === false);
+  ok("the count follows", judged.letters_mastered === 0, String(judged.letters_mastered));
+  ok("and the state is the judged one", judged.letter_stats["ख"]?.last_cognitive_state === "feature_neglect");
+  const legacy = buildProgressReport({ rows: [], progress: [savedRow], displayName: "Aarav", source: "device" });
+  ok("a letter with no saved answers keeps its saved label", legacy.letter_stats["ख"]?.mastered === true);
+}
+
 console.log(`\nRESULT ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
 }

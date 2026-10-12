@@ -23,7 +23,7 @@ export function AdultHomeScreen() {
 
   useEffect(() => {
     let live = true;
-    masteredCounts(uid, children.map((c) => c.id))
+    masteredCounts(children.map((c) => c.id))
       .then((m) => live && setMastered(m))
       .catch(() => {});
     return () => {

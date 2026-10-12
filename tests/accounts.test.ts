@@ -88,7 +88,7 @@ async function main() {
     { user_id: kids[0].id, letter: "ग", mastered: false },
     { user_id: "someone-else", letter: "क", mastered: true },
   ]));
-  const counts = await masteredCounts(A, [kids[0].id]);
+  const counts = await masteredCounts([kids[0].id]);
   ok("letters mastered are counted per child", counts[kids[0].id] === 2, JSON.stringify(counts));
 
   console.log("\n-- a guest who played before accounts existed --");

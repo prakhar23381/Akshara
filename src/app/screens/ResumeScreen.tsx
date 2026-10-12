@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { AksharaButton } from "../components/AksharaButton";
 import { useLevelConfig } from "../hooks/useLevelConfig";
 import { useAccount } from "../contexts/AccountContext";
-import { supabase } from "../lib/supabase";
+import { loadLetterStatuses } from "../lib/learnerProfile";
 import { LETTER_SEQUENCE } from "../types/levelConfig";
 
 /**
@@ -23,31 +23,34 @@ export function ResumeScreen() {
   const [progressLoaded, setProgressLoaded] = useState(false);
   const childId = activeChild?.id;
 
-  // Where this child is up to: the furthest letter they have reached.
+  // Where this child is up to: the furthest letter they have finished a
+  // session on — the next one if they have mastered it. Mastery is judged from
+  // their answers, not read from the saved label (see letterStatus.ts).
   useEffect(() => {
     if (!childId) return;
     let live = true;
-    supabase
-      .from("letter_progress")
-      .select("letter_index, mastered, last_avg_latency_ms")
-      .eq("user_id", childId)
-      .order("letter_index", { ascending: false })
-      .limit(1)
-      .single()
-      .then(({ data }) => {
+    loadLetterStatuses(childId)
+      .then(({ statuses, saved }) => {
         if (!live) return;
-        if (data) {
-          const { letter_index, mastered, last_avg_latency_ms } = data as {
-            letter_index: number;
-            mastered: boolean;
-            last_avg_latency_ms: number | null;
-          };
-          jumpToLetterIndex(mastered ? Math.min(letter_index + 1, LETTER_SEQUENCE.length - 1) : letter_index);
-          setLastAvgLatencyMs(last_avg_latency_ms ?? 6000);
+        const reached = LETTER_SEQUENCE.reduce(
+          (furthest, letter, i) => (statuses[letter]?.judged ? i : furthest),
+          -1,
+        );
+        if (reached >= 0) {
+          const letter = LETTER_SEQUENCE[reached];
+          jumpToLetterIndex(
+            statuses[letter].mastered ? Math.min(reached + 1, LETTER_SEQUENCE.length - 1) : reached,
+          );
+          setLastAvgLatencyMs(saved.find((r) => r.letter === letter)?.last_avg_latency_ms ?? 6000);
         } else {
           jumpToLetterIndex(0);
         }
-        setProgressLoaded(true);
+      })
+      .catch(() => {
+        if (live) jumpToLetterIndex(0);
+      })
+      .finally(() => {
+        if (live) setProgressLoaded(true);
       });
     return () => {
       live = false;

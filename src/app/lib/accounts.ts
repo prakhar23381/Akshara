@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from "./supabase";
-import { readsDatabase } from "./learnerProfile";
+import { loadLetterStatuses, readsDatabase } from "./learnerProfile";
 
 /**
  * Adults and the children they look after (W5b).
@@ -48,7 +48,6 @@ const K = {
   children: "akshara_db_children",
   guardians: "akshara_db_child_guardians",
   sessions: "akshara_db_learning_sessions",
-  progress: "akshara_db_letter_progress",
   activeChild: (uid: string) => `akshara_active_child:${uid}`,
   unlocked: (uid: string) => `akshara_adult_unlocked:${uid}`,
 };
@@ -215,24 +214,20 @@ export async function archiveChild(uid: string, childId: string): Promise<void> 
   if (error) throw new Error(error.message);
 }
 
-/** Letters mastered per child, for the cards on the adult home. */
-export async function masteredCounts(uid: string, childIds: string[]): Promise<Record<string, number>> {
-  const out: Record<string, number> = Object.fromEntries(childIds.map((id) => [id, 0]));
-  if (childIds.length === 0) return out;
-  let rows: any[] = [];
-  if (isGuest(uid)) {
-    rows = read<any[]>(K.progress, []);
-  } else {
-    const { data } = await supabase
-      .from("letter_progress")
-      .select("user_id, mastered")
-      .in("user_id", childIds);
-    rows = data ?? [];
-  }
-  rows.forEach((r) => {
-    if (r.mastered && r.user_id in out) out[r.user_id] += 1;
-  });
-  return out;
+/**
+ * Letters mastered per child, for the cards on the adult home. Judged from
+ * each child's answers, as the roadmap does, rather than counted from saved
+ * `letter_progress` labels (see letterStatus.ts). One history read per child:
+ * fine for a family; a class view will want something cheaper (W4b/W5c).
+ */
+export async function masteredCounts(childIds: string[]): Promise<Record<string, number>> {
+  const counts = await Promise.all(
+    childIds.map(async (id) => {
+      const { statuses } = await loadLetterStatuses(id);
+      return [id, Object.values(statuses).filter((st) => st.mastered).length] as const;
+    }),
+  );
+  return Object.fromEntries(counts);
 }
 
 // ── Which child is playing on this device, and whether the adult area is open ─

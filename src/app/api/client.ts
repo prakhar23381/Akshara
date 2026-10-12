@@ -9,6 +9,7 @@ import { supabase } from "../lib/supabase";
 import { queueOfflineSession, syncOfflineSessions } from "../lib/offline_sync";
 import { analyzeLocally, planSession } from "../lib/adaptiveEngine";
 import { loadAllSessions, loadRowsFor, rowToSession } from "../lib/sessionStore";
+import { letterStatuses } from "../lib/letterStatus";
 import {
   loadLearnerProfile,
   normaliseRow,
@@ -289,8 +290,16 @@ export function buildProgressReport(src: ReportSources): ProgressReport {
   const { progress, displayName } = src;
   const sessions = src.rows;
 
+  // Mastery is judged from the answers with today's rules, not read from the
+  // saved `letter_progress` label (see letterStatus.ts). Legacy v1 rows carry
+  // no answers, so a letter with only those keeps its saved label.
+  const statuses = letterStatuses(
+    sessions.map(rowToSession).filter((s): s is NonNullable<typeof s> => s !== null),
+    progress,
+  );
+
   const totalSessions = sessions.length;
-  const lettersMastered = progress.filter((p: any) => p.mastered).length;
+  const lettersMastered = Object.values(statuses).filter((st) => st.mastered).length;
 
   const emptyBreakdown = (): ModuleBreakdown => ({
     attempts: 0,
@@ -390,11 +399,10 @@ export function buildProgressReport(src: ReportSources): ProgressReport {
 
     letterStats[letter] = {
       sessions_count: letterSessions.length || letterProg?.sessions_count || 0,
-      mastered: letterProg?.mastered ?? false,
-      last_cognitive_state:
-        letterProg?.last_cognitive_state ??
-        letterSessions[letterSessions.length - 1]?.cognitive_state ??
-        "insufficient_data",
+      mastered: statuses[letter]?.mastered ?? false,
+      last_cognitive_state: statuses[letter]?.judged
+        ? statuses[letter].state
+        : (letterSessions[letterSessions.length - 1]?.cognitive_state ?? "insufficient_data"),
       avg_error_rate_pct: avgError,
       trend,
       confused_with: confusedWith,
