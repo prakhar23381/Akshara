@@ -22,8 +22,9 @@ src/
     ├── contexts/       Auth · ProfileSetup · Session
     ├── data/           letterContent.ts · letterPaths.ts
     ├── hooks/          useLetterAudio · useLevelConfig
-    ├── lib/            adaptiveEngine · sessionStore · sessionMetrics · supabase
-    │                   offline_sync · devOverflowCheck
+    ├── lib/            adaptiveEngine · learnerProfile · letterStatus · accounts
+    │                   sessionStore · sessionMetrics · supabase · offline_sync
+    │                   akshara · reportBands · devOverflowCheck
     ├── screens/        12 screens + play/
     │   └── play/       PlayScreen · PlayLayout · StepDots · types · steps/
     ├── types/          levelConfig.ts · session.ts
@@ -122,8 +123,21 @@ Keys: `akshara_db_learning_sessions`, `akshara_active_session_id`.
 ### `lib/adaptiveEngine.ts` (429 lines)
 The adaptive engine, on the device, mirroring the Python agents:
 `diagnose()`, `carryForward()`, `analyzeLocally()`, `overallErrorRate()`,
-`DISTRACTOR_POOLS`, `FEATURE_BY_LETTER`, `NEW_LETTER_STATE_CAP`.
+`DISTRACTOR_POOLS`, `FEATURE_BY_LETTER`, `NEW_LETTER_STATE_CAP`, `isMiss()`
+(wrong **or** supplied — E2) and `ownAttempts()`. `planSession()` sets
+`LevelConfig.check` when a mastered letter is due a check question (E3).
 `tests/engine.test.ts` pins it to `backend/tests/test_pipeline.py`.
+
+### `lib/letterStatus.ts`
+Pure. `letterStatuses(sessions, saved)` judges every letter's status from the
+saved answers with today's rules, on every read — the saved labels are not
+trusted (E2). It also applies E3: a mastered letter picked by mistake twice is
+due a check (`checksDue()`); the check's first answer keeps or removes mastery.
+The roadmap rules live here too: `completionScore`, `pageAverage`, `pageOpen`
+(a page the child has played on stays open). Loaded through
+`learnerProfile.loadLetterStatuses(childId)` by the roadmap, resume screen and
+adult home, and called directly by `buildProgressReport`.
+`tests/letterStatus.test.ts`.
 
 ### `lib/sessionMetrics.ts` (114 lines)
 `computeSessionMetrics()` → `SessionMetrics` / `ModuleBreakdown`. Computed when a

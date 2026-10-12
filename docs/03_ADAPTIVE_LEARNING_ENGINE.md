@@ -123,6 +123,23 @@ ERROR_THRESHOLD_FAIL    = 0.30   # >30% → struggling
 ERROR_THRESHOLD_MASTERY = 0.10   # <10% → mastered
 ```
 
+### What counts as an error: a *miss* (E2, 2026-10-12)
+An "error" is a **miss**: a wrong pick, **or an answer the app supplied** (the
+hesitation ladder's rescue, or the forced win after two wrong taps). A supplied
+answer is stored with `selected_letter = target_letter`, so comparing the two
+letters alone used to score it as right — and a child rescued on most hard
+questions could be diagnosed VISUAL_MASTERY, advance and unlock pages.
+`isMiss()` (`lib/adaptiveEngine.ts`) and `QuestionAttempt.is_miss`
+(`backend/IP/models/session.py`) are the one rule, used for every rate the
+diagnosis and the scaffold read.
+
+In practice, with ~11 questions a session, mastery needs about 10 answered by
+the child on their own: one supplied answer in 14 is still mastery (7%), four
+are not (29%).
+
+A session is judged **only on questions about its own letter**: the check
+question on another letter (below) is evidence about that letter, not this one.
+
 ### Decision Tree
 ```
 session received
@@ -151,10 +168,56 @@ This is a critical implementation detail. When a child practises on the SCAFFOLD
 
 ```python
 def error_rate_for_module(self, module: ModuleType) -> Optional[float]:
+    own = self.own_attempts            # questions about this session's letter
     if module == ModuleType.SIMILAR:
-        relevant = [a for a in self.attempts
+        relevant = [a for a in own
                     if a.module_type in (ModuleType.SIMILAR, ModuleType.SCAFFOLD)]
+    ...
+    return sum(1 for a in relevant if a.is_miss) / len(relevant)
 ```
+
+---
+
+## Letter status: judged from the answers, on every read
+
+A letter's status — still learning or mastered, and its roadmap points — is
+**worked out again from the child's saved answers whenever it is shown**
+(`lib/letterStatus.ts`, `letterStatuses()`), with today's rules. The labels
+saved when a session ended (`learning_sessions.cognitive_state`,
+`letter_progress.mastered`) are no longer trusted: they were written under the
+rule of the day, so after E2 every flattered "mastered" would have stayed until
+the letter was replayed. Nothing saved is rewritten. A letter with no saved
+answers — only a `letter_progress` row from before the session model — keeps
+its saved label.
+
+Readers: the roadmap, the resume screen, the adult home's "letters mastered",
+the W4a report and My letters, and the learner profile the planner uses.
+
+**A page the child has played on stays open.** The roadmap opens a page when the
+page before averages 75% (mastered 100, feature neglect 60, gross shape 25).
+Because statuses are judged afresh, a corrected mastery could otherwise close a
+page the child is in the middle of.
+
+### A mix-up counts for both letters (E3, 2026-10-12)
+Tapping क when asked for ब says the child's idea of क is too loose — and a
+question that only ever asks for क cannot catch that. Mix-ups already put each
+letter among the other's distractors (the learner profile counts them both
+ways). Mastery handles them like this — a middle ground between ignoring them
+and taking mastery away on a single tap:
+
+1. A **mastered** letter tapped, unaided, in place of another letter
+   `CHECK_AFTER_PICKS` (2) times since it was last judged is **due a check**.
+2. The next session, on any other letter, asks for it once: the **last of the
+   five Listen & tap questions** plays that letter, with the letters it was
+   mistaken for among the options (`LevelConfig.check`, set by
+   `planSession`). To the child it is an ordinary question.
+3. Its **first answer decides**. Right: still mastered, and the mix-ups are
+   settled. Wrong, or supplied: back to FEATURE_NEGLECT ("still learning",
+   60 roadmap points). The child's next session on that letter judges it
+   afresh, so one good session earns it back.
+
+A mix-up alone never takes mastery away; only a missed check does — the same
+kind of evidence (asked for the letter, got it wrong) that grants mastery.
 
 ---
 
@@ -373,6 +436,10 @@ If the child gets the same question wrong twice in a row, the system immediately
 
 **Dyslexia rationale:**
 Research consistently shows that repeated failure experiences are the primary driver of reading anxiety and avoidance behaviour in dyslexic children (Riddick, 2010). The forced-win mechanism ensures every child exits every session on a correct answer, maintaining positive associations with the learning task. The child may not have answered correctly on their own, but they hear the celebratory sound and see the green card — positive reinforcement regardless of guided status.
+
+**The celebration is for the child; the diagnosis is not fooled by it.** A
+guided win is recorded with `was_guided_win: true` and counts as a **miss** in
+every rate the engine reads (E2, above).
 
 ### Audio Slow Mode
 After the first incorrect attempt, `audioSlowMode` is set to `true`, which would trigger 0.8× speed audio playback (when audio is fully implemented). Slower speech rate aids phonological processing for children with auditory processing difficulties common in dyslexia.

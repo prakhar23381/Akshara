@@ -16,35 +16,6 @@ the line. P1–P6, L1–L8, C1–C5 and cleanup phases C0–C6 are all in the lo
 
 ---
 
-## PRIORITY — very important
-
-- [ ] **E2 · A supplied answer counts as a RIGHT answer — in the engine and
-      the report.** Found 2026-10-11 by the report lab's struggling-child
-      scenario: "mastered" on 2 of 3 letters while the app supplied 29% of
-      her answers.
-      * **Cause.** When the hesitation ladder answers for a stalled child, the
-        attempt is stored with `selected_letter = target` (plus
-        `was_guided_win: true`). `overallErrorRate()` and `diagnose()` in
-        `lib/adaptiveEngine.ts` count only `target ≠ selected` as wrong, so a
-        supplied answer is never an error.
-      * **Effect — it touches every child.** A child rescued on every hard
-        question can be diagnosed `visual_mastery`, which advances them,
-        unlocks the next roadmap page, and shows the letter as mastered. The
-        W4a report's "% wrong", its colours and "letters mastered" are all
-        flattered the same way. Only "correct without help" (`true_wins`)
-        excludes supplied answers today.
-      * **Decide (needs a plan, it changes the engine for everyone):** count
-        supplied answers as errors; drop them from the rate; or require a
-        minimum unaided share for mastery. The backend diagnosis has the same
-        rule (`backend/IP/agents/diagnosis_agent.py:119`) and must change with
-        it. Mastery scores 100 toward the roadmap's 75% page unlock
-        (`LetterRoadmapScreen.tsx:77`), so a flattered mastery also unlocks
-        pages early.
-      * **Must be fixed before the new report ships** (W4 B5, user's
-        decision 2026-10-11). Until then the new report builds on "right
-        first time" and never charts "% wrong"; its "letters learned" is the
-        engine's mastery and stays flattered until this is fixed.
-
 ## Decisions found during the cleanup
 
 - [ ] **B1 · Two high-severity advisories, both pre-existing.**
@@ -180,6 +151,10 @@ instruction. The branches below are merged; kept for reference only:
       [docs/10_REPORT_DESIGN.md](docs/10_REPORT_DESIGN.md)** — wireframes,
       every figure's definition, the build steps. The lab (W4-L), the design
       (W4-P) and the data model (B1) are done — `STATUS_LOG.md`.
+  - [ ] **Lab fixtures play the E3 check question.** `src/lab/fixtures/play.ts`
+        ignores `levelConfig.check`, so the lab's children never answer one,
+        though production sessions will. When a check is planned, the last
+        Listen & tap answer should ask for that letter. Before B2's review.
   - [ ] **B2 · Summary and period switch, in the lab.** `ParentReport` on
         `buildReportModel`; validate the right/helped/wrong blues with the
         dataviz script first. **Stop for the user's review in the lab.**
@@ -187,7 +162,8 @@ instruction. The branches below are merged; kept for reference only:
         **User review.**
   - [ ] **B4 · Detail views** (letter, skill, pair, all sessions) **and
         Download.** **User review.**
-  - [ ] **B5 · Ship it.** Fix **E2 first**. Split `fetchReportSources()` out
+  - [ ] **B5 · Ship it.** E2 is fixed (`fix/e2-supplied-answers`, must be in
+        `main` first). Split `fetchReportSources()` out
         of `client.ts`; `/report` → the new report with view and period in
         the URL; extend `scripts/visual/flow.cjs`; retire W4a's
         `ReportScreen`. Ships after W5b.

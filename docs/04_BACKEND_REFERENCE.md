@@ -215,9 +215,10 @@ class SessionPayload:
 
 **Computed properties:**
 - `total_attempts` — `len(self.attempts)`
+- `own_attempts` — the attempts whose `target_letter` is this session's letter; a check question on another letter (E3) is excluded from every rate
 - `true_wins` — correct answers that were not guided
-- `error_rate` — `errors / total_attempts`
-- `error_rate_for_module(module)` — error rate for a specific module type. Note: SIMILAR includes SCAFFOLD attempts (critical for diagnosis to work)
+- `error_rate` — share of `own_attempts` that are misses (`QuestionAttempt.is_miss`: wrong **or** supplied — E2)
+- `error_rate_for_module(module)` — the same, for one module type. Note: SIMILAR includes SCAFFOLD attempts (critical for diagnosis to work)
 - `confused_pairs()` — list of (target, selected) tuples for wrong answers
 
 ### `LevelConfig`

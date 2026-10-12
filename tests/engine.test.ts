@@ -4,10 +4,11 @@
  * the server, so a divergence between the two shows up here rather than as a
  * child being handed the wrong level.
  *
- * The six diagnosis cases mirror backend/tests/test_pipeline.py one for one.
+ * The diagnosis cases mirror backend/tests/test_pipeline.py one for one.
  */
 import {
   diagnose,
+  isMiss,
   carryForward,
   analyzeLocally,
   NEW_LETTER_STATE_CAP,
@@ -103,6 +104,60 @@ console.log("\n-- scaffold counts towards similar, not dissimilar --");
 ok(
   "all-scaffold errors diagnose as feature_neglect",
   diagnose(many(5, () => at("scaffold", false, "ध")), "घ").state === "feature_neglect",
+);
+
+console.log("\n-- E2: an answer the app supplied is a miss (parity with the backend) --");
+// Stored with selected === target, so comparing letters alone scored it as
+// right: a child rescued on 4 of 14 questions "mastered" the letter.
+const supplied = (module: "dissimilar" | "similar" = "similar"): QuestionAttempt => ({
+  ...at(module, true),
+  time_to_interact_ms: 0,
+  was_guided_win: true,
+});
+ok("a supplied answer is a miss", isMiss(supplied()));
+ok("a wrong pick is a miss", isMiss(at("similar", false)));
+ok("an unaided right answer is not", !isMiss(at("similar", true)));
+ok(
+  "4 supplied answers in 14 are not mastery",
+  diagnose([...many(10, () => at("similar", true)), ...many(4, () => supplied())], "घ").state ===
+    "feature_neglect",
+);
+ok(
+  "1 supplied answer in 14 is still mastery (7% missed)",
+  diagnose([...many(13, () => at("similar", true)), supplied()], "घ").state === "visual_mastery",
+);
+ok(
+  "stalling on dissimilar keeps the child there",
+  diagnose([...many(6, () => at("dissimilar", true)), ...many(4, () => supplied("dissimilar"))], "घ")
+    .state === "gross_shape_blindness",
+);
+ok(
+  "the reasoning names supplied answers",
+  diagnose([...many(10, () => at("similar", true)), ...many(5, () => supplied())], "घ").reasoning.includes(
+    "supplied",
+  ),
+);
+ok(
+  "supplied answers raise the scaffold, as misses",
+  analyzeLocally(payload([...many(6, () => at("dissimilar", true)), ...many(4, () => supplied("dissimilar"))]))
+    .errorRatePct === 40,
+);
+
+console.log("\n-- E3: a check question on another letter is not evidence about this one --");
+const onK = (selected: string, guided = false): QuestionAttempt => ({
+  ...at("similar", true),
+  target_letter: "क",
+  selected_letter: selected,
+  was_guided_win: guided,
+});
+ok(
+  "wrong answers on a check of क do not count against घ",
+  diagnose([...many(12, () => at("similar", true)), onK("ब"), onK("ब"), onK("क", true)], "घ").state ===
+    "visual_mastery",
+);
+ok(
+  "nor do they reach the scaffold",
+  analyzeLocally(payload([...many(12, () => at("similar", true)), onK("ब")])).errorRatePct === 0,
 );
 
 console.log("\n-- carry-forward (was a server-side SELECT per level) --");

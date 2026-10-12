@@ -41,10 +41,11 @@ const attempt = (
   selected: string,
   ms = 4000,
   guided = false,
+  module: QuestionAttempt["module_type"] = "similar",
 ): QuestionAttempt => ({
   target_letter: target,
   selected_letter: selected,
-  module_type: "similar",
+  module_type: module,
   time_to_interact_ms: ms,
   was_guided_win: guided,
   hover_duration_ms: 0,
@@ -62,6 +63,9 @@ const config = (letter: string): LevelConfig => ({
     attempts: [],
   }).levelConfig,
 });
+
+/** A wrong pick against a different shape — what gross_shape_blindness is diagnosed from. */
+const shapeMiss = (target: string, selected: string) => attempt(target, selected, 4000, false, "dissimilar");
 
 let clock = Date.parse("2026-10-01T10:00:00Z");
 const session = (
@@ -136,7 +140,7 @@ console.log("-- profile --");
   );
 }
 {
-  const a = session("क", [attempt("क", "ख")], { state: "gross_shape_blindness" });
+  const a = session("क", [shapeMiss("क", "ख")], { state: "gross_shape_blindness" });
   const b = session("ख", [attempt("ख", "ख")], { state: "visual_mastery" });
   const p = buildLearnerProfile([a, b]);
   ok("state is tracked per letter", p.stateByLetter["क"] === "gross_shape_blindness");
@@ -154,6 +158,53 @@ console.log("-- profile --");
     session("म", [attempt("म", "म", 9000), attempt("म", "म", 11000), attempt("म", "भ", 10000)]),
   ]);
   ok("latency median is the child's own", p.latencyMedianMs === 10000, String(p.latencyMedianMs));
+}
+
+// ── judged from the answers, not the saved label (E2, option c) ─────────────
+console.log("\n-- judged from the answers, not the saved label --");
+{
+  // Saved as mastered under the old rule: 4 of 11 answers were supplied.
+  const flattered = session(
+    "ग",
+    [...Array(7)].map(() => attempt("ग", "ग")).concat([...Array(4)].map(() => attempt("ग", "ग", 0, true))),
+    { state: "visual_mastery" },
+  );
+  const p = buildLearnerProfile([flattered]);
+  ok("a saved 'mastered' is judged again from the answers", p.stateByLetter["ग"] === "feature_neglect", p.stateByLetter["ग"]);
+  ok("and so is the latest state", p.latestState === "feature_neglect", String(p.latestState));
+  ok(
+    "supplied answers count in the letter's error rate",
+    Math.abs((p.errorRateByLetter["ग"] ?? 0) - 4 / 11) < 1e-9,
+    String(p.errorRateByLetter["ग"]),
+  );
+}
+{
+  const p = buildLearnerProfile([], "device", [
+    { letter: "च", mastered: true, last_cognitive_state: "visual_mastery", sessions_count: 3 },
+  ]);
+  ok("a letter with only a saved row keeps its saved state", p.stateByLetter["च"] === "visual_mastery");
+}
+
+// ── mix-ups count for both letters (E3) ─────────────────────────────────────
+console.log("\n-- mix-ups count for both letters --");
+{
+  const all = (letter: string) => [...Array(10)].map(() => attempt(letter, letter));
+  const masterK = session("क", all("क"), { state: "visual_mastery" });
+  const once = session("ब", [attempt("ब", "क"), ...all("ब").slice(1)]);
+  ok("one mistaken pick of a mastered letter is not enough", buildLearnerProfile([masterK, once]).checks.length === 0);
+  const twice = session("ब", [attempt("ब", "क"), ...all("ब").slice(1)]);
+  const p = buildLearnerProfile([masterK, once, twice]);
+  ok("two make it due a check", p.checks[0]?.letter === "क", JSON.stringify(p.checks));
+  ok("naming the letter it was picked for", p.checks[0]?.pickedFor[0] === "ब");
+  ok("but it is still mastered until the check", p.stateByLetter["क"] === "visual_mastery");
+
+  const plan = planSession("c", "भ", p).levelConfig;
+  ok("the next session carries one check question for क", plan.check?.letter === "क", JSON.stringify(plan.check));
+  ok("with the letter it was mistaken for among its options", plan.check?.confused[0] === "ब" && plan.check.pool.includes("ब"));
+  ok("never offering क as its own distractor", !plan.check?.pool.includes("क"));
+  ok("and the reasoning says why", /checks क: mastered, but picked by mistake 2 times/.test(plan.reasoning), plan.reasoning);
+  ok("a session on क itself carries no check for क", planSession("c", "क", p).levelConfig.check === undefined);
+  ok("a child with nothing due gets no check", planSession("c", "भ", EMPTY_PROFILE).levelConfig.check === undefined);
 }
 
 // ── planning a session ──────────────────────────────────────────────────────
@@ -197,7 +248,7 @@ console.log("\n-- planning a session --");
 {
   // A low-similarity state, where every question is labelled "dissimilar".
   const p = buildLearnerProfile([
-    session("क", [attempt("क", "ख"), attempt("क", "फ"), attempt("क", "ट")], {
+    session("क", [shapeMiss("क", "ख"), shapeMiss("क", "फ"), shapeMiss("क", "ट")], {
       state: "gross_shape_blindness",
     }),
   ]);
@@ -210,7 +261,7 @@ console.log("\n-- planning a session --");
 }
 {
   const p = buildLearnerProfile([
-    session("क", [attempt("क", "ख")], { state: "gross_shape_blindness" }),
+    session("क", [shapeMiss("क", "ख")], { state: "gross_shape_blindness" }),
     session("ख", [attempt("ख", "ख")], { state: "visual_mastery" }),
   ]);
   ok(

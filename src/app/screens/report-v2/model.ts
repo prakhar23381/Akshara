@@ -1,6 +1,8 @@
 import type { ReportSources } from "../../api/client";
 import { rowToSession } from "../../lib/sessionStore";
 import { errorBand } from "../../lib/reportBands";
+import { diagnose } from "../../lib/adaptiveEngine";
+import { letterStatuses } from "../../lib/letterStatus";
 import { LETTER_SEQUENCE, type QuestionAttempt } from "../../types/levelConfig";
 import type { ActivityType, LearningSession } from "../../types/session";
 
@@ -12,8 +14,13 @@ import type { ActivityType, LearningSession } from "../../types/session";
  * docs/10_REPORT_DESIGN.md §5; the ones that are easy to get wrong:
  *
  *  - **Right first time** is the base figure: correct *without* the app's help
- *    over all answers. The engine's error rate counts an answer the app
- *    supplied as right (TODO E2), so this report never charts it.
+ *    over all answers. (The engine's error rate used to count an answer the app
+ *    supplied as right; since E2 it is a miss there too.)
+ *  - **"Learned" is the engine's mastery, judged from the answers** with
+ *    today's rules (`letterStatuses`), never the label saved when a session
+ *    ended — so a mastery lost to a missed check question (E3) is lost here too.
+ *  - **A letter's answers are the questions that asked for it**, including a
+ *    check question asked inside another letter's session.
  *  - **Periods are calendar periods in the device's time zone**, a week from
  *    Monday, a month from the 1st. Each is compared with the *same span* of
  *    the one before — Monday to Tuesday against last Monday to Tuesday — so a
@@ -301,28 +308,38 @@ function statusFrom(rft: number | null): LetterStatus {
 }
 
 function letterEntries(sessions: LearningSession[], progress: any[], now: Date): LetterEntry[] {
+  const before = sessions.filter((s) => Date.parse(s.started_at) < now.getTime());
+  const statuses = letterStatuses(before, progress);
   return LETTER_SEQUENCE.map((letter) => {
-    const own = sessions.filter((s) => s.letter === letter && Date.parse(s.started_at) < now.getTime());
+    const own = before.filter((s) => s.letter === letter);
     const prog = progress.find((p) => p.letter === letter);
-    const history = own.map((s) => {
-      const answers = answersOf(s);
-      return { at: s.started_at, rightFirstTime: rightFirstTime(answers), answers: answers.length };
-    });
+    const history = before
+      .map((s) => ({ s, answers: answersOf(s).filter((a) => a.target_letter === letter) }))
+      .filter(({ s, answers }) => s.letter === letter || answers.length > 0)
+      .map(({ s, answers }) => ({
+        at: s.started_at,
+        rightFirstTime: rightFirstTime(answers),
+        answers: answers.length,
+      }));
     const withAnswers = history.filter((h) => h.answers > 0);
     const latest = withAnswers[withAnswers.length - 1]?.rightFirstTime ?? null;
 
-    const completed = own.filter((s) => s.status === "completed" && s.cognitive_state);
-    const learned = prog ? !!prog.mastered : completed[completed.length - 1]?.cognitive_state === "visual_mastery";
-    // When the current run of mastery diagnoses began.
+    const learned = statuses[letter]?.mastered ?? false;
+    // When the current run of mastery began: the letter's own finished
+    // sessions, judged. Null for a letter known only from a saved row.
     let learnedAt: string | null = null;
     if (learned) {
-      for (let i = completed.length - 1; i >= 0 && completed[i].cognitive_state === "visual_mastery"; i--) {
+      const completed = own.filter((s) => s.status === "completed");
+      for (let i = completed.length - 1; i >= 0; i--) {
+        const { state } = diagnose(answersOf(completed[i]), letter);
+        if (state === "insufficient_data") continue;
+        if (state !== "visual_mastery") break;
         learnedAt = completed[i].started_at;
       }
     }
 
     const status: LetterStatus =
-      own.length > 0 ? statusFrom(latest) : prog ? (prog.mastered ? "secure" : "learning") : "not_started";
+      history.length > 0 ? statusFrom(latest) : prog ? (prog.mastered ? "secure" : "learning") : "not_started";
     return {
       letter,
       status,

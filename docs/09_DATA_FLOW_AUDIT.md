@@ -96,6 +96,13 @@ What could **not** be verified from here is that rows actually land. Every write
 - `fetchProgressReport(userId)` gathers one child's records: this device's, filtered to the child, plus, for a signed-in child, `learning_sessions`, `letter_progress` and their profile name from the database, merged by session id.
 - If the database can't be read, the report header says "saved on this device only".
 
+**E2 + E3 (`fix/e2-supplied-answers`, 2026-10-12):**
+
+- An answer the app supplied is a **miss** in every rate, in the app and the backend.
+- No reader trusts a saved status label any more. The roadmap, the resume screen, the adult home, the W4a report and the learner profile judge each letter from the saved answers (`lib/letterStatus.ts`). `letter_progress` is still written, but it is now only read for session numbering, the last response time, and letters with no saved answers.
+- A mastered letter the child keeps picking by mistake gets one check question; only a missed check takes mastery away.
+- The roadmap now reads `learning_sessions` as well (up to 1,000 per child) — cheap for a family, worth revisiting for a class view.
+
 ## Still open
 - **Write verification.** Inspect `{ error }` on each Supabase write and surface failures somewhere an adult can see them.
 - **Guest mirror.** Its writes always fail. Remove it, or give guests an anonymous Supabase identity.

@@ -49,6 +49,16 @@ class QuestionAttempt:
     hover_duration_ms: float = 0.0
     jitter_count: int = 0
 
+    @property
+    def is_miss(self) -> bool:
+        """
+        Not answered correctly by the child on their own: a wrong pick, or an
+        answer the hesitation ladder supplied. A supplied answer is stored with
+        selected_letter == target_letter, so comparing letters alone scored it
+        as right. Mirrors isMiss() in src/app/lib/adaptiveEngine.ts.
+        """
+        return self.was_guided_win or self.target_letter != self.selected_letter
+
 
 @dataclass
 class SessionPayload:
@@ -77,24 +87,34 @@ class SessionPayload:
                    if a.target_letter == a.selected_letter and not a.was_guided_win)
 
     @property
+    def own_attempts(self) -> list[QuestionAttempt]:
+        """
+        The questions about this session's letter. A session can also carry one
+        check question on a letter the child has already mastered; that answer
+        is evidence about the other letter, not this one.
+        """
+        return [a for a in self.attempts if a.target_letter == self.target_alphabet]
+
+    @property
     def error_rate(self) -> float:
-        if not self.attempts:
+        """Share of this letter's questions missed — wrong or supplied."""
+        own = self.own_attempts
+        if not own:
             return 0.0
-        errors = sum(1 for a in self.attempts if a.target_letter != a.selected_letter)
-        return errors / len(self.attempts)
+        return sum(1 for a in own if a.is_miss) / len(own)
 
     def error_rate_for_module(self, module: ModuleType) -> Optional[float]:
         # Scaffold uses high-similarity distractors with visual aid — count it as similar
         # so progression out of FEATURE_NEGLECT is possible without a pure "similar" session.
+        own = self.own_attempts
         if module == ModuleType.SIMILAR:
-            relevant = [a for a in self.attempts
+            relevant = [a for a in own
                         if a.module_type in (ModuleType.SIMILAR, ModuleType.SCAFFOLD)]
         else:
-            relevant = [a for a in self.attempts if a.module_type == module]
+            relevant = [a for a in own if a.module_type == module]
         if not relevant:
             return None
-        errors = sum(1 for a in relevant if a.target_letter != a.selected_letter)
-        return errors / len(relevant)
+        return sum(1 for a in relevant if a.is_miss) / len(relevant)
 
     def confused_pairs(self) -> list[tuple[str, str]]:
         """Returns (target, selected) pairs where student was wrong."""

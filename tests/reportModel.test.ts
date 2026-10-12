@@ -104,9 +104,34 @@ console.log("\n-- a supplied answer is not a right answer (TODO E2) --");
   const w4a = buildProgressReport(riya.sources).totals!;
   ok("and is below the current report's 'not wrong' share",
     m.skills.rightFirstTime.value! < 100 - (w4a.gross_shape.errors + w4a.feature_level.errors) * 100 / total);
-  ok("a letter the engine calls mastered can still need support here",
-    m.letters.entries.some((e) => e.learned && e.status !== "secure"),
+  // Before E2 the engine called 2 of her 3 letters mastered while the app
+  // supplied 29% of her answers; this check pinned that disagreement.
+  ok("since E2, the engine no longer calls her letters mastered",
+    !m.letters.entries.some((e) => e.learned),
     m.letters.entries.filter((e) => e.learned).map((e) => `${e.letter}:${e.status}:${e.latestRightFirstTime}`).join(" "));
+}
+
+console.log("\n-- E3: a check answer counts for the letter it asked for --");
+{
+  const K = "क", KH = "ख";
+  const { history, play } = createPlayer("check-child", { idPrefix: "c4ec0000", metrics: true });
+  play({ letter: K, when: "2026-10-05T10:00:00Z", identify: [K, K, K, K, K], words: [K, K, K, K, K, K] });
+  // Two taps of क in place of ख: क is due a check.
+  play({ letter: KH, when: "2026-10-06T10:00:00Z", identify: [KH, K, KH, KH, KH], words: [KH, KH, K, KH, KH, KH] });
+  const last = play({ letter: KH, when: "2026-10-08T10:00:00Z", identify: [KH, KH, KH, KH, KH], words: [KH, KH, KH, KH, KH, KH] });
+  const identify = last.activities.find((a) => a.type === "identify")!;
+  if (identify.outcome?.kind === "questions") {
+    // The check question, asked for क and answered ख.
+    identify.outcome.attempts.push({ ...identify.outcome.attempts[0], target_letter: K, selected_letter: KH });
+  }
+  const m = buildReportModel({ rows: rowsOf(history), progress: [], displayName: "Check", source: "device" }, NOW, "all");
+  const k = m.letters.entries.find((e) => e.letter === K)!;
+  const kh = m.letters.entries.find((e) => e.letter === KH)!;
+  ok("क was learned, and the missed check takes it away here too", !k.learned, JSON.stringify(k));
+  ok("क's latest answer is the check: 0% right first time", k.latestRightFirstTime === 0, String(k.latestRightFirstTime));
+  ok("…in ख's session, but filed under क", k.history.length === 2 && kh.history.length === 2, `${k.history.length} ${kh.history.length}`);
+  ok("ख's own figures leave the check out", kh.latestRightFirstTime === 100, String(kh.latestRightFirstTime));
+  ok("the mix-up is counted once, as क ↔ ख", m.mixups.pairs.some((p) => p.a === K && p.b === KH));
 }
 
 console.log("\n-- nothing yet, or nothing to compare --");

@@ -32,6 +32,14 @@ export interface LevelConfig {
   confused_letters?: string[];
   /** Whether the session includes the barakhadi (matra) step. */
   include_matras?: boolean;
+  /**
+   * One check question (TODO E3): a letter this child has mastered but has
+   * since picked by mistake, asked for once as the last Listen & tap question.
+   * Its answer is recorded against that letter, not this session's. `confused`
+   * are the letters it was picked in place of, always among the options.
+   * Absent when no check is due, and in configs from the backend.
+   */
+  check?: { letter: string; pool: string[]; confused: string[] };
 }
 
 export interface QuestionAttempt {

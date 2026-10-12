@@ -112,7 +112,7 @@ ONE LETTER                                 ONE MIX-UP PAIR
 
 | Figure | Definition (`model.ts`) |
 |---|---|
-| **Right first time** | Answers correct **without** the app's help ÷ all answers, across Listen & tap and both word games. The base figure everywhere. The engine's error rate is never charted, because it counts an answer the app supplied as right (TODO E2) |
+| **Right first time** | Answers correct **without** the app's help ÷ all answers, across Listen & tap and both word games. The base figure everywhere. The engine's error rate is not charted. (It used to count an answer the app supplied as right; since E2, 2026-10-12, it is a miss there too.) A letter's answers are the questions that asked for it — a check question (E3) asked inside another letter's session files under the letter it asked for |
 | App helped | Answers the app supplied (`was_guided_win`) ÷ all answers |
 | Mix-up | A wrong answer, counted per pair either way round (क ↔ ख, alphabet order). The pair view says which way |
 | Look-alike vs different shape | **Listen & tap only.** It is the one game where the distractors vary between look-alike and different-shape letters for the same task. The word games always offer look-alikes (correctly tagged `similar`) but are a harder task, so mixing them in would compare task difficulty, not shape vs detail |
@@ -120,7 +120,7 @@ ONE LETTER                                 ONE MIX-UP PAIR
 | Speed | Median time to answer, right-first-time answers only (a supplied answer is recorded with time 0) |
 | Writing | Mean tracing score; present only in sessions the planner sent to tracing |
 | Letter status | From the letter's latest session with answers, at the engine's own lines read on right-first-time: **above 90%** secure ●, **70–90%** learning ◐, **below 70%** needs support ▲; not started ○ |
-| Letters learned | The engine's mastery. Flattered by E2 until it is fixed — which must happen before B5 |
+| Letters learned | The engine's mastery, judged from the answers with today's rules (`letterStatuses`, E2 + E3) — not the label saved when the session ended |
 | Practise next | The top mix-up this period if it happened twice or more; otherwise the letter practised this period with the lowest right-first-time among those needing support; otherwise nothing |
 
 **Periods — user-chosen.** Calendar periods in the device's time zone: a week
@@ -163,4 +163,4 @@ src/app/screens/report-v2/
 | B2 | Summary and period switch, in the lab | user reviews in the lab |
 | B3 | The four sections | user reviews |
 | B4 | Detail views and Download | user reviews |
-| B5 | `fetchReportSources()` split out of `client.ts`; `/report` moves to the new report; flow test extended; W4a retired. **E2 fixed first** | ships after W5b |
+| B5 | `fetchReportSources()` split out of `client.ts`; `/report` moves to the new report; flow test extended; W4a retired. E2 fixed (2026-10-12) and in `main` first | ships after W5b |

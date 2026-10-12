@@ -7,6 +7,7 @@ import { useSession } from "../../../contexts/SessionContext";
 import { useLetterAudio } from "../../../hooks/useLetterAudio";
 import { FEATURE_HIGHLIGHT_POSITIONS } from "../../../types/levelConfig";
 import type { ModuleType } from "../../../types/levelConfig";
+import { FEATURE_BY_LETTER } from "../../../lib/adaptiveEngine";
 import {
   playSuccessSound,
   playErrorSound,
@@ -62,19 +63,35 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
   const markAudioEnd = useCallback(() => {
     answeredAt.current = performance.now();
   }, []);
-  const { play } = useLetterAudio(letter, slow, markAudioEnd);
 
+  // The last question can be a check (TODO E3): it asks for a letter this
+  // child has mastered but keeps picking by mistake, among the letters it was
+  // mistaken for. Its answer is recorded against that letter, so it never
+  // counts for or against this session's own.
+  const check =
+    levelConfig.check && levelConfig.check.letter !== letter ? levelConfig.check : null;
   const questions = useMemo(
     () =>
-      Array.from({ length: QUESTIONS }, () =>
-        makeOptions(letter, levelConfig.distractor_pool, levelConfig.confused_letters),
+      Array.from({ length: QUESTIONS }, (_, i) =>
+        check && i === QUESTIONS - 1
+          ? { target: check.letter, options: makeOptions(check.letter, check.pool, check.confused) }
+          : {
+              target: letter,
+              options: makeOptions(letter, levelConfig.distractor_pool, levelConfig.confused_letters),
+            },
       ),
-    [letter, levelConfig.distractor_pool, levelConfig.confused_letters],
+    [letter, levelConfig.distractor_pool, levelConfig.confused_letters, check],
   );
-  const options = questions[index] ?? [];
+  const target = questions[index]?.target ?? letter;
+  const options = questions[index]?.options ?? [];
+  const isCheck = target !== letter;
 
-  const moduleType: ModuleType =
-    levelConfig.distractor_similarity === "low"
+  const { play } = useLetterAudio(target, slow, markAudioEnd);
+
+  // A check question uses look-alike letters, whatever this session's stage.
+  const moduleType: ModuleType = isCheck
+    ? "similar"
+    : levelConfig.distractor_similarity === "low"
       ? "dissimilar"
       : levelConfig.visual_aid_intensity === "none"
         ? "similar"
@@ -107,7 +124,7 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
           ? Math.max(0, Math.round(performance.now() - answeredAt.current))
           : 0;
       recordAttempt("identify", {
-        target_letter: letter,
+        target_letter: target,
         selected_letter: selected,
         module_type: moduleType,
         time_to_interact_ms: guided ? 0 : latency,
@@ -117,7 +134,7 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
       });
       answeredAt.current = null;
     },
-    [letter, moduleType, recordAttempt],
+    [target, moduleType, recordAttempt],
   );
 
   // The hesitation ladder: dim, then pulse, then answer for the child so a
@@ -134,7 +151,7 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
     const t3 = setTimeout(() => {
       if (phaseRef.current !== "hint" || busy.current) return;
       busy.current = true;
-      log(letter, true);
+      log(target, true);
       setPhase("correct");
       playSuccessSound();
       setTimeout(advance, 1200);
@@ -144,7 +161,7 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
       clearTimeout(t2);
       clearTimeout(t3);
     };
-  }, [index, levelConfig, letter, log, advance]);
+  }, [index, levelConfig, target, log, advance]);
 
   function pick(option: string) {
     if (busy.current || phase === "correct" || phase === "wrong") return;
@@ -152,7 +169,7 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
     setChosen(option);
     log(option, false);
 
-    if (option === letter) {
+    if (option === target) {
       setPhase("correct");
       playSuccessSound();
       setTimeout(advance, 1200);
@@ -166,7 +183,7 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
 
     setTimeout(() => {
       if (next >= FAIL_FORCE) {
-        log(letter, true);
+        log(target, true);
         setPhase("correct");
         playSuccessSound();
         setTimeout(advance, 1200);
@@ -182,19 +199,20 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
   }
 
   const assessment = levelConfig.cognitive_state === "insufficient_data";
-  const proactive = !assessment && levelConfig.visual_aid_intensity === "animated";
+  // A check tests a letter the child has mastered: no dot until they hesitate.
+  const proactive =
+    !assessment && !isCheck && levelConfig.visual_aid_intensity === "animated";
   const hinting = phase === "hint" || phase === "hesitation";
   const showDot = !assessment && (proactive || hinting);
-  const feature = levelConfig.feature_to_highlight
-    ? FEATURE_HIGHLIGHT_POSITIONS[levelConfig.feature_to_highlight]
-    : null;
+  const featureKey = isCheck ? FEATURE_BY_LETTER[target] : levelConfig.feature_to_highlight;
+  const feature = featureKey ? FEATURE_HIGHLIGHT_POSITIONS[featureKey] : null;
 
   function stateOf(option: string) {
-    if (phase === "correct" && option === letter) return "correct";
+    if (phase === "correct" && option === target) return "correct";
     if (phase === "wrong" && option === chosen) return "wrong";
-    if (phase === "hint" && option === letter) return "hint";
-    if (phase === "hesitation" && option !== letter) return "dimmed";
-    if (fails >= FAIL_FORCE && option !== letter) return "dimmed";
+    if (phase === "hint" && option === target) return "hint";
+    if (phase === "hesitation" && option !== target) return "dimmed";
+    if (fails >= FAIL_FORCE && option !== target) return "dimmed";
     return "default";
   }
 
@@ -241,7 +259,7 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
                 the dot must be centred on that point — previously it was
                 positioned by its top-left corner, which put it off by half its
                 own size plus the card padding. */}
-            {option === letter && feature && showDot && (
+            {option === target && feature && showDot && (
               <span
                 aria-hidden
                 className="absolute rounded-full bg-amber-400 pointer-events-none"
