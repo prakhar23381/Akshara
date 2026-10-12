@@ -4,7 +4,7 @@
  * number that looks wrong in the lab can be traced here. Dates are read in
  * India's time zone, where the app's children are.
  */
-import { buildReportModel, periodsFor, localDate, type Range } from "../src/app/screens/report-v2/model";
+import { buildReportModel, letterDetail, pairDetail, periodsFor, localDate, type Range } from "../src/app/screens/report-v2/model";
 import { buildProgressReport, type ReportSources } from "../src/app/api/client";
 import { buildScenario, LAB_TODAY, type LabChild } from "../src/lab/fixtures/scenarios";
 import { createPlayer, rowsOf, SUPPLIED } from "../src/lab/fixtures/play";
@@ -27,6 +27,7 @@ const ok = (name: string, cond: boolean, extra = "") => {
 const NOW = new Date(LAB_TODAY); // Sunday 11 Oct 2026, 17:30 in India
 const pad = (n: number) => String(n).padStart(2, "0");
 const local = (d: Date | null) => (d ? `${localDate(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}` : "null");
+const LETTERS_PLAYED = (src: ReportSources) => [...new Set(src.rows.map((r: any) => r.letter as string))];
 const parent = (id: string): LabChild => {
   const sc = buildScenario(id);
   if (sc.kind !== "parent") throw new Error(id);
@@ -151,8 +152,75 @@ console.log("\n-- E3: a check answer counts for the letter it asked for --");
   ok("क was learned, and the missed check takes it away here too", !k.learned, JSON.stringify(k));
   ok("क's latest answer is the check: 0% right first time", k.latestRightFirstTime === 0, String(k.latestRightFirstTime));
   ok("…in ख's session, but filed under क", k.history.length === 2 && kh.history.length === 2, `${k.history.length} ${kh.history.length}`);
+  ok("…and says whose session it was", k.history[1].sessionLetter === KH && k.history[0].sessionLetter === K);
   ok("ख's own figures leave the check out", kh.latestRightFirstTime === 100, String(kh.latestRightFirstTime));
   ok("the mix-up is counted once, as क ↔ ख", m.mixups.pairs.some((p) => p.a === K && p.b === KH));
+}
+
+console.log("\n-- detail views: a letter and a pair, whole history (B4) --");
+{
+  const K = "क", KH = "ख";
+  const src = aarav.sources;
+  const all = buildReportModel(src, NOW, "all");
+  const pair = all.mixups.pairs.find((p) => p.a === K && p.b === KH)!;
+  const k = letterDetail(src, NOW, K);
+  const withKh = k.mixedUpWith.find((m) => m.letter === KH)!;
+  ok("क's top mix-up is ख", k.mixedUpWith[0]?.letter === KH, JSON.stringify(k.mixedUpWith));
+  ok("…as many times as the pair, over everything", withKh.count === pair.count, `${withKh.count} vs ${pair.count}`);
+  ok("…and the same way round: क asked, ख chosen", withKh.askedThis === pair.aChoseB && withKh.askedOther === pair.bChoseA);
+  ok("its answers are its history's answers",
+    k.mix.total === k.entry.history.reduce((n, h) => n + h.answers, 0), `${k.mix.total}`);
+  ok("its entry is the model's entry", JSON.stringify(k.entry) === JSON.stringify(all.letters.entries.find((e) => e.letter === K)));
+  ok("speed is measured", k.speed !== null && k.speed > 0, `${k.speed}`);
+  let traced = 0;
+  const wrongWriting: string[] = [];
+  ["week", "month", "first", "struggling"].forEach((id) => {
+    const kid = parent(id).sources;
+    const byLetter = buildReportModel(kid, NOW, "all").skills.entries.find((e) => e.id === "writing")!.byLetter;
+    LETTERS_PLAYED(kid).forEach((l) => {
+      const d = letterDetail(kid, NOW, l);
+      const t = byLetter.find((x) => x.letter === l);
+      if (t) traced++;
+      if (t ? d.writing !== t.value || d.tracings !== t.n : d.writing !== null || d.tracings !== 0) wrongWriting.push(`${id} ${l}`);
+    });
+  });
+  ok(`a letter's writing is the skill's figure for it, over everything (${traced} traced letters)`,
+    traced > 0 && wrongWriting.length === 0, wrongWriting.join(", "));
+  ok("first practised on its first session", k.firstPractised === k.entry.history[0].at);
+
+  const d = pairDetail(src, NOW, KH, K);
+  ok("a pair reads the same either way round", d.a === K && d.b === KH && JSON.stringify(d) === JSON.stringify(pairDetail(src, NOW, K, KH)));
+  ok("…with the model's count and directions", d.count === pair.count && d.aChoseB === pair.aChoseB && d.bChoseA === pair.bChoseA);
+  ok("its weeks add up to it", d.weekly.reduce((n, w) => n + w.count, 0) === d.count, JSON.stringify(d.weekly));
+  ok("…from the week of the first session", d.weekly[0]?.start === "2026-09-28" && d.weekly[d.weekly.length - 1].start === "2026-10-05",
+    d.weekly.map((w) => w.start).join(","));
+  ok("its sessions add up to it, newest first",
+    d.sessions.reduce((n, x) => n + x.times, 0) === d.count && d.sessions.every((x, i) => i === 0 || x.at <= d.sessions[i - 1].at));
+  ok("first and last seen bound its sessions",
+    d.firstSeen === d.sessions[d.sessions.length - 1].at && d.lastSeen === d.sessions[0].at);
+
+  const ng = letterDetail(src, NOW, "ङ");
+  ok("a letter not started has nothing", ng.entry.status === "not_started" && ng.mix.total === 0 &&
+    ng.mixedUpWith.length === 0 && ng.speed === null && ng.writing === null && ng.firstPractised === null);
+  const none = pairDetail(parent("new").sources, NOW, K, KH);
+  ok("a child with no sessions: an empty pair", none.count === 0 && none.weekly.length === 0 && none.firstSeen === null);
+}
+
+console.log("\n-- skills, letter by letter (B4) --");
+{
+  const m = buildReportModel(aarav.sources, NOW, "week");
+  const skill = (id: string) => m.skills.entries.find((e) => e.id === id)!;
+  ["sound", "lookalike", "words", "writing", "speed"].forEach((id) => {
+    const e = skill(id);
+    ok(`${id}: the letters add up to the skill's ${e.n}`, e.byLetter.reduce((n, l) => n + l.n, 0) === e.n,
+      JSON.stringify(e.byLetter));
+  });
+  const sound = skill("sound");
+  const weighted = sound.byLetter.reduce((t, l) => t + l.value * l.n, 0) / sound.n;
+  ok("sound: the letters' right first time averages back to the skill's",
+    Math.abs(weighted - sound.measure.value!) < 0.5, `${weighted} vs ${sound.measure.value}`);
+  ok("in alphabet order", sound.byLetter.map((l) => l.letter).join("") === "कखगघ", sound.byLetter.map((l) => l.letter).join(""));
+  ok("matras have none", skill("matras").byLetter.length === 0);
 }
 
 console.log("\n-- nothing yet, or nothing to compare --");

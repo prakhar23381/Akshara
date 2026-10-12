@@ -1,20 +1,23 @@
 import type { ReportModel } from "../model";
 import { BarList } from "../charts/BarList";
 import { Delta } from "../charts/Delta";
+import { NumbersTable } from "../charts/NumbersTable";
 import { ACCENT, GRID, INK, INK2 } from "../charts/theme";
-import { Card, Hero, Muted, PERIOD_WORD, PREVIOUS_WORD } from "./shared";
+import { Card, Glyph, Hero, Muted, PERIOD_WORD, PREVIOUS_WORD, pairView, useColumns, type View } from "./shared";
 
 /**
  * Mix-ups (design §3): every pair this period as bars — the summary shows the
  * top four — and whether wrong answers come from look-alike letters or from
  * different shapes. That comparison is Listen & tap only: the one game where
- * only the distractors vary (design §5).
+ * only the distractors vary (design §5). A pair opens its own view (B4).
  */
-export function MixUpsView({ model }: { model: ReportModel }) {
+export function MixUpsView({ model, onOpen }: { model: ReportModel; onOpen?: (view: View) => void }) {
   const { total, pairs, shape } = model.mixups;
   const when = PERIOD_WORD[model.range];
+  const compare = model.range !== "all";
+  const columns = useColumns("md:grid md:grid-cols-2 md:gap-4 md:items-start");
   return (
-    <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4 md:items-start">
+    <div className={columns}>
       <Card title="Every pair">
         {pairs.length === 0 ? (
           <Muted>No mix-ups {when}.</Muted>
@@ -25,7 +28,29 @@ export function MixUpsView({ model }: { model: ReportModel }) {
               label={`mix-up${total.value === 1 ? "" : "s"} ${when}`}
               delta={<Delta change={total.change} lowerIsBetter format={(n) => `${n}`} />}
             />
-            <BarList pairs={pairs} compare={model.range !== "all"} previousLabel={PREVIOUS_WORD[model.range]} />
+            <BarList
+              pairs={pairs}
+              compare={compare}
+              previousLabel={PREVIOUS_WORD[model.range]}
+              onSelect={onOpen ? (a, b) => onOpen(pairView(a, b)) : undefined}
+            />
+            <NumbersTable
+              caption={`Every pair ${when}`}
+              head={["Pair", "Times", ...(compare ? ["Same days before"] : []), "Which way round"]}
+              numeric={compare ? [1, 2] : [1]}
+              rows={pairs.map((p) => [
+                <Glyph key="p">
+                  {p.a} ↔ {p.b}
+                </Glyph>,
+                p.count,
+                ...(compare ? [p.isNew ? "first time" : p.previous ?? "—"] : []),
+                <span key="w" className="whitespace-nowrap">
+                  <Glyph>
+                    asked {p.a}, chose {p.b}: {p.aChoseB}× · asked {p.b}, chose {p.a}: {p.bChoseA}×
+                  </Glyph>
+                </span>,
+              ])}
+            />
           </>
         )}
       </Card>

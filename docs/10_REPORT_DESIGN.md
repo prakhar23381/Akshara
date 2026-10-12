@@ -129,7 +129,6 @@ or different shape?" stays; the Matras row stays, "not measured yet", until
 W6 measures matras; All shows no "Learned this …" letters, because the grid
 already marks every learned one.
 
-Tapping a letter, a skill or a pair, and "All sessions", are B4.
 
 ## 4. Detail views
 
@@ -147,6 +146,40 @@ ONE LETTER                                 ONE MIX-UP PAIR
 └──────────────────────────────┘          letter · minutes · right first time ·
                                           finished / stopped.
 ```
+
+**As built (B4, 2026-10-12)** — the sketches above. A letter in the Letters
+grid, a bar in Mix-ups, a row in Skills (not Matras) and "All N sessions ›"
+under Practice open these; "‹" goes back to that section. The summary's cards
+stay charts you read (B2).
+
+* **Letter and Pair cover the whole history** (user, 2026-10-12): the period
+  switch hides there and the caption reads "The whole history, since …".
+  Skill and All sessions follow the period.
+* **Letter:** the glyph large with its status and dates; right first time by
+  session on a 0–100% scale, a dashed line at 70% while it is not learned, and
+  a ring instead of a dot for a check question asked in another letter's
+  session (E3); how every answer went; the letters it was mixed up with, each
+  opening the pair; speed (median, right first time only) and writing (mean
+  tracing score in its own sessions).
+* **Pair:** both letters large, the count, first and last seen; which way
+  round as two bars; times a week since the child's first session; the
+  sessions it happened in.
+* **Skill:** its figure and change, a line on what it measures, its trend on a
+  scale, and a bar per letter — weakest first (slowest, for speed), each
+  opening the letter. Matras: "not measured yet" until W6.
+* **All sessions:** when, letter, minutes, right first time, and finished /
+  stopped early / still open, newest first.
+* **Show numbers** under each chart whose numbers are not already printed (a
+  stacked bar's key carries its counts): a table, closed at first, left out
+  on paper.
+* **Download** lays the document out on screen at 680px — narrower than A4 or
+  Letter less 12mm margins, so charts measured there fit the page — then opens
+  the browser's print dialog, where "Save as PDF" makes the file. The summary,
+  the four sections and the session table for the period chosen, in one
+  column. `print-color-adjust: exact` prints the bars and the heatmap with the
+  browser's default settings; a card never splits across pages. In the lab a
+  week is 5 pages, a month 8. The footer says it records practice and is not a
+  test or a diagnosis. No PDF library: the app keeps its dependencies.
 
 ## 5. What each figure means
 
@@ -200,7 +233,7 @@ src/app/screens/report-v2/
   model.ts         buildReportModel(sources, now, range) — every figure above   (B1, done)
   ParentReport.tsx header + period switch; takes the view as a prop
   views/           Summary · Letters · Letter · Skills · Skill · Practice · Sessions · MixUps · Pair
-  charts/          Sparkline · TrendChart · BarList · DayStrip · Calendar · LetterGrid · StackBar · Delta
+  charts/          Sparkline · TrendChart · BarList · ValueBars · Columns · DayStrip · Calendar · YearHeatmap · LetterGrid · StackBar · NumbersTable · Delta
   PrintReport.tsx
 ```
 
@@ -209,5 +242,5 @@ src/app/screens/report-v2/
 | B1 | Data model + tests, no UI | done 2026-10-11 |
 | B2 | Summary and period switch, in the lab | done 2026-10-12, reviewed (changes in §2) |
 | B3 | The four sections | done 2026-10-12, reviewed (no changes) |
-| B4 | Detail views and Download | user reviews |
+| B4 | Detail views and Download | built 2026-10-12; user reviews in the lab |
 | B5 | `fetchReportSources()` split out of `client.ts`; `/report` moves to the new report; flow test extended; W4a retired. E2 fixed (2026-10-12) and in `main` first | ships after W5b |

@@ -4,6 +4,35 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-12 (late night) — B4, detail views and Download (`feat/report-v2`)
+
+* **Plan approved by the user.** Their choice: Letter and Pair cover the
+  whole history; Skill and All sessions follow the period.
+* **Model:** `letterDetail()` and `pairDetail()` (whole history),
+  `SkillEntry.byLetter` (the period, letter by letter) and
+  `LetterSessionPoint.sessionLetter` (a check question's own session).
+  `reportModel.test.ts` 57 → 82 checks: a letter's mix-ups agree with the
+  pair's count and directions; a pair's weeks and sessions add up to it; a
+  skill's letters add back to the skill; a letter's writing matches the skill
+  over every lab child; the empty cases.
+* **Views:** Letter, Pair, Skill, All sessions; `TrendChart`, `ValueBars`,
+  `NumbersTable`; the sections open them; Show numbers under the charts;
+  Download (`PrintReport`, print to PDF). As built: design §4.
+* **Verified:** headless screenshots of every new view at phone, tablet and
+  desktop for Aarav, Kabir, Riya and a new child — no errors, no horizontal
+  overflow. A click-through (30 checks): grid → letter → pair → back; a
+  Mix-ups bar → pair; a Skills row → skill → letter → back; Practice → all
+  sessions; Show numbers; a new view starts at its top; Download prints once
+  and comes back on `afterprint` or its own button; bad addresses fall back.
+  PDFs printed headless with background printing off: week 5 pages, month 8,
+  all 9, bars and heatmap present. Fixed from the screenshots: a check point
+  looked like a session (now a ring with a key); a lone point's date sat at
+  the left; glyphs shown twice; a section background ran on past a card moved
+  to the next page.
+* **Build** clean; no report JavaScript in the bundle. The branch's CSS is
+  2.4 KB above production's — the report's classes, B2–B4 — and ships at B5.
+* **Tests:** 358 checks across 10 files.
+
 ## 2026-10-12 (night, later) — B3 reviewed; matras become W6
 
 * **B3 closed:** reviewed by the user in the lab, no changes. Their answers:

@@ -6,18 +6,21 @@ import { ACCENT, FONT_DEVANAGARI, INK, INK2 } from "./theme";
  * count. A dark tick marks the same days of the previous period, so "more" or
  * "fewer" is read off the bar rather than written out; ✦ marks a pair never
  * seen before. The key below explains both, and only the pairs shown — the
- * section lists them all. One grid, so every bar starts at the same x.
+ * section lists them all. One grid, so every bar starts at the same x. With
+ * `onSelect` each row is a 44px button into the pair's view.
  */
 export function BarList({
   pairs,
   compare,
   previousLabel,
+  onSelect,
 }: {
   pairs: MixupPair[];
   /** False for "all", which has nothing to compare with. */
   compare: boolean;
   /** "same days last week" */
   previousLabel: string;
+  onSelect?: (a: string, b: string) => void;
 }) {
   const prevOf = (p: MixupPair) => (compare && !p.isNew ? p.previous ?? 0 : 0);
   const max = Math.max(1, ...pairs.map((p) => Math.max(p.count, prevOf(p))));
@@ -27,17 +30,17 @@ export function BarList({
 
   return (
     <div className="flex flex-col gap-3">
-      <ul className="grid items-center gap-x-3 gap-y-2" style={{ gridTemplateColumns: "max-content minmax(0, 1fr) max-content" }}>
+      <ul
+        className={`grid items-center gap-x-3 ${onSelect ? "" : "gap-y-2"}`}
+        style={{ gridTemplateColumns: `max-content minmax(0, 1fr) max-content${onSelect ? " max-content" : ""}` }}
+      >
         {pairs.map((p) => {
           const prev = prevOf(p);
-          return (
-            <li
-              key={`${p.a}${p.b}`}
-              className="contents"
-              aria-label={`${p.a} and ${p.b}: mixed up ${p.count} times${
-                p.isNew && compare ? ", for the first time" : compare && p.previous !== null ? `, ${p.previous} the ${previousLabel}` : ""
-              }`}
-            >
+          const said = `${p.a} and ${p.b}: mixed up ${p.count} times${
+            p.isNew && compare ? ", for the first time" : compare && p.previous !== null ? `, ${p.previous} the ${previousLabel}` : ""
+          }`;
+          const cells = (
+            <>
               <span className="t-1 whitespace-nowrap" style={{ color: INK, fontFamily: FONT_DEVANAGARI }} aria-hidden>
                 {p.a} ↔ {p.b}
               </span>
@@ -56,6 +59,25 @@ export function BarList({
               <span className="t--1 font-semibold tabular-nums whitespace-nowrap" style={{ color: INK, minWidth: "3.2em" }} aria-hidden>
                 {p.count}×{p.isNew && compare ? <span style={{ color: INK2 }}> ✦</span> : null}
               </span>
+            </>
+          );
+          return (
+            <li key={`${p.a}${p.b}`} className="contents" aria-label={onSelect ? undefined : said}>
+              {onSelect ? (
+                <button
+                  onClick={() => onSelect(p.a, p.b)}
+                  aria-label={`${said}: open`}
+                  className="col-span-4 grid grid-cols-subgrid items-center text-left"
+                  style={{ minHeight: "var(--tap-min)" }}
+                >
+                  {cells}
+                  <span aria-hidden className="t-1 leading-none" style={{ color: INK2 }}>
+                    ›
+                  </span>
+                </button>
+              ) : (
+                cells
+              )}
             </li>
           );
         })}

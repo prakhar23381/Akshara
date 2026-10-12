@@ -66,6 +66,8 @@ export interface LetterSessionPoint {
   at: string;
   rightFirstTime: number | null;
   answers: number;
+  /** The session's own letter — another letter's when this was a check question (E3). */
+  sessionLetter: string;
 }
 
 export interface LetterEntry {
@@ -83,6 +85,15 @@ export interface LetterEntry {
 }
 
 export type SkillId = "sound" | "lookalike" | "words" | "writing" | "speed" | "matras";
+export const SKILL_IDS: SkillId[] = ["sound", "lookalike", "words", "writing", "speed", "matras"];
+
+/** One letter's figure for a skill: right first time, a tracing score or seconds. */
+export interface LetterValue {
+  letter: string;
+  value: number;
+  /** The answers (or tracing scores) it is made of. */
+  n: number;
+}
 
 export interface SkillEntry {
   id: SkillId;
@@ -95,6 +106,11 @@ export interface SkillEntry {
   series: Point[];
   /** Answers (or tracing scores) behind the value, this period. */
   n: number;
+  /**
+   * This period, letter by letter, in alphabet order — the letter asked for
+   * (the session's letter, for writing). Letters with nothing to show are left out.
+   */
+  byLetter: LetterValue[];
 }
 
 export interface MixupPair {
@@ -125,6 +141,42 @@ export interface DayEntry {
   date: string;
   sessions: number;
   minutes: number;
+}
+
+/** One letter, over its whole history (design §4; the period does not apply). */
+export interface LetterDetail {
+  entry: LetterEntry;
+  /** Every answer that asked for the letter. */
+  mix: AnswerMix;
+  rightFirstTime: number | null;
+  /**
+   * Wrong answers between this letter and another, most first: `askedThis`
+   * when this letter was asked for and the other chosen, `askedOther` the
+   * other way round. The same counts as the pair's own view.
+   */
+  mixedUpWith: { letter: string; count: number; askedThis: number; askedOther: number }[];
+  /** Median seconds to answer, right-first-time answers only. */
+  speed: number | null;
+  /** Mean tracing score in the letter's own sessions, and how many there were. */
+  writing: number | null;
+  tracings: number;
+  firstPractised: string | null;
+}
+
+/** One mix-up pair, over its whole history (design §4). */
+export interface PairDetail {
+  /** Earlier letter of the alphabet first, whichever way it was asked for. */
+  a: string;
+  b: string;
+  count: number;
+  aChoseB: number;
+  bChoseA: number;
+  firstSeen: string | null;
+  lastSeen: string | null;
+  /** Times a week, from the week of the child's first session to this one. */
+  weekly: { start: string; count: number }[];
+  /** The sessions it happened in, newest first. */
+  sessions: { id: string; at: string; letter: string; times: number }[];
 }
 
 export type PractiseNext =
@@ -331,6 +383,7 @@ function letterEntries(sessions: LearningSession[], progress: any[], now: Date):
         at: s.started_at,
         rightFirstTime: rightFirstTime(answers),
         answers: answers.length,
+        sessionLetter: s.letter,
       }));
     const withAnswers = history.filter((h) => h.answers > 0);
     const latest = withAnswers[withAnswers.length - 1]?.rightFirstTime ?? null;
@@ -391,14 +444,110 @@ function countPairs(wrong: QuestionAttempt[]) {
   return m;
 }
 
+// ── Letter by letter ─────────────────────────────────────────────────────────
+
+const inSequence = (l: string) => (LETTER_SEQUENCE as readonly string[]).includes(l);
+
+function byLetter<T>(items: T[], letterOf: (x: T) => string, value: (xs: T[]) => number | null): LetterValue[] {
+  const groups = new Map<string, T[]>();
+  items.forEach((x) => {
+    const l = letterOf(x);
+    if (inSequence(l)) groups.set(l, [...(groups.get(l) ?? []), x]);
+  });
+  return [...groups.entries()]
+    .map(([letter, xs]) => ({ letter, value: value(xs), n: xs.length }))
+    .filter((e): e is LetterValue => e.value !== null)
+    .sort((x, y) => ORDER(x.letter) - ORDER(y.letter));
+}
+
+const tracingOf = (list: LearningSession[]) =>
+  list.flatMap((s) =>
+    s.activities.flatMap((a) =>
+      a.outcome?.kind === "tracing" ? [{ at: s.started_at, letter: s.letter, score: a.outcome.score }] : [],
+    ),
+  );
+const firstTime = (list: Answer[]) => list.filter((a) => kindOf(a) === "first" && a.time_to_interact_ms > 0);
+const secs = (ms: number | null) => (ms === null ? null : round1(ms / 1000));
+const medianSecs = (list: Answer[]) => secs(median(firstTime(list).map((a) => a.time_to_interact_ms)));
+
+/** The child's sessions up to now, oldest first; rows without activity detail are left out. */
+function sessionsOf(src: ReportSources, now: Date): LearningSession[] {
+  return src.rows
+    .map(rowToSession)
+    .filter((s): s is LearningSession => s !== null && Date.parse(s.started_at) < now.getTime())
+    .sort((a, b) => Date.parse(a.started_at) - Date.parse(b.started_at));
+}
+
+// ── Detail views: a letter, a pair — whole history ───────────────────────────
+
+export function letterDetail(src: ReportSources, now: Date, letter: string): LetterDetail {
+  const sessions = sessionsOf(src, now);
+  const entry: LetterEntry = letterEntries(sessions, src.progress, now).find((e) => e.letter === letter) ?? {
+    letter, status: "not_started", learned: false, learnedAt: null, latestRightFirstTime: null,
+    sessions: 0, lastPractised: null, history: [],
+  };
+  const answers = sessions.flatMap(answersOf);
+  const own = answers.filter((a) => a.target_letter === letter);
+  const others = new Map<string, LetterDetail["mixedUpWith"][number]>();
+  answers
+    .filter((a) => kindOf(a) === "wrong" && (a.target_letter === letter || a.selected_letter === letter))
+    .forEach((a) => {
+      const asked = a.target_letter === letter;
+      const other = asked ? a.selected_letter : a.target_letter;
+      const e = others.get(other) ?? { letter: other, count: 0, askedThis: 0, askedOther: 0 };
+      e.count++;
+      if (asked) e.askedThis++;
+      else e.askedOther++;
+      others.set(other, e);
+    });
+  const tracings = tracingOf(sessions.filter((s) => s.letter === letter));
+  return {
+    entry,
+    mix: mixOf(own),
+    rightFirstTime: rightFirstTime(own),
+    mixedUpWith: [...others.values()].sort((x, y) => y.count - x.count || ORDER(x.letter) - ORDER(y.letter)),
+    speed: medianSecs(own),
+    writing: mean(tracings.map((t) => t.score)),
+    tracings: tracings.length,
+    firstPractised: entry.history[0]?.at ?? null,
+  };
+}
+
+export function pairDetail(src: ReportSources, now: Date, x: string, y: string): PairDetail {
+  const [a, b] = pairOf(x, y);
+  const sessions = sessionsOf(src, now);
+  const hits = sessions.map((s) => ({
+    s,
+    wrong: answersOf(s).filter(
+      (w) => kindOf(w) === "wrong" && ((w.target_letter === a && w.selected_letter === b) || (w.target_letter === b && w.selected_letter === a)),
+    ),
+  }));
+  const all = hits.flatMap((h) => h.wrong);
+  const seen = hits.filter((h) => h.wrong.length > 0);
+  const weekly: PairDetail["weekly"] = [];
+  if (sessions.length > 0) {
+    for (let d = startOfWeek(new Date(sessions[0].started_at)); d < now; d = addDays(d, 7)) {
+      const to = addDays(d, 7);
+      weekly.push({ start: localDate(d), count: all.filter((w) => inPeriod(w.at, { from: d, to })).length });
+    }
+  }
+  return {
+    a, b,
+    count: all.length,
+    aChoseB: all.filter((w) => w.target_letter === a).length,
+    bChoseA: all.filter((w) => w.target_letter === b).length,
+    firstSeen: seen[0]?.s.started_at ?? null,
+    lastSeen: seen[seen.length - 1]?.s.started_at ?? null,
+    weekly,
+    sessions: [...seen].reverse().map(({ s, wrong }) => ({ id: s.session_id, at: s.started_at, letter: s.letter, times: wrong.length })),
+  };
+}
+
 // ── The model ────────────────────────────────────────────────────────────────
 
 export function buildReportModel(src: ReportSources, now: Date, range: Range): ReportModel {
   const { current, previous } = periodsFor(range, now);
-  const sessions = src.rows
-    .map(rowToSession)
-    .filter((s): s is LearningSession => s !== null && Date.parse(s.started_at) < now.getTime())
-    .sort((a, b) => Date.parse(a.started_at) - Date.parse(b.started_at));
+  const sessions = sessionsOf(src, now);
   const legacySessions = src.rows.filter((r) => rowToSession(r) === null).length;
 
   const cur = sessions.filter((s) => inPeriod(s.started_at, current));
@@ -431,16 +580,12 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
       measure: measure(rightFirstTime(c), rightFirstTime(p), hasPrev),
       series: series(buckets, allAnswers.filter(pick), (a) => a.at, rightFirstTime),
       n: c.length,
+      byLetter: byLetter(c, (a) => a.target_letter, rightFirstTime),
     };
   };
   const isLookalike = (a: Answer) => a.activity === "identify" && a.module_type !== "dissimilar";
-  const tracing = (list: LearningSession[]) =>
-    list.flatMap((s) =>
-      s.activities.flatMap((a) => (a.outcome?.kind === "tracing" ? [{ at: s.started_at, score: a.outcome.score }] : [])),
-    );
-  const firstTimeMs = (list: Answer[]) =>
-    list.filter((a) => kindOf(a) === "first" && a.time_to_interact_ms > 0).map((a) => a.time_to_interact_ms);
-  const secs = (ms: number | null) => (ms === null ? null : round1(ms / 1000));
+  const tracing = tracingOf;
+  const scores = (ts: { score: number }[]) => mean(ts.map((t) => t.score));
 
   const skillEntries: SkillEntry[] = [
     skill("sound", "Sound → letter", (a) => a.activity === "identify"),
@@ -448,19 +593,21 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
     skill("words", "Words", (a) => a.activity === "word_fill" || a.activity === "word_spelling"),
     {
       id: "writing", label: "Writing (tracing)", unit: "%", lowerIsBetter: false, measured: true,
-      measure: measure(mean(tracing(cur).map((t) => t.score)), mean(tracing(prev).map((t) => t.score)), hasPrev),
-      series: series(buckets, tracing(sessions), (t) => t.at, (ts) => mean(ts.map((t) => t.score))),
+      measure: measure(scores(tracing(cur)), scores(tracing(prev)), hasPrev),
+      series: series(buckets, tracing(sessions), (t) => t.at, scores),
       n: tracing(cur).length,
+      byLetter: byLetter(tracing(cur), (t) => t.letter, scores),
     },
     {
       id: "speed", label: "Speed", unit: "s", lowerIsBetter: true, measured: true,
-      measure: measure(secs(median(firstTimeMs(curAnswers))), secs(median(firstTimeMs(prevAnswers))), hasPrev),
-      series: series(buckets, allAnswers, (a) => a.at, (xs) => secs(median(firstTimeMs(xs)))),
-      n: firstTimeMs(curAnswers).length,
+      measure: measure(medianSecs(curAnswers), medianSecs(prevAnswers), hasPrev),
+      series: series(buckets, allAnswers, (a) => a.at, medianSecs),
+      n: firstTime(curAnswers).length,
+      byLetter: byLetter(firstTime(curAnswers), (a) => a.target_letter, medianSecs),
     },
     {
       id: "matras", label: "Matras", unit: "%", lowerIsBetter: false, measured: false,
-      measure: { value: null, previous: null, change: null }, series: [], n: 0,
+      measure: { value: null, previous: null, change: null }, series: [], n: 0, byLetter: [],
     },
   ];
 

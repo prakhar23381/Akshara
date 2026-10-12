@@ -304,13 +304,15 @@ renders one report alone.
 | `lab.html` | the page. `vite build` builds `index.html` only, so the lab never ships — verified by a byte-identical `dist/` |
 | `src/lab/main.tsx` | swaps `localStorage` and `sessionStorage` for in-memory copies **before** any app module loads, with offline mode on. Fails closed if the browser refuses |
 | `src/lab/memoryStorage.ts` | the in-memory `Storage` |
-| `src/lab/Lab.tsx` | the workbench and the frames. Styled inline (see Styles) |
+| `src/lab/Lab.tsx` | the workbench and the frames. Styled inline (see Styles). Any view by address (`view=letter:क`, `pair:क-ख`, `skill:sound`, `sessions`); `print=1` (the Paper button) shows the Download document |
 | `src/lab/fixtures/play.ts` | `createPlayer()` plays scripted sessions through the real `planSession` / `analyzeLocally`; `rowsOf()` stores them through the app's own `upsertSession`; `progressOf()`; a seeded `rng()`. `"?"` in a script means the app supplied the answer |
 | `src/lab/fixtures/scenarios.ts` | `LAB_TODAY` (fixed at 11 Oct 2026), `SCENARIOS`, `buildScenario()`: a new child, one session, Aarav's week (shared with `scripts/visual/seed.ts`), a month of 13 letters, a struggling child, and a class of 25 |
-| `screens/report-v2/ParentReport.tsx` · `ClassReport.tsx` | the new reports (design: `docs/10_REPORT_DESIGN.md`). They take records and a date instead of loading them, and are not routed until B5. `ParentReport`: sticky header with the Week / Month / All switch (controlled or its own), the summary (B2); `ClassReport` is still a placeholder |
+| `screens/report-v2/ParentReport.tsx` · `ClassReport.tsx` | the new reports (design: `docs/10_REPORT_DESIGN.md`). They take records and a date instead of loading them, and are not routed until B5. `ParentReport`: sticky header with the Week / Month / All switch (controlled or its own) and Download, the summary (B2), the sections (B3), the detail views (B4). A view is a string — `letter:क`, `pair:क-ख`, `skill:sound`, `sessions` — so the app can keep it in the URL (`parseView`, `upOf` in `views/shared.tsx`); `ClassReport` is still a placeholder |
+| `screens/report-v2/PrintReport.tsx` | the Download document: summary, sections and session table in one column at 680px, inside `PrintContext` (views drop their tablet columns and their screen-only controls) |
 | `screens/report-v2/views/Summary.tsx` | practise next, then Letters · Skills · Practice · Mix-ups cards; a card's title opens its section |
-| `screens/report-v2/views/Letters.tsx` · `Skills.tsx` · `Practice.tsx` · `MixUps.tsx` | the four sections (B3); `shared.tsx` holds `Card`, `Hero` and the period words |
-| `screens/report-v2/charts/` | hand-built SVG/HTML, no library: `Sparkline` · `DayStrip` · `Calendar` (a month, ‹ › months) · `YearHeatmap` (a year, ‹ › years) · `BarList` (mix-ups) · `StackBar` (parts of a whole) · `Columns` · `LetterGrid` (+ `StatusMark`, `StatusLegend`) · `Delta`; colours in `theme.ts`, the practice heat scale and its key in `heat.tsx` |
+| `screens/report-v2/views/Letters.tsx` · `Skills.tsx` · `Practice.tsx` · `MixUps.tsx` | the four sections (B3); `shared.tsx` holds `Card`, `Hero`, the period words, the view names and `PrintContext` |
+| `screens/report-v2/views/Letter.tsx` · `Pair.tsx` · `Skill.tsx` · `Sessions.tsx` | the detail views (B4). Letter and Pair cover the whole history (`letterDetail()`, `pairDetail()` in `model.ts`); Skill and Sessions follow the period |
+| `screens/report-v2/charts/` | hand-built SVG/HTML, no library: `Sparkline` · `DayStrip` · `Calendar` (a month, ‹ › months) · `YearHeatmap` (a year, ‹ › years) · `BarList` (mix-ups) · `StackBar` (parts of a whole) · `Columns` · `TrendChart` (a detail's trend, with a scale) · `ValueBars` (a skill by letter) · `NumbersTable` (+ `Table`) · `LetterGrid` (+ `StatusMark`, `StatusLegend`) · `Delta`; colours in `theme.ts`, the practice heat scale and its key in `heat.tsx` |
 
 Screenshots of every scenario at every size, against the dev server:
 `scripts/visual/README.md` → "The report lab".
@@ -318,5 +320,5 @@ Screenshots of every scenario at every size, against the dev server:
 ## Tests
 
 `tests/*.test.ts`, run by `scripts/run-tests.mjs` via `npm run test` (which runs
-`tsc --noEmit` first). 21 checks across `engine`, `playthrough`, `report` and
-`session`.
+`tsc --noEmit` first), one RESULT line per file: 358 checks across 10 files
+(2026-10-12, on `feat/report-v2`).

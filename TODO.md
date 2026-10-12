@@ -149,9 +149,10 @@ commits are in `main` (table kept as a record):
       every figure's definition, the build steps. The lab (W4-L), the design
       (W4-P), the data model (B1), the summary (B2) and the four sections
       (B3), both reviewed, are done — `STATUS_LOG.md`.
-  - [ ] **B4 · Detail views** (letter, skill, pair, all sessions) **and
-        Download.** Next: a plan, the user's approval, the build, then the
-        user's review in the lab.
+  - [~] **B4 · Detail views** (letter, skill, pair, all sessions) **and
+        Download.** Built 2026-10-12. **Waiting on the user's review in the
+        lab** (`npm run dev` → `/lab.html`; tap into a section, or the Paper
+        button for Download). Do not start B5 before it.
   - [ ] **B5 · Ship it.** W5b and E2 are in `main` (released 2026-10-12),
         so `feat/report-v2` fast-forwards onto it. Split `fetchReportSources()` out
         of `client.ts`; `/report` → the new report with view and period in

@@ -82,7 +82,7 @@ export function Columns({
         <line x1={0} x2={width} y1={top + height - 0.5} y2={top + height - 0.5} stroke={AXIS} strokeWidth={1} />
       </svg>
       {columns.length > 0 && (
-        <div className="t--1 flex justify-between mt-1" style={{ color: MUTED }}>
+        <div className={`t--1 flex mt-1 ${columns.length === 1 ? "justify-center" : "justify-between"}`} style={{ color: MUTED }}>
           <span>{columns[0].label}</span>
           {columns.length > 1 && <span>{columns[columns.length - 1].label}</span>}
         </div>

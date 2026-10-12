@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ParentReport } from "../app/screens/report-v2/ParentReport";
-import type { Range } from "../app/screens/report-v2/model";
-import type { View } from "../app/screens/report-v2/views/shared";
+import { PrintReport } from "../app/screens/report-v2/PrintReport";
+import { buildReportModel, type Range } from "../app/screens/report-v2/model";
+import { parseView, type View } from "../app/screens/report-v2/views/shared";
 import { ClassReport } from "../app/screens/report-v2/ClassReport";
 import { buildScenario, LAB_TODAY, SCENARIOS } from "./fixtures/scenarios";
 
@@ -13,6 +14,8 @@ import { buildScenario, LAB_TODAY, SCENARIOS } from "./fixtures/scenarios";
  *   /lab.html?frame=1&scenario=month&range=week&view=letters    one report,
  *                         alone — what each frame loads, and what the
  *                         screenshots take
+ *   view=letter:क · pair:क-ख · skill:sound · sessions   the detail views (B4)
+ *   &print=1               the Download document, as it is laid out for paper
  *
  * Each frame is its own page, so it lays out at its own width with its own
  * media queries, and saving a file updates all three.
@@ -37,36 +40,55 @@ const VIEWS: { id: View; label: string }[] = [
   { id: "skills", label: "Skills" },
   { id: "practice", label: "Practice" },
   { id: "mixups", label: "Mix-ups" },
+  { id: "sessions", label: "Sessions" },
 ];
-const asView = (v: string | null): View => (VIEWS.some((x) => x.id === v) ? (v as View) : "summary");
-const frameUrl = (scenario: string, range: Range, view: View) =>
-  `/lab.html?frame=1&scenario=${encodeURIComponent(scenario)}&range=${range}&view=${view}`;
+const frameUrl = (scenario: string, range: Range, view: View, print = false) =>
+  `/lab.html?frame=1&scenario=${encodeURIComponent(scenario)}&range=${range}&view=${encodeURIComponent(view)}${print ? "&print=1" : ""}`;
 
 export function Lab() {
   const params = new URLSearchParams(window.location.search);
   const scenario = params.get("scenario") ?? "week";
   const range = asRange(params.get("range"));
-  const view = asView(params.get("view"));
+  const view = parseView(params.get("view"));
+  const print = params.get("print") === "1";
   return params.get("frame") === "1" ? (
-    <Frame scenario={scenario} initialRange={range} initialView={view} />
+    <Frame scenario={scenario} initialRange={range} initialView={view} print={print} />
   ) : (
     <Workbench
       initialScenario={scenario}
       initialRange={range}
       initialView={view}
       initialSize={(params.get("size") as Size) ?? "all"}
+      initialPrint={print}
     />
   );
 }
 
-function Frame({ scenario, initialRange, initialView }: { scenario: string; initialRange: Range; initialView: View }) {
+function Frame({
+  scenario,
+  initialRange,
+  initialView,
+  print,
+}: {
+  scenario: string;
+  initialRange: Range;
+  initialView: View;
+  print: boolean;
+}) {
   const sc = useMemo(() => buildScenario(scenario), [scenario]);
   // The report's own switch and links work in each frame too; the address keeps up.
   const [range, setRange] = useState(initialRange);
   const [view, setView] = useState(initialView);
   useEffect(() => {
-    window.history.replaceState(null, "", frameUrl(scenario, range, view));
-  }, [scenario, range, view]);
+    window.history.replaceState(null, "", frameUrl(scenario, range, view, print));
+  }, [scenario, range, view, print]);
+  if (print && sc.kind === "parent") {
+    return (
+      <div style={{ background: "#fff", padding: 12, minHeight: "100dvh" }}>
+        <PrintReport model={buildReportModel(sc.child.sources, TODAY, range)} today={TODAY} />
+      </div>
+    );
+  }
   return sc.kind === "parent" ? (
     <ParentReport
       sources={sc.child.sources}
@@ -113,15 +135,18 @@ function Workbench({
   initialRange,
   initialView,
   initialSize,
+  initialPrint,
 }: {
   initialScenario: string;
   initialRange: Range;
   initialView: View;
   initialSize: Size;
+  initialPrint: boolean;
 }) {
   const [scenario, setScenario] = useState(initialScenario);
   const [range, setRange] = useState(initialRange);
   const [view, setView] = useState(initialView);
+  const [print, setPrint] = useState(initialPrint);
   const [size, setSize] = useState<Size>(initialSize in SIZES || initialSize === "all" ? initialSize : "all");
   const [win, setWin] = useState({ w: window.innerWidth, h: window.innerHeight });
 
@@ -136,9 +161,9 @@ function Workbench({
     window.history.replaceState(
       null,
       "",
-      `/lab.html?scenario=${encodeURIComponent(scenario)}&range=${range}&view=${view}&size=${size}`,
+      `/lab.html?scenario=${encodeURIComponent(scenario)}&range=${range}&view=${encodeURIComponent(view)}&size=${size}${print ? "&print=1" : ""}`,
     );
-  }, [scenario, range, view, size]);
+  }, [scenario, range, view, size, print]);
 
   const devices: Device[] = size === "all" ? ["phone", "tablet", "desktop"] : [size];
   const availW = win.w - PAD * 2 - GAP * (devices.length - 1);
@@ -178,6 +203,9 @@ function Workbench({
             </button>
           ))}
         </div>
+        <button onClick={() => setPrint((x) => !x)} aria-pressed={print} style={{ ...s.button(print), ...s.group }}>
+          Paper
+        </button>
         <div style={s.group} role="group" aria-label="Size">
           {(["all", "phone", "tablet", "desktop"] as const).map((x) => (
             <button key={x} onClick={() => setSize(x)} aria-pressed={size === x} style={s.button(size === x)}>
@@ -201,15 +229,15 @@ function Workbench({
                 <span>
                   {label} · {w}×{h}
                 </span>
-                <a href={frameUrl(scenario, range, view)} target="_blank" rel="noreferrer" style={{ color: MUTED }}>
+                <a href={frameUrl(scenario, range, view, print)} target="_blank" rel="noreferrer" style={{ color: MUTED }}>
                   open alone
                 </a>
               </div>
               <div style={{ ...s.screen, width: w * scale, height: h * scale }}>
                 <iframe
-                  key={`${scenario}-${range}-${view}`}
+                  key={`${scenario}-${range}-${view}-${print}`}
                   title={`${label} report`}
-                  src={frameUrl(scenario, range, view)}
+                  src={frameUrl(scenario, range, view, print)}
                   width={w}
                   height={h}
                   style={{ border: 0, transform: `scale(${scale})`, transformOrigin: "0 0" }}

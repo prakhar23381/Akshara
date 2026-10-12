@@ -69,18 +69,22 @@ const describe = (e: LetterEntry) => {
 /**
  * All 33 letters with their status. `strip` is one row of marks — the phone
  * summary; `grid` is 11 × 3 with the letters themselves — tablet and desktop.
+ * With `onSelect` (the Letters section) each letter of the grid is a button
+ * into its view; on the summary a letter only reads out.
  */
 export function LetterGrid({
   entries,
   variant,
   columns = "grid-cols-11",
   glyphClass = "t-1",
+  onSelect,
 }: {
   entries: LetterEntry[];
   variant: "strip" | "grid";
   /** Tailwind grid columns for `grid`: 11 × 3 by default, 6 a row on a phone in the section. */
   columns?: string;
   glyphClass?: string;
+  onSelect?: (letter: string) => void;
 }) {
   const [active, setActive] = useState<number | null>(null);
   const [ref, width] = useWidth<HTMLDivElement>();
@@ -112,16 +116,20 @@ export function LetterGrid({
         </div>
       ) : (
         <div
-          role="img"
-          aria-label={label}
+          role={onSelect ? undefined : "img"}
+          aria-label={onSelect ? undefined : label}
           className={`grid gap-1 ${columns}`}
           onPointerLeave={() => setActive(null)}
         >
-          {entries.map((e, i) => (
-            <span
+          {entries.map((e, i) => {
+            const Cell = onSelect ? "button" : "span";
+            return (
+            <Cell
               key={e.letter}
+              {...(onSelect ? { onClick: () => onSelect(e.letter), "aria-label": `${describe(e)}: open`, onFocus: () => setActive(i) } : {})}
               className="flex flex-col items-center justify-center rounded-lg py-1"
               style={{
+                minHeight: onSelect ? "var(--tap-min)" : undefined,
                 background: active === i ? BAND[STATUS_BAND[e.status]].tint : "transparent",
                 boxShadow: `inset 0 0 0 1px ${active === i ? statusColor(e.status) : "transparent"}`,
               }}
@@ -135,8 +143,9 @@ export function LetterGrid({
                 {e.letter}
               </span>
               <StatusMark status={e.status} size={10} />
-            </span>
-          ))}
+            </Cell>
+            );
+          })}
         </div>
       )}
       <Readout text={active !== null ? describe(entries[active]) : null} />

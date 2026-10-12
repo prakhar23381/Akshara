@@ -122,7 +122,7 @@ export function NavButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="t-1 rounded-full grid place-items-center"
+      className="t-1 rounded-full grid place-items-center print:invisible"
       style={{
         width: "var(--tap-min)",
         height: "var(--tap-min)",

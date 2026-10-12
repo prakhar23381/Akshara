@@ -1,23 +1,25 @@
 import type { ReportModel, SkillEntry } from "../model";
 import { Delta } from "../charts/Delta";
+import { NumbersTable } from "../charts/NumbersTable";
 import { Sparkline } from "../charts/Sparkline";
 import { StackBar } from "../charts/StackBar";
 import { parseDay } from "../charts/days";
 import { GRID, INK, INK2, MIX } from "../charts/theme";
-import { Card, Hero, Muted, PERIOD_WORD, pct } from "./shared";
+import { Card, Hero, Muted, PERIOD_WORD, pct, useColumns, usePrinting, type View } from "./shared";
 
 /**
  * Skills (design §3): right first time with how every answer went — right
  * first time, app helped, wrong — then one row per skill: its figure, its
- * change, and a small trend. Matras are listed as not measured, so their
- * absence is visible rather than silent.
+ * change, and a small trend; a row opens the skill (B4). Matras are listed as
+ * not measured, so their absence is visible rather than silent.
  */
-export function SkillsView({ model }: { model: ReportModel }) {
+export function SkillsView({ model, onOpen }: { model: ReportModel; onOpen?: (view: View) => void }) {
   const { rightFirstTime: r, mix, series, entries } = model.skills;
   const when = PERIOD_WORD[model.range];
   const bucket = bucketLabel(model);
+  const columns = useColumns("md:grid md:grid-cols-2 md:gap-4 md:items-start");
   return (
-    <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4 md:items-start">
+    <div className={columns}>
       <Card title="Right first time">
         {r.value === null ? (
           <Muted>No answers {when} yet.</Muted>
@@ -46,11 +48,23 @@ export function SkillsView({ model }: { model: ReportModel }) {
             height={56}
           />
         )}
+        <NumbersTable
+          caption={`Right first time, by ${bucket.by}`}
+          head={[bucket.by[0].toUpperCase() + bucket.by.slice(1), "Right first time", "Answers"]}
+          numeric={[1, 2]}
+          rows={series.filter((p) => p.n > 0).map((p) => [bucket.format(p.start), p.value === null ? "—" : pct(p.value), p.n])}
+        />
       </Card>
       <Card title="By skill">
         <ul className="flex flex-col">
           {entries.map((e, i) => (
-            <SkillRow key={e.id} entry={e} when={when} first={i === 0} />
+            <SkillRow
+              key={e.id}
+              entry={e}
+              when={when}
+              first={i === 0}
+              onOpen={onOpen && e.measured ? () => onOpen(`skill:${e.id}`) : undefined}
+            />
           ))}
         </ul>
       </Card>
@@ -58,14 +72,28 @@ export function SkillsView({ model }: { model: ReportModel }) {
   );
 }
 
-function SkillRow({ entry: e, when, first }: { entry: SkillEntry; when: string; first: boolean }) {
+function SkillRow({
+  entry: e,
+  when,
+  first,
+  onOpen,
+}: {
+  entry: SkillEntry;
+  when: string;
+  first: boolean;
+  onOpen?: () => void;
+}) {
   const seconds = e.unit === "s";
   const fmt = (v: number) => (seconds ? `${v.toFixed(1)}s` : pct(v));
   const values = e.series.map((p) => p.value).filter((v): v is number => v !== null);
+  const open = !!onOpen && !usePrinting();
+  const Row = open ? "button" : "div";
   return (
-    <li
-      className="grid items-center gap-x-3 py-3"
-      style={{ gridTemplateColumns: "minmax(0, 1fr) auto 88px", borderTop: first ? "none" : `1px solid ${GRID}` }}
+    <li style={{ borderTop: first ? "none" : `1px solid ${GRID}` }}>
+    <Row
+      {...(open ? { onClick: onOpen, "aria-label": `${e.label}: open` } : {})}
+      className="grid items-center gap-x-3 py-3 w-full text-left"
+      style={{ gridTemplateColumns: `minmax(0, 1fr) auto 88px${open ? " max-content" : ""}`, minHeight: "var(--tap-min)" }}
     >
       <span className="t-0" style={{ color: INK }}>
         {e.label}
@@ -107,6 +135,12 @@ function SkillRow({ entry: e, when, first }: { entry: SkillEntry; when: string; 
           )}
         </>
       )}
+      {open && (
+        <span aria-hidden className="t-1 leading-none" style={{ color: INK2 }}>
+          ›
+        </span>
+      )}
+    </Row>
     </li>
   );
 }

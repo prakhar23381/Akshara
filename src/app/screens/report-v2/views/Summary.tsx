@@ -8,7 +8,7 @@ import { Sparkline } from "../charts/Sparkline";
 import { YearHeatmap } from "../charts/YearHeatmap";
 import { bucketLabel } from "./Skills";
 import { ACCENT, ACCENT_WASH, INK } from "../charts/theme";
-import { Card, Glyph, Muted, PERIOD_WORD, PREVIOUS_WORD, pct, type View } from "./shared";
+import { Card, Glyph, Muted, PERIOD_WORD, PREVIOUS_WORD, pct, useColumns, usePrinting, type View } from "./shared";
 
 /**
  * The summary (design §2): what to practise next, then one card each for
@@ -29,8 +29,9 @@ export function Summary({
 }) {
   const all = model.range === "all";
   const open = (v: View) => (onOpen ? () => onOpen(v) : undefined);
+  const columns = useColumns("md:grid md:grid-cols-6 md:gap-4");
   return (
-    <div className="flex flex-col gap-3 md:grid md:grid-cols-6 md:gap-4">
+    <div className={columns}>
       <PractiseNext model={model} />
       <LettersCard model={model} onOpen={open("letters")} />
       {all ? (
@@ -77,6 +78,8 @@ type CardProps = { model: ReportModel; onOpen?: () => void };
 
 function LettersCard({ model, onOpen }: CardProps) {
   const { counts, learned, entries } = model.letters;
+  // On paper, the grid: the page is narrower than a tablet, but not a phone.
+  const printing = usePrinting();
   return (
     <Card title="Letters" className="md:col-span-6" onOpen={onOpen}>
       <StatusLegend
@@ -87,12 +90,18 @@ function LettersCard({ model, onOpen }: CardProps) {
           ) : null
         }
       />
-      <div className="md:hidden">
-        <LetterGrid entries={entries} variant="strip" />
-      </div>
-      <div className="hidden md:block">
+      {printing ? (
         <LetterGrid entries={entries} variant="grid" />
-      </div>
+      ) : (
+        <>
+          <div className="md:hidden">
+            <LetterGrid entries={entries} variant="strip" />
+          </div>
+          <div className="hidden md:block">
+            <LetterGrid entries={entries} variant="grid" />
+          </div>
+        </>
+      )}
     </Card>
   );
 }

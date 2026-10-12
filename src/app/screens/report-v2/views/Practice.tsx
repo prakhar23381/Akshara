@@ -3,26 +3,30 @@ import type { DayEntry, ReportModel } from "../model";
 import { Calendar } from "../charts/Calendar";
 import { Columns, type Column } from "../charts/Columns";
 import { DayStrip } from "../charts/DayStrip";
+import { NumbersTable } from "../charts/NumbersTable";
 import { Delta } from "../charts/Delta";
 import { StackBar } from "../charts/StackBar";
 import { YearHeatmap } from "../charts/YearHeatmap";
-import { dayKey, mondayOf, parseDay } from "../charts/days";
+import { dayKey, dayLabel, mondayOf, parseDay } from "../charts/days";
 import { INK, INK2, MIX } from "../charts/theme";
-import { Card, Muted, PERIOD_WORD } from "./shared";
+import { Card, MoreLink, Muted, PERIOD_WORD, useColumns, type View } from "./shared";
 
 /**
  * Practice (design §3): days, sessions and minutes with their change; the
  * period's heatmap (the same one the summary shows); minutes a day — or a
- * week, for All; and how many sessions were finished or stopped early.
+ * week, for All; and how many sessions were finished or stopped early,
+ * with the way on to every session (B4).
  */
-export function PracticeView({ model, today }: { model: ReportModel; today: Date }) {
+export function PracticeView({ model, today, onOpen }: { model: ReportModel; today: Date; onOpen?: (view: View) => void }) {
   const p = model.practice;
   const when = PERIOD_WORD[model.range];
   const all = model.range === "all";
   const columns = all ? weekly(p.history, today) : daily(p.byDay);
+  const grid = useColumns("md:grid md:grid-cols-2 md:gap-4 md:items-start");
+  const practised = (all ? p.history : p.byDay).filter((d) => d.sessions > 0);
 
   return (
-    <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4 md:items-start">
+    <div className={grid}>
       <Card title="At a glance" className="md:col-span-2">
         <div className="grid grid-cols-3 gap-3">
           <Stat
@@ -38,10 +42,24 @@ export function PracticeView({ model, today }: { model: ReportModel; today: Date
         {model.range === "week" && <DayStrip byDay={p.byDay} today={today} />}
         {model.range === "month" && <Calendar history={p.history} today={today} />}
         {all && <YearHeatmap history={p.history} today={today} />}
+        <NumbersTable
+          caption={`Days practised ${when}`}
+          head={["Day", "Sessions", "Minutes"]}
+          numeric={[1, 2]}
+          rows={practised.map((d) => [dayLabel(d.date), d.sessions, d.minutes])}
+        />
       </Card>
       <Card title={all ? "Minutes a week" : "Minutes a day"}>
         {columns.some((c) => c.value > 0) ? (
-          <Columns columns={columns} unit="min" label={all ? "Minutes a week" : "Minutes a day"} />
+          <>
+            <Columns columns={columns} unit="min" label={all ? "Minutes a week" : "Minutes a day"} />
+            <NumbersTable
+              caption={all ? "Minutes a week" : "Minutes a day"}
+              head={[all ? "Week" : "Day", "Minutes"]}
+              numeric={[1]}
+              rows={columns.map((c) => [c.label, c.value])}
+            />
+          </>
         ) : (
           <Muted>No practice {when} yet.</Muted>
         )}
@@ -58,6 +76,11 @@ export function PracticeView({ model, today }: { model: ReportModel; today: Date
               ...(p.inProgress > 0 ? [{ label: "still open", value: p.inProgress, color: MIX.helped }] : []),
             ]}
           />
+        )}
+        {p.list.length > 0 && (
+          <MoreLink onClick={onOpen ? () => onOpen("sessions") : undefined}>
+            All {p.list.length} session{p.list.length === 1 ? "" : "s"} {when}
+          </MoreLink>
         )}
       </Card>
     </div>
