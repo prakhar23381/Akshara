@@ -155,6 +155,43 @@ def main():
         expected_state = CognitiveState.GROSS_SHAPE_BLINDNESS
     ))
 
+    # ── E2: an answer the app supplied is a miss, not a right answer ──────
+    # A supplied answer is stored with selected == target. Counted as right, a
+    # child rescued on 4 of 14 questions scored 0% errors and "mastered" the letter.
+    supplied = {"target": "घ", "selected": "घ", "module": "similar", "latency_ms": 0, "guided": True}
+    right    = {"target": "घ", "selected": "घ", "module": "similar", "latency_ms": 2400}
+    results.append(run_test(
+        name = "E2 — 4 supplied answers in 14 are misses, not mastery",
+        attempts_data = [right] * 10 + [supplied] * 4,
+        expected_state = CognitiveState.FEATURE_NEGLECT
+    ))
+
+    results.append(run_test(
+        name = "E2 — 1 supplied answer in 14 is still mastery (7% missed)",
+        attempts_data = [right] * 13 + [supplied],
+        expected_state = CognitiveState.VISUAL_MASTERY
+    ))
+
+    results.append(run_test(
+        name = "E2 — stalling on dissimilar keeps the child there",
+        attempts_data = (
+            [{"target": "घ", "selected": "घ", "module": "dissimilar", "latency_ms": 3000}] * 6
+            + [{"target": "घ", "selected": "घ", "module": "dissimilar", "latency_ms": 0, "guided": True}] * 4
+        ),
+        expected_state = CognitiveState.GROSS_SHAPE_BLINDNESS
+    ))
+
+    # ── E3: a check question on another letter is not evidence about this one
+    results.append(run_test(
+        name = "E3 — a check question on क does not count against घ",
+        attempts_data = [right] * 12 + [
+            {"target": "क", "selected": "ब", "module": "similar", "latency_ms": 3000},
+            {"target": "क", "selected": "ब", "module": "similar", "latency_ms": 3000},
+            {"target": "क", "selected": "क", "module": "similar", "latency_ms": 0, "guided": True},
+        ],
+        expected_state = CognitiveState.VISUAL_MASTERY
+    ))
+
     # ── Summary ───────────────────────────────────────────────────────────
     print(f"\n{'═'*60}")
     passed = sum(results)

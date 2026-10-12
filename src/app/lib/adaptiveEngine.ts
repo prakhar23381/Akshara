@@ -136,10 +136,34 @@ const STATE_RULES: Record<CognitiveState, StateRule> = {
 };
 
 /**
- * Error rate for one module. Mirrors SessionPayload.error_rate_for_module:
- * SCAFFOLD counts towards SIMILAR, because scaffolded questions still use
- * high-similarity distractors — otherwise a child can never progress out of
- * FEATURE_NEGLECT without a pure "similar" session.
+ * A question the child did not answer correctly on their own: a wrong pick, or
+ * one the hesitation ladder answered for them. Mirrors
+ * QuestionAttempt.is_miss in backend/IP/models/session.py.
+ *
+ * A supplied answer is stored as `selected_letter = target`, so comparing the
+ * two letters alone scored it as right — and a child rescued on every hard
+ * question could be diagnosed as having mastered the letter (TODO E2).
+ */
+export const isMiss = (a: QuestionAttempt): boolean =>
+  a.was_guided_win || a.target_letter !== a.selected_letter;
+
+/**
+ * The questions about the session's own letter. A session can also carry one
+ * check question on a letter the child has already mastered (see
+ * `letterStatus.ts`); that answer is evidence about the other letter, not this
+ * one.
+ */
+export const ownAttempts = (
+  attempts: QuestionAttempt[],
+  letter: string,
+): QuestionAttempt[] => attempts.filter((a) => a.target_letter === letter);
+
+/**
+ * Share of missed questions in one module. Mirrors
+ * SessionPayload.error_rate_for_module: SCAFFOLD counts towards SIMILAR,
+ * because scaffolded questions still use high-similarity distractors —
+ * otherwise a child can never progress out of FEATURE_NEGLECT without a pure
+ * "similar" session.
  */
 function errorRateForModule(
   attempts: QuestionAttempt[],
@@ -153,10 +177,7 @@ function errorRateForModule(
       : attempts.filter((a) => a.module_type === module);
 
   if (relevant.length === 0) return null;
-  const errors = relevant.filter(
-    (a) => a.target_letter !== a.selected_letter,
-  ).length;
-  return errors / relevant.length;
+  return relevant.filter(isMiss).length / relevant.length;
 }
 
 function topConfusedPairs(
@@ -179,12 +200,10 @@ function topConfusedPairs(
     .map(([pair]) => pair);
 }
 
+/** Share of missed questions — wrong or supplied. */
 export function overallErrorRate(attempts: QuestionAttempt[]): number {
   if (attempts.length === 0) return 0;
-  const errors = attempts.filter(
-    (a) => a.target_letter !== a.selected_letter,
-  ).length;
-  return errors / attempts.length;
+  return attempts.filter(isMiss).length / attempts.length;
 }
 
 export interface Diagnosis {
@@ -192,11 +211,15 @@ export interface Diagnosis {
   reasoning: string;
 }
 
-/** Port of DiagnosisAgent.diagnose — deterministic, explainable, no LLM. */
+/**
+ * Port of DiagnosisAgent.diagnose — deterministic, explainable, no LLM.
+ * Judged only on the questions about `targetLetter`.
+ */
 export function diagnose(
-  attempts: QuestionAttempt[],
+  allAttempts: QuestionAttempt[],
   targetLetter: string,
 ): Diagnosis {
+  const attempts = ownAttempts(allAttempts, targetLetter);
   const dissimilarErr = errorRateForModule(attempts, "dissimilar");
   const similarErr = errorRateForModule(attempts, "similar");
   const pct = (v: number) => Math.round(v * 100);
@@ -214,7 +237,7 @@ export function diagnose(
       return {
         state: "gross_shape_blindness",
         reasoning:
-          `Student confused ${pct(dissimilarErr)}% of dissimilar-contrast questions. ` +
+          `Student missed ${pct(dissimilarErr)}% of dissimilar-contrast questions (wrong, or the answer was supplied). ` +
           `Top confusions: ${confused.join(", ") || "none"}. ` +
           `Cannot distinguish ${targetLetter} from visually different shapes.`,
       };
@@ -226,14 +249,14 @@ export function diagnose(
         return {
           state: "gross_shape_blindness",
           reasoning:
-            `Student still making ${pct(dissimilarErr)}% errors on dissimilar-contrast. ` +
-            `Keeping on dissimilar module until error rate drops below ${pct(ERROR_THRESHOLD_MASTERY)}%.`,
+            `Student still missing ${pct(dissimilarErr)}% of dissimilar-contrast questions. ` +
+            `Keeping on dissimilar module until that drops below ${pct(ERROR_THRESHOLD_MASTERY)}%.`,
         };
       }
       return {
         state: "feature_neglect",
         reasoning:
-          `Mastered dissimilar module (${pct(dissimilarErr)}% error). ` +
+          `Mastered dissimilar module (${pct(dissimilarErr)}% missed). ` +
           `Advancing to similar-contrast module to test feature discrimination of ${targetLetter}.`,
       };
     }
@@ -245,7 +268,7 @@ export function diagnose(
     return {
       state: "feature_neglect",
       reasoning:
-        `Confused ${pct(similarErr!)}% of similar-contrast questions. ` +
+        `Missed ${pct(similarErr!)}% of similar-contrast questions (wrong, or the answer was supplied). ` +
         `Top confusions: ${confused.join(", ") || "none"}. ` +
         `Student ignores distinguishing features (knot, line-break) of ${targetLetter}.`,
     };
@@ -255,7 +278,7 @@ export function diagnose(
     return {
       state: "visual_mastery",
       reasoning:
-        `Excellent performance: only ${pct(similarErr!)}% errors on similar-contrast. ` +
+        `Excellent performance: only ${pct(similarErr!)}% of similar-contrast questions missed. ` +
         `Student has mastered ${targetLetter}. Ready for next alphabet.`,
     };
   }
@@ -263,7 +286,7 @@ export function diagnose(
   return {
     state: "feature_neglect",
     reasoning:
-      `Moderate difficulty on similar-contrast (${pct(similarErr!)}% error). ` +
+      `Moderate difficulty on similar-contrast (${pct(similarErr!)}% missed). ` +
       `Treating as Feature Neglect — reinforce distinguishing features.`,
   };
 }
@@ -429,7 +452,7 @@ export function analyzeLocally(
     target,
   );
   const rules = STATE_RULES[state];
-  const errorRate = overallErrorRate(attempts);
+  const errorRate = overallErrorRate(ownAttempts(attempts, target));
 
   const baseline = payload.avg_latency_ms > 0 ? payload.avg_latency_ms : 6000;
   const pacing = pacingMultiplier(attempts);

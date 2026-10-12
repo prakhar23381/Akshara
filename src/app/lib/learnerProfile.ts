@@ -1,6 +1,7 @@
 import type { CognitiveState } from "../types/levelConfig";
 import { sessionAttempts, type LearningSession } from "../types/session";
 import { loadAllSessions, rowToSession } from "./sessionStore";
+import { overallErrorRate, ownAttempts } from "./adaptiveEngine";
 import { supabase, isSupabaseConfigured } from "./supabase";
 
 /**
@@ -23,7 +24,7 @@ export interface LearnerProfile {
   source: "database+device" | "device";
   /** Last diagnosed state per letter, from that letter's own latest completed session. */
   stateByLetter: Record<string, CognitiveState>;
-  /** Error rate of that same session, unguided attempts only. */
+  /** Share of that session's questions on the letter missed — wrong or supplied. */
   errorRateByLetter: Record<string, number>;
   /** Most recent diagnosed state on any letter. */
   latestState: CognitiveState | null;
@@ -152,11 +153,9 @@ export function buildLearnerProfile(
       latestState ??= diagnosed;
       if (!(s.letter in stateByLetter)) {
         stateByLetter[s.letter] = diagnosed;
-        errorRateByLetter[s.letter] =
-          unguided.length > 0
-            ? unguided.filter((a) => a.target_letter !== a.selected_letter).length /
-              unguided.length
-            : 0;
+        // A supplied answer is a miss, as in the diagnosis. Leaving supplied
+        // answers out made a child rescued on most questions look accurate.
+        errorRateByLetter[s.letter] = overallErrorRate(ownAttempts(attempts, s.letter));
       }
     }
 
