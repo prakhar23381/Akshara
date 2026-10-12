@@ -48,7 +48,7 @@ npm run test                     # typecheck + scripts/run-tests.mjs
 npm run generate-audio           # one-shot gTTS fetch; all 33 mp3s already exist
 
 cd backend && ./.venv/bin/python app.py              # Flask dev server
-cd backend && ./.venv/bin/python tests/test_pipeline.py   # 6 diagnosis cases
+cd backend && ./.venv/bin/python tests/test_pipeline.py   # 10 diagnosis cases
 cd backend && ./.venv/bin/python smoke/live_api.py        # needs a running server
 ```
 
@@ -89,7 +89,7 @@ git add . && git commit -m "feat/fix: <descriptive-message>"
 │   │   ├── data/        letterContent.ts · letterPaths.ts
 │   │   ├── hooks/       useLetterAudio · useLevelConfig
 │   │   ├── lib/         accounts · adaptiveEngine · akshara · devOverflowCheck
-│   │   │                learnerProfile · offline_sync · reportBands
+│   │   │                learnerProfile · letterStatus · offline_sync · reportBands
 │   │   │                sessionMetrics · sessionStore · supabase
 │   │   ├── screens/     profile (add a child) · resume · roadmap · report · my-progress
 │   │   │   ├── account/ RoleScreen · PinSetupScreen · UnlockScreen · AdultHomeScreen
@@ -101,8 +101,8 @@ git add . && git commit -m "feat/fix: <descriptive-message>"
 │   │   ├── App.tsx  routes.tsx
 │   ├── styles/          index.css → fonts.css · tailwind.css · theme.css
 │   ├── main.tsx  vite-env.d.ts
-├── tests/               accounts · akshara · bands · engine · learner · playthrough
-│                        report · session  (.test.ts)
+├── tests/               accounts · akshara · bands · engine · learner · letterStatus
+│                        playthrough · report · session  (.test.ts)
 ├── .legacy/             11 pre-refactor screens + useSessionTracker. Delete after V1–V4
 ├── TODO.md  STATUS_LOG.md  .agent_recovery_context.md  IMPLEMENTATION_PLAN.md
 ├── README.md  ATTRIBUTIONS.md

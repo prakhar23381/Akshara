@@ -4,6 +4,44 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-12 — E2 and E3: supplied answers, judged statuses, mix-ups (`fix/e2-supplied-answers`)
+
+Branched from `feat/w5b-accounts` (`aedb5c6`), so it ships after W5b and
+before the new report. Decisions: recovery context §4.
+
+* **E2 · an answer the app supplied is a miss.** It was stored with
+  `selected_letter = target` and the diagnosis compared only the two letters,
+  so a child rescued on most hard questions could be diagnosed mastered.
+  `isMiss()` / `QuestionAttempt.is_miss` (wrong **or** supplied) now drives
+  every rate the diagnosis and the scaffold read, in the app and the backend.
+  The learner profile's per-letter error rate, which used to leave supplied
+  answers out, follows. A session is judged only on its own letter's
+  questions. Replayed on the lab's simulated children (feat/report-v2): Riya
+  2 of 3 letters mastered → 0; a struggling class 22 mastery sessions → 0;
+  strong children 104 → 86.
+* **Option c · every status judged from the answers, on every read.** New
+  `lib/letterStatus.ts`. The roadmap, the resume screen, the adult home's
+  counts, the W4a report / My letters and the learner profile no longer trust
+  the saved `cognitive_state` or `letter_progress.mastered`; nothing saved is
+  rewritten. Letters with only a pre-session-model saved row keep it. **A page
+  the child has played on stays open.**
+* **E3 · a mix-up counts for both letters.** A mastered letter tapped by
+  mistake twice since it was last judged gets one check question: the last
+  Listen & tap question of the next session asks for it, with the letters it
+  was mistaken for among the options. Right first time keeps mastery; wrong or
+  supplied puts it back to still learning (60 points) until the child next
+  plays it. A mix-up alone never takes mastery away (user's middle ground).
+* **Verified.** 276 checks across 10 files (new `tests/letterStatus.test.ts`,
+  28); backend `test_pipeline.py` 6 → 10 cases, all pass; typecheck and build
+  clean. In the production build (headless Brave): Aarav's seeded week makes
+  क due a check by itself; the parked ख session asked for क on question 5
+  with ख among the options and recorded it against क; roadmap and adult home
+  show the judged statuses; account click-through 23/23.
+* **Known, not changed:** the W4a report's per-letter figures add a session's
+  metrics to the session's letter, so a check answer on क sits under ख there.
+  W4a retires at B5; the new report counts by the letter asked (done on
+  `feat/report-v2` when this merges).
+
 ## 2026-10-10 — session end
 
 * **The W4a report is reopened.** The user is not a fan of it. It remains in
