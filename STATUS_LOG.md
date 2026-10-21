@@ -27,6 +27,15 @@ current state and recovery context in
   chest — no runtime errors. A favicon 404 is the app's own (it has none).
 * **Setup note:** `node_modules/` was missing; restored with `npm ci` from the
   lockfile (no package changes).
+* **Layout shift fixed (user report, same day):** a wrong answer grew the
+  Mitthu row (tiles ↓ 7 px) and the run-of-3 label was inserted as a new row
+  (tiles ↓ 38 px); opening Home's chest removed "खोलो!" (cards ↑). User chose
+  reserved slots over overlays: the label has a fixed 24 px row, the bubble a
+  fixed 68 px slot in a fixed 144 × 200 px control column (fixed width too —
+  the bubble is wider than the buttons), and "खोलो!" is hidden, not removed.
+  Checked headlessly at 390, 820 and 1440 px: every row's box identical
+  through wrong, right + sheet, run of 3 and run broken; the chest opening
+  likewise — 18 checks pass.
 
 ## 2026-10-12 (evening, IST) — B5: the new report at `/report`; W4 done
 

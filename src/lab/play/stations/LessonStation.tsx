@@ -26,6 +26,12 @@ const QUESTIONS: { target: string; options: string[] }[] = [
 ];
 const PRAISE = ["शाबाश!", "वाह!", "बहुत बढ़िया!"];
 
+// Reserved sizes (px): the run label, the bubble slot, Mitthu's row and its control column.
+const GLOW_H = 24;
+const BUBBLE_H = 68;
+const ROW_H = 144;
+const COL_W = 200;
+
 type Status = "asking" | "right" | "done";
 
 function start(variant: string) {
@@ -93,23 +99,30 @@ export function LessonStation({ variant }: { variant: string }) {
         <span style={{ fontSize: 22, color: C.muted }} aria-hidden>✕</span>
         <Bar value={(s.q + (s.status === "right" ? 1 : 0)) / QUESTIONS.length} glow={glow} />
       </div>
-      <AnimatePresence>
-        {glow && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            style={{ alignSelf: "center", color: ROLES.reward.lip, ...hi(15, 800) }}
-          >
-            ✨ {s.run} लगातार!
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Every row keeps its largest size; the label and the bubble come and go
+          inside slots that are always there, so nothing on the page moves. */}
+      <div style={{ height: GLOW_H, display: "grid", placeItems: "center" }}>
+        <AnimatePresence>
+          {glow && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              style={{ color: ROLES.reward.lip, whiteSpace: "nowrap", ...hi(15, 800) }}
+            >
+              ✨ {s.run} लगातार!
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, height: ROW_H }}>
         <Mitthu pose={thinking ? "think" : "listen"} size={110} />
-        <div style={{ display: "grid", gap: 10 }}>
-          {thinking ? <Bubble text="फिर से सुनो" /> : null}
+        {/* Fixed width too: the bubble is wider than the two buttons. */}
+        <div style={{ width: COL_W, display: "grid", gridTemplateRows: `${BUBBLE_H}px auto`, gap: 10, justifyItems: "start" }}>
+          <div style={{ height: BUBBLE_H, display: "flex", alignItems: "center" }}>
+            {thinking && <Bubble text="फिर से सुनो" style={{ whiteSpace: "nowrap" }} />}
+          </div>
           <div style={{ display: "flex", gap: 10 }}>
             <Btn3D role={ROLES.info} onClick={() => playLetter(q.target)} label="Listen" style={{ fontSize: 26, padding: "0 20px" }}>
               🔊

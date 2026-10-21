@@ -100,7 +100,12 @@ export function HomeStation({ variant }: { variant: string }) {
             )}
           </motion.button>
         </div>
-        {sc.mission && !opened && <div style={{ ...hi(15, 700), color: ROLES.go.fill, marginTop: 8, textAlign: "right" }}>खोलो!</div>}
+        {/* Hidden, not removed, once opened: its line keeps its space so the cards below stay put. */}
+        {sc.mission && (
+          <div style={{ ...hi(15, 700), color: ROLES.go.fill, marginTop: 8, textAlign: "right", visibility: opened ? "hidden" : "visible" }}>
+            खोलो!
+          </div>
+        )}
       </section>
 
       <section style={card}>
