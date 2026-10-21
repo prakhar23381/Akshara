@@ -4,6 +4,30 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-10-21 (IST) — the play lab: doc 11 as clickable prototypes
+
+* **The user's instruction:** "create a laboratory, ideate for gamification
+  ux.md file and deploy in the lab". Plan approved; choices: dev only, a
+  separate copy of the frame workbench (recovery context §4).
+* **Branch `feat/gamification-lab`** off `main`; first commit carries the
+  pending docs 11, 12 and design_guidelines with the TODO/rules edits.
+* **Built:** `playlab.html` + `src/lab/play/` — workbench (phone, tablet,
+  desktop frames; the address reproduces the view), Mitthu (folk-art
+  ring-necked parakeet, 8 poses, CSS pivots, still under reduced motion),
+  the 3D kit and colour roles with a live WCAG check, chest and tree art,
+  and six stations: Mitthu, Buttons & colours, Path, Home, In-lesson,
+  Celebration. SVG + `motion`; no new dependency.
+* **Found by the lab:** today's wrong-answer outline `#E76F51` is 2.9 : 1 on
+  the page (AA non-text needs 3); doc 11 §3.7's "always three cards" fails for
+  a lesson without tracing; the run label is a number. Written up in doc 11 §9.
+* **Verified:** `tsc` clean; `npm run test` 21 passed; `npm run build` with
+  `dist/` hashes identical before and after (36 files, no lab strings).
+  Headless Brave (puppeteer-core, scratch only): 15 station screenshots and a
+  click-through of a full lesson, the celebration with chest, and the home
+  chest — no runtime errors. A favicon 404 is the app's own (it has none).
+* **Setup note:** `node_modules/` was missing; restored with `npm ci` from the
+  lockfile (no package changes).
+
 ## 2026-10-12 (evening, IST) — B5: the new report at `/report`; W4 done
 
 * **The user's instruction:** "perform B5" (after reviewing B4 and the

@@ -112,7 +112,9 @@ vitest nor jest; it is `tsc --noEmit` followed by a plain Node script.
 │   │   ├── utils/       soundEffects · speech · tracingEvaluator
 │   │   ├── App.tsx  routes.tsx
 │   ├── lab/             the report lab (dev only): main · Lab · memoryStorage
-│   │   └── fixtures/    play (engine-driven sessions) · scenarios
+│   │   ├── fixtures/    play (engine-driven sessions) · scenarios
+│   │   └── play/        the play lab (dev only, docs/11 §9): main · PlayLab · Mitthu · art · ui · tokens · sounds
+│   │       └── stations/  Mitthu · Buttons · Path · Home · Lesson · Celebration
 │   ├── styles/          index.css → fonts.css · tailwind.css · theme.css
 │   ├── main.tsx  vite-env.d.ts
 ├── tests/               accounts · akshara · bands · engine · learner · letterStatus
@@ -120,7 +122,7 @@ vitest nor jest; it is `tsc --noEmit` followed by a plain Node script.
 ├── .legacy/             11 pre-refactor screens + useSessionTracker. Delete after V1–V4
 ├── TODO.md  STATUS_LOG.md  .agent_recovery_context.md  IMPLEMENTATION_PLAN.md
 ├── README.md  ATTRIBUTIONS.md
-└── index.html  lab.html (dev only, never built)  package.json  tsconfig.json  vite.config.ts  vercel.json  .env.example
+└── index.html  lab.html  playlab.html (both dev only, never built)  package.json  tsconfig.json  vite.config.ts  vercel.json  .env.example
 ```
 
 > [!IMPORTANT]

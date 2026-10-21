@@ -2,8 +2,8 @@
 
 *What Duolingo does to keep people coming back, which parts suit a 5–10-year-old
 with dyslexia, and what each one becomes in Akshara. Written 19 October 2026
-against `main`. It is a proposal: nothing here is built yet. The decisions it
-needs are listed in §7.*
+against `main`. It is a proposal: nothing here is in the app yet, but §9's
+play lab prototypes it. The decisions it needs are listed in §7.*
 
 **Read with:** [design_guidelines.md](design_guidelines.md). That document
 holds the rules that keep the child out of failure, and **those rules win**
@@ -27,6 +27,7 @@ what you hear, S12 the path, S13 daily rewards.
 6. [Build order](#6-build-order)
 7. [Decisions needed](#7-decisions-needed)
 8. [Sources](#8-sources)
+9. [The play lab](#9-the-play-lab)
 
 ---
 
@@ -491,3 +492,54 @@ before citing it in the BTP report.
 | Reeves & Nass (1996), *The Media Equation* | People respond socially to on-screen characters (§3.1) |
 | Riddick (2010) | Shame and reading avoidance (§4); already cited in design_guidelines |
 | Duolingo screenshots S1–S13 | The patterns themselves; taken 19 October 2026, not reproduced here |
+
+---
+
+## 9. The play lab
+
+*Built 21 October 2026 on `feat/gamification-lab`.* The ideas above, as
+clickable prototypes, so they can be judged on a screen rather than on paper.
+
+**Where:** `npm run dev`, then `/playlab.html`. Development only, like the
+report lab (user's choice): `vite build` never builds it, and `dist/` was
+verified byte-identical with it present. Code in `src/lab/play/`, styled inline
+because `src/lab` is outside the production stylesheet. Nothing in it is wired
+into the app; each station is a self-contained mock.
+
+The workbench shows one station at phone, tablet and desktop size at once;
+**open alone** gives one frame at full size (show this one on a phone).
+The address reproduces the view: `?station=lesson&variant=glow&size=all`.
+
+| Station | Doc 11 | Variants | What to try |
+|---|---|---|---|
+| **Mitthu** | §3.1, D1 D2 D4 | all poses · each of the 8 | The folk-art parakeet in every pose, with his line spoken in Hindi (tap the bubble) |
+| **Buttons & colours** | §3.9 | kit · colours | Press and hold the 3D buttons; every colour pair with its WCAG ratio, proposed and today's |
+| **Path** | §3.3 | first letter · in unit 1 · midway | 33 letters by varga; Mitthu beside the current one; tap a grey letter and it wiggles |
+| **Home** | §3.4–3.5 | Monday · missed a day · mission met | The week strip that starts fresh without loss; the tree; open the mission's chest |
+| **In-lesson** | §3.8, D5 D6 D7 | play · run of 3 · success sheet · wrong answer | A five-question Listen & tap with the real recordings: glow on a run, the green sheet and Continue, the soft miss, the 🐢 |
+| **Celebration** | §3.6–3.7 | good session · kept going · no tracing · mastered | The four beats; which quality cards a session earns; open the chest |
+
+**Built from:** SVG and `motion` only (D4), no new dependency. Mitthu, the
+chest and the tree are drawn in-house (D2); stickers and card icons are still
+emoji placeholders. Sounds are the app's chime and soft tone plus small
+synthesised ones (tap, flip, chest, sticker, chirp); Mitthu's voice is the
+browser's hi-IN speech, so it varies by device.
+
+**What the lab has already shown:**
+
+1. **Today's wrong-answer outline fails AA.** `#E76F51` on the off-white page
+   is 2.9 : 1; a non-text mark needs 3 : 1. The lab's "Not yet" role uses
+   `#D9603F` (3.4 : 1), the nearest hue that passes. Today's white-on-blue
+   primary button (3.3 : 1) and white-on-green correct tile (2.8 : 1) fail too,
+   as design_guidelines §5 already says; every proposed role passes.
+2. **"Always three quality cards" (§3.7) holds only while every session runs
+   every game.** A lesson without tracing — what G1's three lessons per
+   letter will produce — earns two (the "no tracing" variant). Either add a
+   card that any lesson can earn, or let a beat show two.
+3. **The "run of N" label needs a decision.** The lab says "✨ 4 लगातार!"
+   (4 in a row); that is a number on a child's screen, if a kind one. It could
+   be the glow alone.
+
+**Still to judge on a real phone:** whether the hop and dance are too busy
+during a lesson, the 🐢's playback speed (0.6×), how loud the synthesised
+sounds are against the recordings, and vibration (Android only).

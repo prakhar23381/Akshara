@@ -14,7 +14,7 @@
 | [archive/](archive/) | Superseded planning documents, kept for their reasoning |
 | [08_AUTH_SETUP.md](08_AUTH_SETUP.md) | Owning the credentials: creating the Google Cloud OAuth client, enabling the Supabase provider, the two redirect allowlists, which env vars the frontend can actually read |
 | [10_REPORT_DESIGN.md](10_REPORT_DESIGN.md) | The new parent report (W4): structure, wireframes, the exact definition of every figure, periods, visual rules, build steps |
-| [11_GAMIFICATION_UX.md](11_GAMIFICATION_UX.md) | Child UX and motivation: Duolingo's principles, which suit a dyslexic child, the companion (Mitthu), the path, rewards, what not to copy |
+| [11_GAMIFICATION_UX.md](11_GAMIFICATION_UX.md) | Child UX and motivation: Duolingo's principles, which suit a dyslexic child, the companion (Mitthu), the path, rewards, what not to copy; §9 the play lab (`/playlab.html`) |
 | [12_CURRICULUM_PLAN.md](12_CURRICULUM_PLAN.md) | **Draft for expert review.** Literature review and the lesson plan: course in four parts, three lessons per letter, review, contrast, new activities, questions for the experts, build phases G1–G6 |
 | [design_guidelines.md](design_guidelines.md) | The design choices for a dyslexia specialist, with every number; where a specialist would push back |
 | [09_DATA_FLOW_AUDIT.md](09_DATA_FLOW_AUDIT.md) | **Read this before touching adaptation or the report.** Which code reads the database (almost none), what the adaptive loop actually used before W2, the report's data defects, and what the learner profile changed |
