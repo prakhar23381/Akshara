@@ -1,11 +1,17 @@
 ---
 trigger: always_on
+name: akshara
+description: Akshara project engineer. Use for any feature, fix, refactor, or investigation inside the Akshara repo (React/Vite frontend, Flask/Supabase backend). Follows the project's mandatory Plan → Ask → Implement flow, the post-implementation checklist, the session triggers and the three-file bookkeeping convention, all in this file.
 ---
 
 # Custom Agent Rules & Operational Guidelines
 
 *Rebuilt 2026-10-07 against the actual tree. Where this file and the code
 disagree, the code wins and this file is the bug.*
+
+*The only rules file, read three ways: by Antigravity (`trigger: always_on`),
+by Claude Code's main session through `../CLAUDE.md`, and as the `akshara`
+subagent through the symlink `../.claude/agents/akshara.md`. Edit it here.*
 
 ## 1) Project Overview
 - **Project Name:** `Akshara` (Akshara-Flow)
@@ -36,8 +42,8 @@ disagree, the code wins and this file is the bug.*
 | **Build output** | `<root>/dist` (never hand-edit) |
 | **Python venv** | `<root>/backend/.venv` (python3.12) |
 | **Node tooling** | `<root>/node_modules/.bin` |
-| **Agent rules** | `<root>/.agents/rules/` — in the repo, versioned with the code |
-| **Claude Code config** | `../.claude/` — **stays in the parent folder**, because that is the session root. Moving it would break settings and permission discovery. It is therefore *not* versioned; treat `.claude/agents/akshara.md` as a local file |
+| **Agent rules** | `<root>/.agents/rules/akshara2.md` — **the only rules file**, versioned with the code |
+| **Claude Code config** | `../.claude/` — **stays in the parent folder**, because that is the session root. Moving it would break settings and permission discovery. `../.claude/agents/akshara.md` is a **symlink to this file** and `../CLAUDE.md` imports it; neither holds rules of its own |
 
 ```bash
 npm install                      # deps
@@ -55,11 +61,14 @@ cd backend && ./.venv/bin/python smoke/live_api.py        # needs a running serv
 `python` is **not** on PATH — only `python3` (3.12). `npm run test` is neither
 vitest nor jest; it is `tsc --noEmit` followed by a plain Node script.
 
-Stage and commit after every major implementation, with a descriptive message:
-
-```bash
-git add . && git commit -m "feat/fix: <descriptive-message>"
-```
+**Commits and pushes.**
+- **During the day:** commit locally after each major implementation, with a
+  descriptive message (`feat/fix: …`). **Never push** unless the user asks.
+- **At "good night Akshara"** (§9): commit everything and push the current branch.
+- **One branch per push.** Pushing `main` and another branch in one command made
+  Vercel fail both deployments. Never `--force`.
+- **A push to `main` is a production release** — Vercel deploys it by itself.
+  Child-facing work belongs on a branch, where a push only makes a preview.
 
 ## 3) File Structure Snapshot
 
@@ -75,7 +84,7 @@ git add . && git commit -m "feat/fix: <descriptive-message>"
 │   ├── smoke/           live_api.py — needs a live server, deliberately outside tests/
 │   ├── tests/           test_pipeline.py — a script, not a pytest suite (see §7)
 │   ├── app.py  db.py  requirements.txt  .env  .env.example  .venv/
-├── docs/                00_INDEX … 10_REPORT_DESIGN
+├── docs/                00_INDEX … 12_CURRICULUM_PLAN · design_guidelines
 ├── public/audio/        33 consonant mp3s
 ├── scripts/             generate-audio.js · run-tests.mjs
 │   └── visual/          seed · shoot · flow — render and click the real build, and the lab (README)
@@ -129,15 +138,16 @@ above; do not reintroduce a component library without raising it first.
   `scripts/`, and the three bookkeeping files.
 - **Read-only:** `node_modules/`, `backend/.venv/`, `dist/`, `.vercel/`, `.git/`.
 - **Environment:** only `VITE_`-prefixed variables reach browser code.
-  `.env.local` also holds ~16 keys from `vercel env pull` that nothing reads, and
-  a pull **overwrites** the file and drops the `VITE_` lines.
+  `.env.local` holds only the two keys the app reads; `vercel env pull`
+  **overwrites** it and drops the `VITE_` lines.
 
 ## 6) Development Workflow (Mandatory)
 No source file changes without passing through these phases in order.
 
 ### Phase 1: Plan
 - Read `.agent_recovery_context.md` first, then the relevant `docs/*.md`, config
-  and existing code.
+  and existing code. Trust the recovery context over your own assumptions, and
+  the code over both.
 - Produce a plan: the design, the exact files to touch, and any breaking changes.
 
 ### Phase 2: Ask
@@ -162,7 +172,7 @@ No source file changes without passing through these phases in order.
 - [ ] Move finished items out of `TODO.md` into `STATUS_LOG.md` (see §10)
 - [ ] Update `.agent_recovery_context.md` §2, and prune anything that closed
 - [ ] Update §3 above if files or directories were added, renamed or deleted
-- [ ] Commit, with a descriptive message
+- [ ] Commit locally, with a descriptive message — no push until good night (§2)
 
 ## 8) Decision Transparency Rule
 Where several approaches exist, do not choose unilaterally. For each option give:
@@ -183,7 +193,14 @@ recovery context.
 1. Append the day's work to `STATUS_LOG.md`.
 2. Update `.agent_recovery_context.md` §2 and **prune** what has closed.
 3. Carry finished items out of `TODO.md`.
-4. Write a short summary and recommendations for next session; output `git status`.
+4. **Commit everything** (`git add -A`), with a message summarising the day.
+   Read `git status` first and leave out anything that is not the day's work —
+   screenshots, browser profiles, `artifacts/` or `scratch/` files, anything
+   secret — and say what was left out.
+5. **Push the current branch**, and only that branch (§2). Never `--force`; if
+   the push is rejected, report it. If the branch is `main`, this is a
+   **production release** — say so plainly in the summary.
+6. Write a short summary and recommendations for next session; output `git status`.
 
 ## 10) Bookkeeping: three files, three jobs
 Keep these separate. This convention exists because the recovery context once
@@ -217,8 +234,9 @@ transient broken states.
 - **No destructive commands:** never `rm -rf`, `git push --force`,
   `git reset --hard` to remote, or drop database tables without explicit,
   double-confirmed user approval.
-- **Read-only enforcement:** never write to read-only paths, parent-directory
-  configuration, or core template definitions.
+- **Stay inside the repo:** never write outside the repo root, to read-only
+  paths, to parent-directory configuration (`../.claude/`, `../CLAUDE.md`) or to
+  core template definitions without explicit approval.
 - **Protected data:** never overwrite, delete or alter raw seed data, live
   environment files (`.env`, `.env.local`, `backend/.env`) or historical data.
   This holds even when a plan containing such a change has been approved — ask
@@ -233,3 +251,17 @@ transient broken states.
   typecheck, build and tests pass.
 - **Concise:** direct queries, answers and summaries. Ask clarifying questions
   only where real ambiguity blocks execution.
+
+## 13) Running as a subagent
+Applies only when this file is loaded as the `akshara` subagent, spawned by
+another session. The main session and Antigravity skip this section.
+- **You cannot reach the user,** so the Ask phase (§6) means: **return the plan
+  and stop.** Permission modes, auto-approve and an absent objection are not
+  approval. Skip the gate only when the invoking prompt says the user approved
+  this specific plan, or the task is read-only (investigation, review, answering
+  a question).
+- **Only your final message reaches the caller.** Put in it: what you did, or
+  the plan awaiting approval; files touched, with paths; command results
+  verbatim where they failed; open decisions; anything deliberately left out.
+- **The session triggers (§9) are the main session's.** Never commit-and-push
+  as a "good night" from inside a subagent.

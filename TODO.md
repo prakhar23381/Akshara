@@ -219,6 +219,23 @@ commits are in `main` (table kept as a record):
       policy on `user_profiles`. Until then the trigger is what keeps old
       cached clients' sign-ups working.
 
+## G · Curriculum (docs/12_CURRICULUM_PLAN.md) — awaiting approval
+
+Built on the plan's defaults so the experts can see it working; each phase on
+its own branch, shown through its preview link.
+
+- [ ] **G1 · Lessons.** Three lessons per letter from today's games; Meet only
+      once; barakhadi out of consonant lessons; letter order as a table.
+- [ ] **G2 · Review.** Warm-up box rule, contrast nodes, unit checkpoints,
+      practice nodes, gold over two days.
+- [ ] **G3 · New games.** See & match, Letter hunt, Read and pick, Build the
+      word, Teach Mitthu.
+- [ ] **G4 · The path, Mitthu, celebrations** (docs/11).
+- [ ] **G5 · First words** (needs the teacher trainer's T2).
+- [ ] **G6 · Matras** — this is W6.
+- [ ] **X1 · Expert review** of docs/12 §8 (E1–E7 specialist, T1–T7 teacher
+      trainer), once G1–G3 can be shown.
+
 ## Verification
 *Layout can now be checked headlessly (`scripts/visual/`); these need a real
 device — touch, sound, persistence across a real refresh.*
