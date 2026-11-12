@@ -17,6 +17,7 @@ import type {
   CognitiveState,
   DistractorSimilarity,
   InputMode,
+  LessonKind,
   LevelConfig,
   ModuleType,
   QuestionAttempt,
@@ -24,6 +25,7 @@ import type {
   VisualAidIntensity,
 } from "../types/levelConfig";
 import type { LearnerProfile } from "./learnerProfile";
+import { IDENTIFY_QUESTIONS, LESSON_LABEL, LESSON_STEPS } from "../data/curriculum";
 
 // Exported because the report colours error rates by these same two lines:
 // a colour then always marks a point at which this engine changes the
@@ -507,12 +509,20 @@ const BASELINE_MAX_MS = 12000;
  *
  * With an empty profile every one of these falls back to exactly what the
  * engine did before, so a brand-new child gets the standard assessment.
+ *
+ * **`lesson` (G1)** makes the session one of the letter's three lessons: it
+ * takes that lesson's activities, and the difficulty inside them is set as
+ * above. Meet is the exception on difficulty — a first look at a letter is
+ * always among different-shape letters, whatever stage the child brings from
+ * other letters, and it carries no check question. Without `lesson` this plans
+ * a session as they were before lessons: every activity in one sitting.
  */
 export function planSession(
   userId: string,
   target: string,
   profile: LearnerProfile,
   previousPool: string[] = [],
+  lesson?: LessonKind,
 ): LocalAnalysis {
   const own = profile.stateByLetter[target];
   const { state, reasoning: stateReason } = own
@@ -530,7 +540,13 @@ export function planSession(
     .filter(([l]) => l !== target)
     .sort((a, b) => b[1] - a[1])
     .map(([l]) => l);
-  const { pool, personal } = pickDistractors(target, state, previousPool, confused);
+  const meeting = lesson === "meet";
+  const { pool, personal } = pickDistractors(
+    target,
+    meeting ? "insufficient_data" : state,
+    previousPool,
+    confused,
+  );
 
   const errorRate = profile.errorRateByLetter[target] ?? 0;
   const rules = STATE_RULES[state];
@@ -538,7 +554,11 @@ export function planSession(
   // A mix-up is evidence about both letters, but it never takes mastery away
   // by itself: the letter is asked for once, among the letters it was mistaken
   // for, and only that answer decides. Never this session's own letter.
-  const due = profile.checks.find((c) => c.letter !== target);
+  // Only where it can be asked: the last question of a five-question Listen & tap.
+  const due =
+    lesson === undefined || lesson === "find"
+      ? profile.checks.find((c) => c.letter !== target)
+      : undefined;
   const check = due
     ? {
         letter: due.letter,
@@ -558,6 +578,7 @@ export function planSession(
       : 6000;
 
   const parts = [
+    lesson ? `Lesson: ${LESSON_LABEL[lesson]}.` : "",
     profile.sessionCount > 0
       ? `Personalised from ${profile.sessionCount} recorded session${profile.sessionCount === 1 ? "" : "s"} (${profile.source}).`
       : "No recorded sessions yet: standard first assessment.",
@@ -577,13 +598,19 @@ export function planSession(
     user_id: userId,
     target_alphabet: target,
     cognitive_state: state,
-    distractor_similarity: rules.distractor_similarity,
+    distractor_similarity: meeting ? "low" : rules.distractor_similarity,
     visual_aid_intensity: rules.visual_aid_intensity,
     input_mode: rules.input_mode,
     scaffold_intensity: computeScaffold(state, errorRate),
     distractor_pool: pool,
     confused_letters: personal,
-    include_matras: true,
+    ...(lesson
+      ? {
+          lesson,
+          steps: [...LESSON_STEPS[lesson]],
+          ...(IDENTIFY_QUESTIONS[lesson] ? { identify_questions: IDENTIFY_QUESTIONS[lesson] } : {}),
+        }
+      : { include_matras: true }),
     ...(check ? { check } : {}),
     feature_to_highlight: FEATURE_BY_LETTER[target] ?? "",
     phonological_note: "",

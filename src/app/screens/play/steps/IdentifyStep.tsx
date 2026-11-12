@@ -17,7 +17,8 @@ import type { StepProps } from "../types";
 
 type Phase = "default" | "hesitation" | "hint" | "wrong" | "correct";
 
-const QUESTIONS = 5;
+/** Questions when the session does not say: every session before lessons had five. */
+const DEFAULT_QUESTIONS = 5;
 const FAIL_FORCE = 2;
 
 /**
@@ -45,6 +46,8 @@ function makeOptions(target: string, pool: string[], confused: string[] = []): s
 
 export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
   const { recordAttempt } = useSession();
+  // A lesson sets its own length: three in Meet, five in Find it.
+  const QUESTIONS = levelConfig.identify_questions ?? DEFAULT_QUESTIONS;
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("default");
   const [chosen, setChosen] = useState<string | null>(null);
@@ -80,7 +83,7 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
               options: makeOptions(letter, levelConfig.distractor_pool, levelConfig.confused_letters),
             },
       ),
-    [letter, levelConfig.distractor_pool, levelConfig.confused_letters, check],
+    [letter, levelConfig.distractor_pool, levelConfig.confused_letters, check, QUESTIONS],
   );
   const target = questions[index]?.target ?? letter;
   const options = questions[index]?.options ?? [];
@@ -115,7 +118,7 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
     } else {
       onComplete();
     }
-  }, [index, onComplete]);
+  }, [index, onComplete, QUESTIONS]);
 
   const log = useCallback(
     (selected: string, guided: boolean) => {

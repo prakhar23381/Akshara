@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { FALLBACK_LEVEL_CONFIG } from "../api/client";
-import { LETTER_SEQUENCE } from "../types/levelConfig";
+import { TEACHING_ORDER } from "../data/curriculum";
 import type { LevelConfig } from "../types/levelConfig";
 
 interface LevelConfigContextValue {
@@ -39,19 +39,19 @@ export function LevelConfigProvider({ children }: { children: ReactNode }) {
   };
 
   const advanceLetter = () => {
-    setLetterIndex((i) => Math.min(i + 1, LETTER_SEQUENCE.length - 1));
+    setLetterIndex((i) => Math.min(i + 1, TEACHING_ORDER.length - 1));
     setSessionNumber(1);
   };
 
   const jumpToLetterIndex = (index: number) => {
-    setLetterIndex(Math.min(index, LETTER_SEQUENCE.length - 1));
+    setLetterIndex(Math.min(index, TEACHING_ORDER.length - 1));
     setSessionNumber(1);
   };
 
-  const currentLetter = LETTER_SEQUENCE[letterIndex];
+  const currentLetter = TEACHING_ORDER[letterIndex];
   const nextLetter =
-    letterIndex < LETTER_SEQUENCE.length - 1
-      ? LETTER_SEQUENCE[letterIndex + 1]
+    letterIndex < TEACHING_ORDER.length - 1
+      ? TEACHING_ORDER[letterIndex + 1]
       : null;
 
   const value = useMemo(

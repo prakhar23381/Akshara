@@ -3,14 +3,14 @@ import { useNavigate } from "react-router";
 import { useLevelConfig } from "../hooks/useLevelConfig";
 import { useSession } from "../contexts/SessionContext";
 import { useAccount } from "../contexts/AccountContext";
-import { LETTER_SEQUENCE } from "../types/levelConfig";
+import { LESSON_KINDS, LESSON_LABEL, TEACHING_ORDER } from "../data/curriculum";
 import { prepareSessionConfig } from "../api/client";
 import { loadLetterStatuses } from "../lib/learnerProfile";
 import {
   completionScore,
   pageAverage,
+  pageLetters,
   pageOpen,
-  LETTERS_PER_PAGE,
   TOTAL_PAGES,
   type LetterStatus,
 } from "../lib/letterStatus";
@@ -46,6 +46,12 @@ export function LetterRoadmapScreen() {
       try {
         const { statuses, saved } = await loadLetterStatuses(userId);
         setStatuses(statuses);
+        // Open on the unit the child is working in: the first open page with a
+        // letter still to finish. With eight units, always opening on the
+        // first one left a child several taps from their own letters.
+        const pages = Array.from({ length: TOTAL_PAGES }, (_, i) => i).filter((i) => pageOpen(i, statuses));
+        const working = pages.find((i) => pageLetters(i).some((l) => !statuses[l]?.complete));
+        setCurrentPage(working ?? pages[pages.length - 1] ?? 0);
         setSessionsCount(
           Object.fromEntries(saved.map((row) => [row.letter, row.sessions_count ?? 0])),
         );
@@ -81,7 +87,8 @@ export function LetterRoadmapScreen() {
     }
   };
 
-  const handleCardClick = async (letter: string, index: number) => {
+  const handleCardClick = async (letter: string) => {
+    const index = TEACHING_ORDER.indexOf(letter);
     const pageUnlocked = isPageUnlocked(currentPage);
     if (!pageUnlocked || startingLetter) return; // Grid is disabled if page is locked or starting
     setStartingLetter(letter);
@@ -133,10 +140,8 @@ export function LetterRoadmapScreen() {
   const pageUnlocked = isPageUnlocked(currentPage);
   const nextUnlocked = currentPage < TOTAL_PAGES - 1 && isPageUnlocked(currentPage + 1);
 
-  // Get active letters for the current page
-  const startIndex = currentPage * LETTERS_PER_PAGE;
-  const endIndex = Math.min((currentPage + 1) * LETTERS_PER_PAGE, LETTER_SEQUENCE.length);
-  const activeLetters = LETTER_SEQUENCE.slice(startIndex, endIndex);
+  // The current page's letters: one unit of the course.
+  const activeLetters = pageLetters(currentPage);
 
   return (
     <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col overflow-hidden relative">
@@ -161,7 +166,7 @@ export function LetterRoadmapScreen() {
             My letters
           </h1>
           <p className="t-0 text-gray-500 tracking-wide">
-            Progress on Page {currentPage + 1}: <span className="font-bold text-gray-700">{getPageAverageScore(currentPage)}%</span> average
+            Progress on this unit: <span className="font-bold text-gray-700">{getPageAverageScore(currentPage)}%</span> average
           </p>
         </div>
 
@@ -172,6 +177,7 @@ export function LetterRoadmapScreen() {
         <div className="shrink-0 flex items-center justify-center gap-[var(--gap-screen)]">
           <button
             onClick={handlePrevPage}
+            aria-label="Previous unit"
             disabled={currentPage === 0}
             style={{ width: "var(--tap-min)", height: "var(--tap-min)" }}
             className={`shrink-0 grid place-items-center rounded-full border-4 transition-all ${
@@ -183,36 +189,16 @@ export function LetterRoadmapScreen() {
             <ChevronLeft size={20} />
           </button>
 
-          {/* Page Indicators */}
-          <div className="flex gap-2 items-center">
-            {Array.from({ length: TOTAL_PAGES }).map((_, i) => {
-              const pageActive = i === currentPage;
-              const pageOpen = isPageUnlocked(i);
-              return (
-                <div
-                  key={i}
-                  className={`flex flex-col items-center gap-1 select-none transition-all duration-300`}
-                >
-                  <div
-                    onClick={() => pageOpen && setCurrentPage(i)}
-                    style={{ width: "var(--tap-min)", height: "var(--tap-min)" }}
-                    className={`grid place-items-center rounded-full border-4 font-bold t--1 cursor-pointer transition-all duration-300 ${
-                      pageActive
-                        ? "bg-[#4A90E2] border-[#4A90E2] text-white scale-110 shadow-md ring-4 ring-blue-100"
-                        : pageOpen
-                          ? "bg-white border-[#4A90E2] text-[#4A90E2] hover:bg-blue-50"
-                          : "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                    }`}
-                  >
-                    {pageOpen ? i + 1 : <Lock size={16} />}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {/* Where the child is among the units. Before G1 this was a row of
+              numbered dots, one per page: four fitted a phone, eight units do
+              not (8 × 44px is wider than a 360px screen before the arrows). */}
+          <p className="t-0 font-bold text-gray-700 tracking-wide text-center tabular-nums" aria-live="polite">
+            Unit {currentPage + 1} of {TOTAL_PAGES}
+          </p>
 
           <button
             onClick={handleNextPage}
+            aria-label={nextUnlocked ? "Next unit" : "Next unit: not open yet"}
             disabled={!nextUnlocked}
             style={{ width: "var(--tap-min)", height: "var(--tap-min)" }}
             className={`shrink-0 grid place-items-center rounded-full border-4 transition-all ${
@@ -231,9 +217,9 @@ export function LetterRoadmapScreen() {
 
         {/* 10-Letter Grid */}
         <div className="flex-1 min-h-0 grid grid-cols-5 gap-2 sm:gap-3 md:gap-4 max-w-5xl w-full content-center overflow-hidden">
-          {activeLetters.map((letter, idx) => {
-            const index = startIndex + idx;
+          {activeLetters.map((letter) => {
             const score = getCompletionScore(letter);
+            const lessons = statuses[letter]?.lessons;
             const isStarting = startingLetter === letter;
 
             return (
@@ -241,7 +227,7 @@ export function LetterRoadmapScreen() {
                 key={letter}
                 whileHover={pageUnlocked && !isStarting ? { scale: 1.05 } : {}}
                 whileTap={pageUnlocked && !isStarting ? { scale: 0.95 } : {}}
-                onClick={() => handleCardClick(letter, index)}
+                onClick={() => handleCardClick(letter)}
                 className={`relative rounded-2xl border-4 p-2 flex flex-col items-center justify-center gap-1.5 min-h-0 transition-all cursor-pointer ${
                   pageUnlocked
                     ? score === 100
@@ -272,6 +258,30 @@ export function LetterRoadmapScreen() {
                 >
                   {isStarting ? "⏳" : letter}
                 </span>
+
+                {/* The letter's three lessons: filled once finished. Shape, not
+                    colour alone, carries it — a ring against a disc. */}
+                <div
+                  className="flex gap-1.5"
+                  role="img"
+                  aria-label={LESSON_KINDS.map(
+                    (k) => `${LESSON_LABEL[k]}: ${lessons?.[k] ? "done" : "to do"}`,
+                  ).join(", ")}
+                >
+                  {LESSON_KINDS.map((k) => (
+                    <span
+                      key={k}
+                      className={`block rounded-full border-2 ${
+                        !pageUnlocked
+                          ? "border-gray-300"
+                          : lessons?.[k]
+                            ? "bg-[#2F6FB7] border-[#2F6FB7]"
+                            : "bg-white border-[#2F6FB7]"
+                      }`}
+                      style={{ width: "0.6rem", height: "0.6rem" }}
+                    />
+                  ))}
+                </div>
 
                 {/* Progress Text */}
                 <div className="text-center w-full">

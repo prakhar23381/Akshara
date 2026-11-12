@@ -6,6 +6,12 @@
 > them on the device, and `tests/engine.test.ts` verifies the two agree. Screen
 > screen names have been updated to the step files that replaced them.
 
+> **Since G1 (branch `feat/g1-lessons`, 12 November 2026)** a letter's stage is
+> judged on its latest Listen & tap answers and its latest word-game answers
+> pooled across lessons (`lib/letterStatus.ts`), by the same thresholds
+> described below. `planSession()` takes a lesson; Meet always uses
+> different-shape choices. See [12_CURRICULUM_PLAN.md §9.1](12_CURRICULUM_PLAN.md).
+
 ## Overview
 
 The adaptive learning engine is the intellectual core of Akshara-Flow. It operates as a continuous observation-diagnosis-response loop: after every session the system re-evaluates the child's cognitive state and reconfigures the next session accordingly. The child never knows this is happening — from their perspective, they just keep tapping letters.

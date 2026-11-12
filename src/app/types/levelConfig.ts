@@ -1,3 +1,5 @@
+import type { ActivityType } from "./session";
+
 export type ModuleType = "dissimilar" | "similar" | "scaffold";
 export type CognitiveState =
   | "gross_shape_blindness"
@@ -7,6 +9,8 @@ export type CognitiveState =
 export type DistractorSimilarity = "high" | "medium" | "low";
 export type VisualAidIntensity = "none" | "static" | "animated";
 export type InputMode = "tap" | "drag" | "trace";
+/** The three lessons on a letter (docs/12_CURRICULUM_PLAN.md §5). */
+export type LessonKind = "meet" | "find" | "words";
 
 export interface LevelConfig {
   user_id: string;
@@ -40,6 +44,20 @@ export interface LevelConfig {
    * Absent when no check is due, and in configs from the backend.
    */
   check?: { letter: string; pool: string[]; confused: string[] };
+  /**
+   * Which lesson on the letter this session is (G1). Absent on sessions from
+   * before lessons existed, which played every activity in one sitting — they
+   * count as all three.
+   */
+  lesson?: LessonKind;
+  /**
+   * The session's own activity order, snapshotted when it was planned. The
+   * report works out what a past session finished from its order, so a session
+   * must keep the order it was played with when the lessons change.
+   */
+  steps?: ActivityType[];
+  /** Listen & tap questions in this session. Absent means five, as before G1. */
+  identify_questions?: number;
 }
 
 export interface QuestionAttempt {

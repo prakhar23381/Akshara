@@ -148,12 +148,9 @@ commits are in `main` (table kept as a record):
   - [ ] **Memory.** No timer, hint or rescue; Next stays locked until every
         pair is matched (`MemoryStep.tsx`). Decide what dim / pulse / supply
         mean for face-down cards.
-  - [ ] **Tracing.** No timer or nudge (the guide replays only on "👁️ Guide"),
-        and Next stays locked until a trace passes with **no attempt cap** —
-        a child who cannot reach the threshold is stuck for good
-        (`TracingStep.tsx`). Decide the nudges (e.g. replay the guide when
-        idle) and the way out (e.g. unlock after N tries, as Identify does
-        after 2 misses).
+  - [ ] **Tracing.** No timer or nudge (the guide replays only on "👁️ Guide").
+        Decide the nudges (e.g. replay the guide when idle). The way out is
+        done (G1): Next unlocks after 3 tries, recorded as not passed.
   - [ ] **Standardise.** Every ladder through `hooks/useHesitationLadder.ts`,
         with the same timings, the same visuals and the same record of a
         supplied answer (a miss, per E2). Identify still runs its own copy,
@@ -219,13 +216,35 @@ commits are in `main` (table kept as a record):
       policy on `user_profiles`. Until then the trigger is what keeps old
       cached clients' sign-ups working.
 
-## G · Curriculum (docs/12_CURRICULUM_PLAN.md) — awaiting approval
+## G · Curriculum (docs/12_CURRICULUM_PLAN.md) — G1 built, the rest open
 
 Built on the plan's defaults so the experts can see it working; each phase on
-its own branch, shown through its preview link.
+its own branch, shown through its preview link. G1 is on `feat/g1-lessons`
+(local, not pushed); what it built is docs/12 §9.1.
 
-- [ ] **G1 · Lessons.** Three lessons per letter from today's games; Meet only
-      once; barakhadi out of consonant lessons; letter order as a table.
+- [ ] **G1a · The report's "Roadmap pages" card still describes the old
+      rule** (`report-v2/views/Letters.tsx`): "Page N", a first–last letter
+      range that means nothing for a unit, a tick at 75 % and "there the next
+      page opens". The rows themselves are right (they read the units). Left
+      alone because the report was outside G1's approved files — needs the
+      user's go-ahead.
+- [ ] **G1b · The lab's children still play whole sessions in varnamala
+      order** (`src/lab/fixtures/`). They should play lessons in teaching
+      order; doing so changes every figure `tests/reportModel.test.ts` pins,
+      so it is its own piece of work. Until then the lab shows histories from
+      before lessons — still valid data, and a standing check that old
+      sessions read correctly.
+- [ ] **G1c · Look at G1 on a device** — a lesson is short; does it feel like
+      one? The roadmap card's star overlaps the letter on a phone (it did
+      before G1 too).
+- [ ] **S1 · The vowels (स्वर).** The course teaches only the 33 consonants;
+      अ आ इ ई उ ऊ ऋ ए ऐ ओ औ are not taught at all (इ is already a wrong choice
+      for ङ झ ड ह). Needs per vowel: a sound clip, a tracing path, example
+      words, look-alikes, a guiding-dot position; then a unit in
+      `data/curriculum.ts`. Placement is question T3 (before the consonants,
+      as primers do, or with their matras in Part 3). The report's 33-cell
+      grid and "of 33 letters" follow `LETTER_SEQUENCE` and need to follow
+      the course.
 - [ ] **G2 · Review.** Warm-up box rule, contrast nodes, unit checkpoints,
       practice nodes, gold over two days.
 - [ ] **G3 · New games.** See & match, Letter hunt, Read and pick, Build the

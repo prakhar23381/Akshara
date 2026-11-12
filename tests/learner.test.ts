@@ -306,7 +306,47 @@ console.log("\n-- loading history --");
     ok("and does read theirs", confusedWith(a, "स")[0] === "ष");
     ok("a guest's history is the device", a.source === "device");
 
-    console.log(`\nRESULT ${pass} passed, ${fail} failed`);
+    console.log("\n-- a session is one lesson (G1) --");
+{
+  const hardOf = (l: string) => DISTRACTOR_POOLS[l].hard;
+  const fresh = planSession("c", "क", EMPTY_PROFILE, [], "meet").levelConfig;
+  ok("Meet: shown, traced, then tried",
+    fresh.steps?.join() === "intro,pronunciation,example_words,tracing,identify", String(fresh.steps));
+  ok("Meet asks three questions", fresh.identify_questions === 3);
+  ok("no lesson shows the barakhadi", !fresh.include_matras && !fresh.steps?.includes("matras"));
+
+  // A child who is past shape on other letters still meets a new letter among
+  // different shapes.
+  const ahead = buildLearnerProfile([session("ल", Array.from({ length: 10 }, () => attempt("ल", "ल")))]);
+  const meetNext = planSession("c", "क", ahead, [], "meet").levelConfig;
+  ok("Meet is among different-shape letters whatever the stage",
+    meetNext.distractor_similarity === "low" && meetNext.distractor_pool.every((l) => !hardOf("क").includes(l)),
+    meetNext.distractor_pool.join(" "));
+  const findNext = planSession("c", "क", ahead, [], "find").levelConfig;
+  ok("Find it takes the stage's choices", findNext.distractor_similarity === "high" && findNext.identify_questions === 5);
+  ok("Find it is Listen & tap, then Memory", findNext.steps?.join() === "identify,memory");
+  const wordsNext = planSession("c", "क", ahead, [], "words").levelConfig;
+  ok("In words is the two word games", wordsNext.steps?.join() === "word_fill,word_spelling" && wordsNext.identify_questions === undefined);
+  ok("each lesson says which it is", [meetNext, findNext, wordsNext].map((c) => c.lesson).join() === "meet,find,words");
+
+  // The check question has one place to go: the end of Find it.
+  const sessions = [
+    session("क", Array.from({ length: 10 }, () => attempt("क", "क"))),
+    session("भ", [attempt("भ", "क"), attempt("भ", "क"), ...Array.from({ length: 8 }, () => attempt("भ", "भ"))]),
+  ];
+  const due = buildLearnerProfile(sessions);
+  ok("a check is due", due.checks.length === 1 && due.checks[0].letter === "क");
+  ok("Find it carries it", planSession("c", "म", due, [], "find").levelConfig.check?.letter === "क");
+  ok("Meet does not", planSession("c", "म", due, [], "meet").levelConfig.check === undefined);
+  ok("In words does not", planSession("c", "म", due, [], "words").levelConfig.check === undefined);
+
+  ok("the profile says which lesson is due", due.lessonByLetter["क"] === "find" && due.lessonByLetter["म"] === undefined);
+  ok("planning without a lesson is a session from before lessons",
+    planSession("c", "क", EMPTY_PROFILE).levelConfig.steps === undefined &&
+      planSession("c", "क", EMPTY_PROFILE).levelConfig.include_matras === true);
+}
+
+console.log(`\nRESULT ${pass} passed, ${fail} failed`);
     if (fail > 0) process.exit(1);
   }).catch((err) => {
     // An async failure must fail the file, not vanish into an unhandled promise.

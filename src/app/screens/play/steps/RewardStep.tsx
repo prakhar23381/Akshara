@@ -9,6 +9,8 @@ import { useLevelConfig } from "../../../hooks/useLevelConfig";
 import { supabase } from "../../../lib/supabase";
 import { LETTER_SEQUENCE } from "../../../types/levelConfig";
 import { sessionAttempts } from "../../../types/session";
+import { TEACHING_ORDER } from "../../../data/curriculum";
+import { loadLetterStatuses } from "../../../lib/learnerProfile";
 
 /**
  * Closes the session and celebrates.
@@ -21,7 +23,7 @@ import { sessionAttempts } from "../../../types/session";
 export function RewardStep() {
   const navigate = useNavigate();
   const { session, endSession } = useSession();
-  const { setLevelConfig, advanceLetter, letterIndex } = useLevelConfig();
+  const { setLevelConfig, jumpToLetterIndex } = useLevelConfig();
 
   const [mastered, setMastered] = useState(false);
   const [ready, setReady] = useState(false);
@@ -31,7 +33,24 @@ export function RewardStep() {
     if (closed.current || !session) return;
     closed.current = true;
 
-    endSession().then(async ({ letterMastered, nextConfig }) => {
+    endSession().then(async ({ letterMastered: lessonAlone, nextConfig }) => {
+      // A lesson is one part of a letter, so whether the letter is mastered is
+      // read from its status — the letter's lessons judged together
+      // (letterStatus.ts) — not from this lesson's answers alone: a clean word
+      // lesson would otherwise crown a letter the child cannot yet pick out.
+      // A session from before lessons held every game and still judges itself.
+      let letterMastered = lessonAlone;
+      let stateNow = nextConfig?.cognitive_state ?? session.level_config.cognitive_state;
+      if (session.level_config.lesson) {
+        try {
+          const { statuses } = await loadLetterStatuses(session.user_id);
+          const st = statuses[session.letter];
+          letterMastered = st?.mastered ?? false;
+          if (st?.judged) stateNow = st.state;
+        } catch {
+          letterMastered = false;
+        }
+      }
       setMastered(letterMastered);
       if (nextConfig) setLevelConfig(nextConfig);
       setReady(true);
@@ -50,8 +69,7 @@ export function RewardStep() {
             letter_index: index,
             mastered: letterMastered,
             sessions_count: session.session_number,
-            last_cognitive_state:
-              nextConfig?.cognitive_state ?? session.level_config.cognitive_state,
+            last_cognitive_state: stateNow,
             last_scaffold_intensity: nextConfig?.scaffold_intensity ?? 0.55,
             last_avg_latency_ms:
               session.metrics?.latency_median_ms ?? 6000,
@@ -68,15 +86,23 @@ export function RewardStep() {
   if (!session) return null;
 
   const answered = sessionAttempts(session).length;
+  // From the session, not the app's "current letter": that is held in memory
+  // only, so after a refresh mid-lesson it pointed at the first letter again.
+  const letterIndex = Math.max(0, TEACHING_ORDER.indexOf(session.letter));
   const nextLetter =
-    letterIndex < LETTER_SEQUENCE.length - 1
-      ? LETTER_SEQUENCE[letterIndex + 1]
+    letterIndex < TEACHING_ORDER.length - 1
+      ? TEACHING_ORDER[letterIndex + 1]
       : null;
+  // The course moves on when the letter's last lesson is finished, however
+  // well it went (plan §3, principle 7); it used to wait for mastery. A session
+  // from before lessons was the whole letter.
+  const lesson = session.level_config.lesson;
+  const letterDone = !lesson || lesson === "words";
 
   // Only the letters that mean something right now.
-  const shown = LETTER_SEQUENCE.slice(
+  const shown = TEACHING_ORDER.slice(
     Math.max(0, letterIndex - 2),
-    Math.min(LETTER_SEQUENCE.length, letterIndex + 3),
+    Math.min(TEACHING_ORDER.length, letterIndex + 3),
   );
 
   return (
@@ -84,11 +110,11 @@ export function RewardStep() {
       footer={
         ready ? (
           <>
-            {mastered && nextLetter ? (
+            {letterDone && nextLetter ? (
               <AksharaButton
                 fullWidth
                 onClick={() => {
-                  advanceLetter();
+                  jumpToLetterIndex(letterIndex + 1);
                   navigate("/roadmap", { replace: true });
                 }}
               >

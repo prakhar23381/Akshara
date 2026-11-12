@@ -82,6 +82,10 @@ export interface LearningSession {
  * features does not need to be sent back to it.
  */
 export function buildStepOrder(config: LevelConfig): ActivityType[] {
+  // A lesson carries its own order (G1). Everything below is the order of a
+  // session from before lessons, which is still how those sessions are read.
+  if (config.steps && config.steps.length > 0) return config.steps;
+
   const steps: ActivityType[] = ["intro", "pronunciation", "example_words"];
   // Gated on the config rather than always present: the report derives each
   // past session's completion from this order, so adding a step for everyone

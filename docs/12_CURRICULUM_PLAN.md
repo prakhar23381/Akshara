@@ -2,8 +2,10 @@
 
 *How the app should move a child from their first letter to reading words with
 matras, step by step and getting harder in kind, not only in degree. Built from
-a literature review on 20 October 2026. It is a **draft for expert review**:
-nothing in it is built yet, and §8 lists the questions it needs answered.*
+a literature review on 20 October 2026. It is a **draft for expert review**;
+§8 lists the questions it needs answered. **G1 (lessons) is built** on the
+branch `feat/g1-lessons` since 12 November 2026 — §9.1 says exactly how; the
+rest is not built yet.*
 
 **Who this is for:** the project's dyslexia specialist and nursery-teacher
 trainer, who will check the teaching; then the development team. No
@@ -378,6 +380,41 @@ the experts without touching production.
 **What to show the experts:** after G1–G3 the whole teaching structure works,
 even though the screens still look like today's. The path (G4) can follow
 their feedback.
+
+### 9.1 G1 as built (12 November 2026, branch `feat/g1-lessons`)
+
+Where this differs from §5, the code is right and this section says why.
+
+| | Built |
+|---|---|
+| **Meet** | Meet the letter → How to say it → Example words → Tracing → Listen & tap ×3 among different-shape letters. No warm-up yet (G2) |
+| **Find it** | Listen & tap ×5, choices set by the stage, the check question last → Memory. No See & match yet (G3) |
+| **In words** | Fill the blank ×3 → Spelling ×3. No Letter hunt yet (G3) |
+| **Which lesson is next** | Worked out from the child's saved sessions on every read. Meet once; then Find it and In words take turns, so a complete letter can still be practised. A lesson the child left is offered again. A session from before lessons counts as all three |
+| **Complete** | In words finished once. "Next letter" then appears, whatever the score; before G1 it waited for mastery |
+| **Units** | The eight units of §4.1 are the roadmap's pages. A unit opens when every letter of the one before is complete, or once the child has played on it. Before G1: pages of ten, opening at a 75 % average |
+| **The switch** | `ORDER_MODE` in `src/app/data/curriculum.ts`: `"units"` or `"varnamala"`. The parent report and the child's letter collection keep varnamala order either way |
+| **Tracing** | In Meet for every child, not only in the early stages. After 3 tries "Next" unlocks even without a pass, recorded as not passed (this is the tracing half of TODO E4) |
+| **Matras** | The barakhadi is in no lesson. Until G6 the app shows no matras at all |
+
+**How a letter's stage is judged now.** A lesson alone is five or six answers,
+and In words alone says nothing about shape. So the stage is judged on the
+letter's **latest Listen & tap answers and its latest word-game answers
+together** — about eleven, by the same 10 % / 30 % rules as when one session
+held every game. Replaying a lesson replaces that lesson's answers only. Two
+consequences worth an expert's eye:
+
+- **Mastery needs In words.** A clean Find it alone leaves the letter at
+  *learning the fine detail*; it can turn *mastered* only once the word games
+  have been played.
+- **Meet is three questions**, so one miss is 33 % and reads as *learning the
+  shape* until Find it replaces those answers.
+
+**Not done in G1, on purpose:** the report lab's simulated children still play
+whole sessions in varnamala order (converting them changes every figure the
+report's tests pin); the hesitation ladder for Memory and Tracing (the rest of
+E4); the vowels (अ आ इ…), which the course does not teach yet — the units are a
+data table, so they are one more row when their place is decided (question T3).
 
 ---
 

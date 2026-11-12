@@ -4,6 +4,47 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-11-12 (IST) — G1: a letter in three lessons (`feat/g1-lessons`)
+
+* **The user's instruction:** "begin with g1", after the plan and its five
+  decisions were put in chat. No choices were named, so the recommended option
+  was taken on each (recovery context §4) — all on a local branch, not pushed.
+* **Asked first: are the vowels covered?** No — only the 33 consonants. They
+  can come later: G1 makes the course a data table, so vowels are one more
+  unit plus their content. Logged as TODO S1.
+* **Built** (what each rule is: docs/12 §9.1):
+  - `src/app/data/curriculum.ts` — the eight units, `ORDER_MODE`
+    (`units` / `varnamala`), each lesson's steps, which lesson follows which.
+  - A session is one lesson: `LevelConfig` gains `lesson`, `steps` (the
+    session's own order, snapshotted) and `identify_questions`;
+    `buildStepOrder()` returns the snapshot, so sessions from before lessons
+    keep their completion figures. No migration: the config is saved as JSON.
+  - `planSession(…, lesson)`: Meet always among different-shape letters, three
+    questions, no check question; Find it five, with the check; In words the
+    two word games. No lesson shows the barakhadi.
+  - `letterStatuses()`: lessons done, `complete`, `nextLesson`, and the stage
+    judged on the letter's latest Listen & tap and latest word-game answers
+    pooled. A session from before lessons replaces both and counts as all
+    three lessons. Mastery from a lesson needs word-game answers.
+  - Roadmap: one page per unit, three lesson dots on each letter, opens on the
+    unit the child is working in; a unit opens by completion. Resume: the first
+    letter not complete, in teaching order. Reward: "Next letter" on
+    completion; mastery read from the letter's status, not the lesson alone.
+  - Tracing: Next unlocks after 3 tries (the way out from TODO E4).
+* **Found while looking:** eight numbered page dots do not fit a phone (the
+  row ran off both edges at 390px) — replaced by "Unit N of 8" between the
+  arrows. The reward screen took its letter from in-memory state that a
+  refresh resets; it now reads the session.
+* **Verified:** `tsc` clean; `npm run test` 436 checks in 11 files, 0 failed
+  (was 382 in 10); `npm run build` clean. Headless Brave at 390×844, a new
+  guest child: Meet, Find it and In words on क played through by clicking —
+  the steps, the saved configs and the roadmap's dots after each were as
+  designed, tracing moved on after 3 failed tries, "Next letter: ल" appeared
+  after In words, no runtime errors, no overflow. `scripts/visual/flow.cjs`
+  23 passed.
+* **Not done, on purpose:** TODO G1a (the report's roadmap card wording), G1b
+  (the lab's children), the rest of E4.
+
 ## 2026-10-21 (IST) — the play lab: doc 11 as clickable prototypes
 
 * **The user's instruction:** "create a laboratory, ideate for gamification

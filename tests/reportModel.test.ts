@@ -5,6 +5,7 @@
  * India's time zone, where the app's children are.
  */
 import { buildReportModel, letterDetail, pairDetail, periodsFor, localDate, type Range } from "../src/app/screens/report-v2/model";
+import { TEACHING_UNITS } from "../src/app/data/curriculum";
 import { buildProgressReport, type ReportSources } from "../src/app/api/client";
 import { buildScenario, LAB_TODAY, type LabChild } from "../src/lab/fixtures/scenarios";
 import { createPlayer, rowsOf, SUPPLIED } from "../src/lab/fixtures/play";
@@ -247,7 +248,8 @@ console.log("\n-- the sections' extra detail (B3, deepened) --");
   ok("a letter never played has no mix-up", m.letters.entries.find((e) => e.letter === "ङ")!.mixedUpMost === null);
 
   const pages = m.letters.pages;
-  ok("four roadmap pages, 10 · 10 · 10 · 3 letters", pages.length === 4 && pages.map((p) => p.letters.length).join() === "10,10,10,3");
+  ok("a roadmap page per unit, every letter on one",
+    pages.length === TEACHING_UNITS.length && pages.reduce((n, p) => n + p.letters.length, 0) === 33);
   ok("their learned letters are the learned count",
     pages.reduce((n, p) => n + p.learned, 0) === m.letters.counts.secure);
   ok("their started letters are every letter not 'not started'",

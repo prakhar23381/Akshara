@@ -95,7 +95,7 @@ vitest nor jest; it is `tsc --noEmit` followed by a plain Node script.
 │   │   │                AvatarCircle · ChildScreen · LetterDisplay · OptionCard
 │   │   │                OptionGrid · PinPad · ProgressBar · Screen · TopBar · TracingCanvas
 │   │   ├── contexts/    AccountContext · AuthContext · ProfileSetupContext · SessionContext
-│   │   ├── data/        letterContent.ts · letterPaths.ts
+│   │   ├── data/        curriculum.ts (units, order switch, lessons) · letterContent.ts · letterPaths.ts
 │   │   ├── hooks/       useLetterAudio · useLevelConfig
 │   │   ├── lib/         accounts · adaptiveEngine · akshara · devOverflowCheck
 │   │   │                learnerProfile · letterStatus · offline_sync · reportBands
@@ -117,7 +117,7 @@ vitest nor jest; it is `tsc --noEmit` followed by a plain Node script.
 │   │       └── stations/  Mitthu · Buttons · Path · Home · Lesson · Celebration
 │   ├── styles/          index.css → fonts.css · tailwind.css · theme.css
 │   ├── main.tsx  vite-env.d.ts
-├── tests/               accounts · akshara · bands · engine · learner · letterStatus
+├── tests/               accounts · akshara · bands · curriculum · engine · learner · letterStatus
 │                        playthrough · report · reportModel · session  (.test.ts)
 ├── .legacy/             11 pre-refactor screens + useSessionTracker. Delete after V1–V4
 ├── TODO.md  STATUS_LOG.md  .agent_recovery_context.md  IMPLEMENTATION_PLAN.md

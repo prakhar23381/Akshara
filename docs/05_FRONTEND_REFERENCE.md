@@ -7,6 +7,15 @@ file below was verified present.*
 
 Architecture and the reasoning behind the step machine: [02_ARCHITECTURE.md](02_ARCHITECTURE.md).
 
+> **Since G1 (branch `feat/g1-lessons`, 12 November 2026)** a session is one
+> of three lessons on a letter, not every activity in one sitting. The course
+> — units, the order switch, each lesson's steps — is data in
+> `src/app/data/curriculum.ts`; the planner snapshots a lesson's steps into the
+> session's config, and `buildStepOrder()` reads the snapshot. Details:
+> [12_CURRICULUM_PLAN.md §9.1](12_CURRICULUM_PLAN.md). Where the sections below
+> describe one fixed sequence per session, they describe sessions from before
+> lessons, which the app still reads.
+
 ## Layout
 
 ```

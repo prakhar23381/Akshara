@@ -254,7 +254,9 @@ export async function prepareSessionConfig(
   letter: string,
 ): Promise<LevelConfig> {
   const profile = await loadLearnerProfile(userId);
-  const { levelConfig } = planSession(userId, letter, profile, readLastPool(letter));
+  // The lesson due on this letter (G1): Meet for a letter with no history.
+  const lesson = profile.lessonByLetter[letter] ?? "meet";
+  const { levelConfig } = planSession(userId, letter, profile, readLastPool(letter), lesson);
   writeLastPool(letter, levelConfig.distractor_pool);
   return levelConfig;
 }

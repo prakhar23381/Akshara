@@ -5,7 +5,7 @@ import { AksharaButton } from "../components/AksharaButton";
 import { useLevelConfig } from "../hooks/useLevelConfig";
 import { useAccount } from "../contexts/AccountContext";
 import { loadLetterStatuses } from "../lib/learnerProfile";
-import { LETTER_SEQUENCE } from "../types/levelConfig";
+import { TEACHING_ORDER } from "../data/curriculum";
 
 /**
  * The child's front door: "welcome back", and where they are up to.
@@ -23,28 +23,21 @@ export function ResumeScreen() {
   const [progressLoaded, setProgressLoaded] = useState(false);
   const childId = activeChild?.id;
 
-  // Where this child is up to: the furthest letter they have finished a
-  // session on — the next one if they have mastered it. Mastery is judged from
-  // their answers, not read from the saved label (see letterStatus.ts).
+  // Where this child is up to: the first letter, in teaching order, whose
+  // three lessons are not all finished (see letterStatus.ts). It used to be
+  // "the furthest letter played", which only works while the order never
+  // changes — a child who learned क ख ग before the units is on ल now, not ख.
   useEffect(() => {
     if (!childId) return;
     let live = true;
     loadLetterStatuses(childId)
       .then(({ statuses, saved }) => {
         if (!live) return;
-        const reached = LETTER_SEQUENCE.reduce(
-          (furthest, letter, i) => (statuses[letter]?.judged ? i : furthest),
-          -1,
-        );
-        if (reached >= 0) {
-          const letter = LETTER_SEQUENCE[reached];
-          jumpToLetterIndex(
-            statuses[letter].mastered ? Math.min(reached + 1, LETTER_SEQUENCE.length - 1) : reached,
-          );
-          setLastAvgLatencyMs(saved.find((r) => r.letter === letter)?.last_avg_latency_ms ?? 6000);
-        } else {
-          jumpToLetterIndex(0);
-        }
+        const next = TEACHING_ORDER.findIndex((l) => !statuses[l]?.complete);
+        const index = next >= 0 ? next : TEACHING_ORDER.length - 1;
+        jumpToLetterIndex(index);
+        const letter = TEACHING_ORDER[index];
+        setLastAvgLatencyMs(saved.find((r) => r.letter === letter)?.last_avg_latency_ms ?? 6000);
       })
       .catch(() => {
         if (live) jumpToLetterIndex(0);
@@ -86,7 +79,7 @@ export function ResumeScreen() {
           Currently learning:{" "}
           <span className="t-3 font-bold text-amber-500">{currentLetter}</span>
           <span className="text-lg text-gray-400 ml-2">
-            ({LETTER_SEQUENCE.indexOf(currentLetter as (typeof LETTER_SEQUENCE)[number]) + 1}/{LETTER_SEQUENCE.length})
+            ({TEACHING_ORDER.indexOf(currentLetter) + 1}/{TEACHING_ORDER.length})
           </span>
         </p>
       </div>

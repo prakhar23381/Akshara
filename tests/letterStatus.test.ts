@@ -11,11 +11,13 @@ import {
   completionScore,
   pageOpen,
   pageLetters,
+  TOTAL_PAGES,
   CHECK_AFTER_PICKS,
 } from "../src/app/lib/letterStatus";
+import { LESSON_STEPS, UNITS } from "../src/app/data/curriculum";
 import { analyzeLocally } from "../src/app/lib/adaptiveEngine";
 import type { LearningSession } from "../src/app/types/session";
-import type { CognitiveState, QuestionAttempt } from "../src/app/types/levelConfig";
+import type { CognitiveState, LessonKind, QuestionAttempt } from "../src/app/types/levelConfig";
 
 let pass = 0;
 let fail = 0;
@@ -167,23 +169,107 @@ console.log("\n-- the check question --");
   ok("a check in an abandoned session still counts", !letterStatuses(s)["क"].mastered);
 }
 
+// ── Lessons (G1) ─────────────────────────────────────────────────────────────
+
+/** One lesson on a letter: its Listen & tap answers and/or its word-game answers. */
+const lesson = (
+  letter: string,
+  kind: LessonKind,
+  answers: { heard?: QuestionAttempt[]; inWords?: QuestionAttempt[] },
+  status: LearningSession["status"] = "completed",
+): LearningSession => {
+  const base = session(letter, [], { status });
+  const at = base.started_at;
+  const act = (type: "identify" | "word_fill", attempts: QuestionAttempt[]) => ({
+    type,
+    started_at: at,
+    completed_at: at,
+    outcome: { kind: "questions" as const, attempts },
+  });
+  return {
+    ...base,
+    level_config: { ...base.level_config, lesson: kind, steps: [...LESSON_STEPS[kind]] },
+    activities: [
+      ...(answers.heard ? [act("identify", answers.heard)] : []),
+      ...(answers.inWords ? [act("word_fill", answers.inWords)] : []),
+    ],
+  };
+};
+const shape = (letter: string, picked = letter): QuestionAttempt => ({ ...ask(letter, picked), module_type: "dissimilar" });
+const meet = (l: string, misses = 0) =>
+  lesson(l, "meet", { heard: [...Array(3)].map((_, i) => shape(l, i < misses ? "ल" : l)) });
+const find = (l: string, misses = 0) =>
+  lesson(l, "find", { heard: [...Array(5)].map((_, i) => ask(l, i < misses ? "ख" : l)) });
+const words = (l: string, misses = 0) =>
+  lesson(l, "words", { inWords: [...Array(6)].map((_, i) => ask(l, i < misses ? "ख" : l)) });
+
+console.log("\n-- a letter's three lessons --");
+{
+  ok("a letter never played starts at Meet", letterStatuses([meet("ल")])["क"] === undefined);
+  const afterMeet = letterStatuses([meet("क")])["क"];
+  ok("after Meet comes Find it", afterMeet.nextLesson === "find" && afterMeet.lessons.meet && !afterMeet.complete);
+  ok("a clean Meet reads as learning the fine detail", afterMeet.state === "feature_neglect", afterMeet.state);
+  ok("one miss in Meet's three reads as learning the shape", letterStatuses([meet("क", 1)])["क"].state === "gross_shape_blindness");
+
+  const afterFind = letterStatuses([meet("क"), find("क")])["क"];
+  ok("after Find it comes In words", afterFind.nextLesson === "words" && !afterFind.complete);
+  ok("a clean Find it alone is not mastery", !afterFind.mastered && afterFind.state === "feature_neglect", afterFind.state);
+
+  const done = letterStatuses([meet("क"), find("क"), words("क")])["क"];
+  ok("In words completes the letter", done.complete && done.lessons.words);
+  ok("clean Find it and In words together are mastery", done.mastered);
+  ok("a complete letter goes back to Find it, never Meet", done.nextLesson === "find");
+  ok("its miss rate is over both lessons", done.errorRate === 0);
+
+  const again = letterStatuses([meet("क"), find("क"), words("क"), find("क")])["क"];
+  ok("then In words again", again.nextLesson === "words" && again.complete);
+
+  const quit = letterStatuses([meet("क"), lesson("क", "find", { heard: [ask("क", "ख")] }, "abandoned")])["क"];
+  ok("a lesson the child left is offered again", quit.nextLesson === "find" && !quit.lessons.find);
+}
+{
+  // The pooled judgement: 11 answers, as when one session held every game.
+  const oneMiss = letterStatuses([meet("क"), find("क", 1), words("क")])["क"];
+  ok("one miss in eleven is still mastery (9%)", oneMiss.mastered, String(oneMiss.errorRate));
+  const twoMisses = letterStatuses([meet("क"), find("क", 1), words("क", 1)])["क"];
+  ok("two in eleven is not (18%)", !twoMisses.mastered && twoMisses.state === "feature_neglect");
+
+  // A clean word lesson must not erase a failed Listen & tap.
+  const failedFind = letterStatuses([meet("क"), find("क", 3), words("क")])["क"];
+  ok("a clean In words does not outweigh a failed Find it", !failedFind.mastered, failedFind.state);
+  // Replaying a lesson replaces that lesson's answers, and only those.
+  const retried = letterStatuses([meet("क"), find("क", 3), words("क"), find("क")])["क"];
+  ok("replaying Find it cleanly replaces its answers", retried.mastered);
+  const slipped = letterStatuses([meet("क"), find("क"), words("क"), words("क", 3)])["क"];
+  ok("and a poor In words takes mastery away again", !slipped.mastered && slipped.complete);
+}
+{
+  // Sessions from before lessons: every game in one sitting.
+  const old = letterStatuses([session("क", right("क"))])["क"];
+  ok("a session from before lessons counts as all three", old.complete && old.lessons.meet && old.nextLesson === "find");
+  ok("and is judged on itself, as it was", old.mastered);
+  const savedOnly = letterStatuses([], [{ letter: "ग", mastered: true, sessions_count: 2 }])["ग"];
+  ok("a letter known only from a saved row is complete", savedOnly.complete && savedOnly.nextLesson === "find");
+  // The reward screen saves a row after every lesson; it must not complete the letter.
+  const row = letterStatuses([meet("क")], [{ letter: "क", mastered: false, sessions_count: 1 }])["क"];
+  ok("a saved row beside lessons does not complete the letter", !row.complete && row.nextLesson === "find");
+}
+
 console.log("\n-- the roadmap --");
 {
   const page1 = pageLetters(0);
-  const allMastered = page1.map((l) => session(l, right(l)));
-  const open = letterStatuses(allMastered);
-  ok("page 2 opens when page 1 averages 75%", pageOpen(1, open));
-
-  // Re-judged: seven of page 1's letters had 5 of 11 answers supplied, so they
-  // score 60, not 100 — an average of 72%.
-  const flattered = page1.map((l, i) =>
-    i < 7 ? session(l, [...right(l, 6), ...[...Array(5)].map(() => ask(l, l, true))]) : session(l, right(l)),
-  );
-  const shut = letterStatuses(flattered);
-  ok("a corrected page 1 no longer opens page 2 by itself", !pageOpen(1, shut));
-  const played = letterStatuses([...flattered, session(pageLetters(1)[0], [ask(pageLetters(1)[0], "ल")], { status: "abandoned" })]);
-  ok("but a page the child has played on stays open", pageOpen(1, played));
+  ok("a page is a unit of the course", page1.join("") === UNITS[0].join("") && TOTAL_PAGES === UNITS.length);
+  const whole = (l: string) => [meet(l), find(l, 2), words(l, 2)];
+  const finished = letterStatuses(page1.flatMap(whole));
+  ok("page 2 opens when every letter on page 1 is complete, however well", pageOpen(1, finished) && !finished[page1[0]].mastered);
+  const oneShort = letterStatuses([...page1.slice(1).flatMap(whole), meet(page1[0]), find(page1[0])]);
+  ok("one letter short of In words keeps it shut", !pageOpen(1, oneShort));
+  const mastery = letterStatuses(page1.map((l) => session(l, right(l))));
+  ok("letters played whole before lessons open it too", pageOpen(1, mastery));
+  const played = letterStatuses([meet(page1[0]), lesson(pageLetters(1)[0], "meet", { heard: [shape(pageLetters(1)[0], "ल")] }, "abandoned")]);
+  ok("a page the child has played on stays open", pageOpen(1, played));
   ok("page 1 is always open", pageOpen(0, {}));
+  ok("a page past the last is not open", !pageOpen(TOTAL_PAGES, finished) || pageLetters(TOTAL_PAGES).length === 0);
 }
 
 console.log(`\nRESULT ${pass} passed, ${fail} failed`);

@@ -1,7 +1,7 @@
-import type { CognitiveState } from "../types/levelConfig";
+import type { CognitiveState, LessonKind } from "../types/levelConfig";
 import { sessionAttempts, type LearningSession } from "../types/session";
 import { loadAllSessions, rowToSession } from "./sessionStore";
-import { diagnose, overallErrorRate, ownAttempts } from "./adaptiveEngine";
+import { ownAttempts } from "./adaptiveEngine";
 import { supabase, isSupabaseConfigured } from "./supabase";
 import {
   checksDue,
@@ -41,6 +41,8 @@ export interface LearnerProfile {
   latestState: CognitiveState | null;
   /** Mastered letters this child keeps picking by mistake, due a check question (E3). */
   checks: DueCheck[];
+  /** The lesson due on each letter the child has a history on; any other letter starts at Meet. */
+  lessonByLetter: Record<string, LessonKind>;
   /**
    * Recency-weighted confusion strength: `confusions[target][chosen]`.
    * Higher means the child has picked `chosen` in place of `target` more often
@@ -58,6 +60,7 @@ export const EMPTY_PROFILE: LearnerProfile = {
   errorRateByLetter: {},
   latestState: null,
   checks: [],
+  lessonByLetter: {},
   confusions: {},
   latencyMedianMs: null,
 };
@@ -160,19 +163,26 @@ export function buildLearnerProfile(
     (confusions[target] ??= {})[chosen] = (confusions[target][chosen] ?? 0) + w;
   };
 
-  // Only sessions that finished: an abandoned session was never diagnosed.
-  newestFirst.forEach((s) => {
-    if (s.status !== "completed") return;
-    const attempts = sessionAttempts(s);
-    const { state } = diagnose(attempts, s.letter);
-    if (state === "insufficient_data") return;
-    latestState ??= state;
-    // A supplied answer is a miss, as in the diagnosis. Leaving supplied
-    // answers out made a child rescued on most questions look accurate.
-    if (!(s.letter in errorRateByLetter)) {
-      errorRateByLetter[s.letter] = overallErrorRate(ownAttempts(attempts, s.letter));
-    }
+  // Each letter's miss rate is over the answers its status was judged on (a
+  // supplied answer is a miss, as in the diagnosis). Since G1 that is the
+  // letter's latest lessons pooled, not one session: a lesson alone is too few
+  // answers, and a word lesson alone says nothing about shape.
+  const lessonByLetter: Record<string, LessonKind> = {};
+  Object.entries(statuses).forEach(([letter, st]) => {
+    if (st.errorRate !== null) errorRateByLetter[letter] = st.errorRate;
+    lessonByLetter[letter] = st.nextLesson;
   });
+
+  // The newest finished session's letter says where the child is now. Only
+  // sessions that finished: an abandoned session was never diagnosed.
+  for (const s of newestFirst) {
+    if (s.status !== "completed") continue;
+    const st = statuses[s.letter];
+    if (!st || st.errorRate === null || st.state === "insufficient_data") continue;
+    if (ownAttempts(sessionAttempts(s), s.letter).length === 0) continue;
+    latestState = st.state;
+    break;
+  }
 
   recent.forEach((s, rank) => {
     const unguided = sessionAttempts(s).filter((a) => !a.was_guided_win);
@@ -201,6 +211,7 @@ export function buildLearnerProfile(
     errorRateByLetter,
     latestState,
     checks: checksDue(statuses),
+    lessonByLetter,
     confusions,
     latencyMedianMs: median(latencies),
   };
