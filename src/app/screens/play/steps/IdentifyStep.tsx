@@ -295,9 +295,9 @@ export function IdentifyStep({
 
   const tileStyle: Record<string, string> = {
     default: "bg-white border-gray-300",
-    correct: "bg-[#4CAF50] border-[#4CAF50] text-white",
-    wrong: "bg-white border-[#E76F51]",
-    hint: "bg-[#FFD166] border-[#FFD166] animate-pulse",
+    correct: "bg-[var(--c-correct)] border-[var(--c-correct)] text-white",
+    wrong: "bg-white border-[var(--c-notyet)]",
+    hint: "bg-[var(--c-glow)] border-[var(--c-glow)] animate-pulse",
     dimmed: "bg-white border-gray-300 opacity-30",
   };
 
@@ -346,7 +346,7 @@ export function IdentifyStep({
           <button
             onClick={() => pick(option)}
             disabled={stateOf(option) === "dimmed"}
-            className={`relative w-full h-full flex items-center justify-center border-4 transition-all min-h-0 ${tileStyle[stateOf(option)]}`}
+            className={`tile3d relative w-full h-full flex items-center justify-center border-4 transition-all min-h-0 ${tileStyle[stateOf(option)]}`}
             style={{ borderRadius: "var(--card-radius)" }}
           >
             <span className="letter-glyph tile-glyph font-bold">{option}</span>

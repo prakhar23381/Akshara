@@ -122,9 +122,16 @@ export function LetterHuntStep({ letter, levelConfig, onComplete }: StepProps) {
       <h1 className="shrink-0 t-1 font-bold text-gray-800 text-center">
         Find every <span className="letter-glyph">{letter}</span> 🔍
       </h1>
-      <p className="shrink-0 t-0 text-gray-500 text-center tabular-nums" aria-live="polite">
-        {found.size} of {targets.length} found
-      </p>
+      {/* How many are left, as dots rather than a number (docs/11 §6). */}
+      <div className="shrink-0 flex justify-center gap-2" role="img" aria-label={`${found.size} of ${targets.length} found`}>
+        {targets.map((t) => (
+          <span
+            key={t.key}
+            className={`block rounded-full border-2 border-[var(--c-correct)] ${found.has(t.key) ? "bg-[var(--c-correct)]" : "bg-white"}`}
+            style={{ width: "0.8rem", height: "0.8rem" }}
+          />
+        ))}
+      </div>
 
       <div className="flex-1 min-h-0 w-full flex flex-col items-center justify-center" style={{ gap: "var(--gap-screen)" }}>
         {words.map((w, wi) => (
@@ -144,12 +151,12 @@ export function LetterHuntStep({ letter, levelConfig, onComplete }: StepProps) {
                 const isTarget = hasLetter(p, letter);
                 const state = found.has(key)
                   ? helped.has(key)
-                    ? "bg-[#FFD166] border-[#FFD166]"
-                    : "bg-[#4CAF50] border-[#4CAF50] text-white"
+                    ? "bg-[var(--c-glow)] border-[var(--c-glow)]"
+                    : "bg-[var(--c-correct)] border-[var(--c-correct)] text-white"
                   : wrong === key
-                    ? "bg-white border-[#E76F51]"
+                    ? "bg-white border-[var(--c-notyet)]"
                     : phase === "hint" && isTarget
-                      ? "bg-[#FFD166] border-[#FFD166] animate-pulse"
+                      ? "bg-[var(--c-glow)] border-[var(--c-glow)] animate-pulse"
                       : phase !== "default" && !isTarget
                         ? "bg-white border-gray-300 opacity-30"
                         : "bg-white border-gray-300";
@@ -158,7 +165,7 @@ export function LetterHuntStep({ letter, levelConfig, onComplete }: StepProps) {
                     key={key}
                     onClick={() => tap(key, p)}
                     disabled={found.has(key) || (phase !== "default" && !isTarget)}
-                    className={`letter-glyph font-bold border-4 grid place-items-center transition-all ${state}`}
+                    className={`tile3d letter-glyph font-bold border-4 grid place-items-center transition-all ${state}`}
                     style={{
                       minWidth: "clamp(2.75rem, 13vmin, 4rem)",
                       height: "clamp(2.75rem, 13vmin, 4rem)",

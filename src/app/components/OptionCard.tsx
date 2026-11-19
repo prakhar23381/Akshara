@@ -12,10 +12,10 @@ export function OptionCard({
   state = "default",
 }: OptionCardProps) {
   const stateClasses = {
-    default: "bg-white border-4 border-gray-300 hover:border-[#4A90E2] hover:shadow-lg",
-    correct: "bg-[#4CAF50] border-4 border-[#4CAF50] shadow-[0_0_20px_rgba(76,175,80,0.5)]",
-    wrong: "bg-white border-4 border-[#E76F51]",
-    hint: "bg-[#FFD166] border-4 border-[#FFD166] animate-pulse",
+    default: "bg-white border-4 border-gray-300 hover:border-[var(--c-info)] hover:shadow-lg",
+    correct: "bg-[var(--c-correct)] border-4 border-[var(--c-correct)] shadow-[0_0_20px_rgba(47,125,50,0.45)]",
+    wrong: "bg-white border-4 border-[var(--c-notyet)]",
+    hint: "bg-[var(--c-glow)] border-4 border-[var(--c-glow)] animate-pulse",
     dimmed: "bg-white border-4 border-gray-300 opacity-30",
   };
 

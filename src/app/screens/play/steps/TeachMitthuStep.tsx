@@ -123,17 +123,17 @@ export function TeachMitthuStep({ levelConfig, onComplete }: StepProps) {
       said !== null
         ? choice === said
           ? isRight
-            ? "bg-[#4CAF50] border-[#4CAF50] text-white"
-            : "bg-white border-[#E76F51] text-gray-800"
+            ? "bg-[var(--c-correct)] border-[var(--c-correct)] text-white"
+            : "bg-white border-[var(--c-notyet)] text-gray-800"
           : "bg-white border-gray-300 text-gray-400 opacity-50"
         : phase === "hint" && isRight
-          ? "bg-[#FFD166] border-[#FFD166] text-gray-800 animate-pulse"
+          ? "bg-[var(--c-glow)] border-[var(--c-glow)] text-gray-800 animate-pulse"
           : "bg-white border-gray-300 text-gray-800";
     return (
       <button
         onClick={() => answer(choice)}
         disabled={said !== null}
-        className={`flex-1 flex flex-col items-center justify-center gap-1 border-4 font-bold transition-all ${state}`}
+        className={`tile3d flex-1 flex flex-col items-center justify-center gap-1 border-4 font-bold transition-all ${state}`}
         style={{ minHeight: "clamp(4.5rem, 16vmin, 6.5rem)", borderRadius: "var(--card-radius)" }}
       >
         <span className="t-3 leading-none" aria-hidden>

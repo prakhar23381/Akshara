@@ -15,7 +15,7 @@ export function StepDots({ total, current }: { total: number; current: number })
             i < current
               ? "bg-emerald-500"
               : i === current
-                ? "bg-[#4A90E2] scale-125"
+                ? "bg-[var(--c-info)] scale-125"
                 : "bg-gray-300"
           }`}
           style={{ width: "0.6rem", height: "0.6rem" }}

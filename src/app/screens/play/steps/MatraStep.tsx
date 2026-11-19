@@ -105,7 +105,7 @@ export function MatraStep({ letter, onComplete }: StepProps) {
               <span className="t-1 text-gray-400">+</span>
               <span className="flex flex-col items-center leading-none">
                 {m.sign ? (
-                  <span className="letter-glyph glyph-md font-bold text-[#E76F51]">
+                  <span className="letter-glyph glyph-md font-bold text-[var(--c-notyet)]">
                     {standalone(m.sign)}
                   </span>
                 ) : (
@@ -115,7 +115,7 @@ export function MatraStep({ letter, onComplete }: StepProps) {
                 <span className="letter-glyph t--1 text-gray-500 mt-1">{m.vowel}</span>
               </span>
               <span className="t-1 text-gray-400">=</span>
-              <span className="letter-glyph glyph-md font-bold text-[#4A90E2]">
+              <span className="letter-glyph glyph-md font-bold text-[var(--c-info)]">
                 {syllable}
               </span>
             </motion.button>

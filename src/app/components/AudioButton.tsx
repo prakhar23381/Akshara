@@ -40,7 +40,7 @@ export function AudioButton({
       onClick={onPlay}
       disabled={disabled}
       aria-label={label}
-      className={`shrink-0 inline-flex items-center justify-center gap-2 rounded-full bg-[#4A90E2] text-white transition-all hover:bg-[#357ABD] active:scale-95 disabled:opacity-40 ${
+      className={`shrink-0 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--c-info)] text-white transition-all hover:bg-[var(--c-info-lip)] active:scale-95 disabled:opacity-40 ${
         large ? "t-1 font-semibold" : "t-0"
       }`}
       style={{

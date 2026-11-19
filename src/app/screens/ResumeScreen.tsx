@@ -78,9 +78,7 @@ export function ResumeScreen() {
         <p className="t-2 text-gray-500 tracking-wide">
           Currently learning:{" "}
           <span className="t-3 font-bold text-amber-500">{currentLetter}</span>
-          <span className="text-lg text-gray-400 ml-2">
-            ({TEACHING_ORDER.indexOf(currentLetter) + 1}/{TEACHING_ORDER.length})
-          </span>
+
         </p>
       </div>
 

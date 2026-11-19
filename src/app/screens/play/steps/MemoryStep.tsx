@@ -133,9 +133,9 @@ export function MemoryStep({ letter, levelConfig, onComplete }: StepProps) {
         <h1 className="t-2 font-bold text-gray-800 tracking-wide">
           Find the matching pairs
         </h1>
-        <p className="t--1 text-gray-500">
-          {solved ? `Solved in ${moves} moves! 🎉` : `${moves} moves`}
-        </p>
+        {/* No move count: a child's screen shows no numbers (docs/11 §6). The
+            moves are still recorded for adults. */}
+        <p className="t--1 text-gray-500">{solved ? "All found! 🎉" : "Turn two cards at a time"}</p>
       </div>
 
       <OptionGrid
@@ -145,12 +145,12 @@ export function MemoryStep({ letter, levelConfig, onComplete }: StepProps) {
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => flip(i)}
-            className={`w-full h-full flex items-center justify-center border-4 transition-colors min-h-0 ${
+            className={`tile3d w-full h-full flex items-center justify-center border-4 transition-colors min-h-0 ${
               card.matched
                 ? "bg-emerald-50 border-emerald-400"
                 : card.flipped
-                  ? "bg-white border-[#4A90E2]"
-                  : "bg-[#4A90E2] border-[#357ABD]"
+                  ? "bg-white border-[var(--c-info)]"
+                  : "bg-[var(--c-info)] border-[var(--c-info-lip)]"
             }`}
             style={{ borderRadius: "var(--card-radius)" }}
           >

@@ -114,7 +114,7 @@ export function LoginScreen() {
         <button
           onClick={handleOfflineLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-[#4A90E2] hover:bg-[#3b80d2] text-white rounded-2xl px-6 py-4 text-lg font-bold transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-3 bg-[var(--c-info)] hover:bg-[#3b80d2] text-white rounded-2xl px-6 py-4 text-lg font-bold transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Getting ready…" : "Start Learning  →"}
         </button>

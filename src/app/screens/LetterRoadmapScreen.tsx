@@ -152,7 +152,7 @@ export function LetterRoadmapScreen() {
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
-              className="w-4 h-4 bg-[#4A90E2] rounded-full"
+              className="w-4 h-4 bg-[var(--c-info)] rounded-full"
               animate={{ y: [0, -12, 0] }}
               transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
             />
@@ -179,7 +179,7 @@ export function LetterRoadmapScreen() {
         action={
           <button
             onClick={() => navigate("/unlock?next=/home")}
-            className="t--1 shrink-0 bg-white border-2 border-gray-300 rounded-full font-bold text-gray-600 hover:text-[#4A90E2] hover:border-[#4A90E2] transition-all px-3"
+            className="t--1 shrink-0 bg-white border-2 border-gray-300 rounded-full font-bold text-gray-600 hover:text-[var(--c-info)] hover:border-[var(--c-info)] transition-all px-3"
             style={{ minHeight: "var(--tap-min)" }}
           >
             ⚙️ Grown-ups
@@ -192,9 +192,7 @@ export function LetterRoadmapScreen() {
           <h1 className="t-2 font-extrabold text-gray-800 tracking-wide">
             My letters
           </h1>
-          <p className="t-0 text-gray-500 tracking-wide">
-            Progress on this unit: <span className="font-bold text-gray-700">{getPageAverageScore(currentPage)}%</span> average
-          </p>
+
         </div>
 
         {/* Paginated Navigation Slider Bar */}
@@ -209,7 +207,7 @@ export function LetterRoadmapScreen() {
             style={{ width: "var(--tap-min)", height: "var(--tap-min)" }}
             className={`shrink-0 grid place-items-center rounded-full border-4 transition-all ${
               currentPage > 0
-                ? "bg-white border-[#4A90E2] text-[#4A90E2] hover:bg-blue-50 active:scale-95"
+                ? "bg-white border-[var(--c-info)] text-[var(--c-info)] hover:bg-blue-50 active:scale-95"
                 : "bg-gray-100 border-gray-200 text-gray-300 cursor-not-allowed"
             }`}
           >
@@ -230,7 +228,7 @@ export function LetterRoadmapScreen() {
             style={{ width: "var(--tap-min)", height: "var(--tap-min)" }}
             className={`shrink-0 grid place-items-center rounded-full border-4 transition-all ${
               nextUnlocked
-                ? "bg-white border-[#4A90E2] text-[#4A90E2] hover:bg-blue-50 active:scale-95"
+                ? "bg-white border-[var(--c-info)] text-[var(--c-info)] hover:bg-blue-50 active:scale-95"
                 : "bg-gray-100 border-gray-200 text-gray-300 cursor-not-allowed"
             }`}
           >
@@ -259,7 +257,7 @@ export function LetterRoadmapScreen() {
                   pageUnlocked
                     ? score === 100
                       ? "bg-emerald-50 border-emerald-300 shadow-md hover:shadow-lg"
-                      : "bg-white border-[#4A90E2] shadow-sm hover:shadow-md"
+                      : "bg-white border-[var(--c-info)] shadow-sm hover:shadow-md"
                     : "bg-gray-100 border-gray-200 opacity-60 cursor-not-allowed"
                 }`}
               >
@@ -320,13 +318,11 @@ export function LetterRoadmapScreen() {
                     <div className="w-full flex flex-col items-center gap-1.5">
                       <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                         <div
-                          className="bg-[#4A90E2] h-full rounded-full transition-all duration-500"
+                          className="bg-[var(--c-info)] h-full rounded-full transition-all duration-500"
                           style={{ width: `${score}%` }}
                         />
                       </div>
-                      <span className="t--1 font-semibold text-gray-500 whitespace-nowrap">
-                        {score === 0 ? "—" : `${score}%`}
-                      </span>
+
                     </div>
                   )}
                 </div>

@@ -32,23 +32,23 @@ export function AksharaButton({
   fullWidth = false,
   className = "",
 }: AksharaButtonProps) {
+  // G4 (docs/11 §3.9): bold, on a darker lip it sinks onto when pressed, so
+  // it looks pressable before it is touched. Primary is "go" (teal, white
+  // text 5.2:1 — the old white-on-blue was 3.3:1); secondary is white on grey.
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-3xl font-medium " +
-    "transition-all duration-150 cursor-pointer text-center " +
-    "disabled:opacity-50 disabled:cursor-not-allowed";
+    "tile3d inline-flex items-center justify-center gap-2 rounded-2xl font-extrabold tracking-wide " +
+    "cursor-pointer text-center border-2 " +
+    "disabled:bg-[var(--c-ghost)] disabled:text-[var(--c-muted)] disabled:border-[var(--c-line)] disabled:[--lip:var(--c-line-lip)] disabled:cursor-not-allowed";
 
   const variants = {
-    primary:
-      "bg-[#4A90E2] text-white hover:bg-[#357ABD] active:bg-[#2B6399]",
-    secondary:
-      "bg-white text-[#4A90E2] border-2 border-[#4A90E2] hover:bg-[#F0F7FF]",
+    primary: "bg-[var(--c-go)] text-white border-transparent [--lip:var(--c-go-lip)]",
+    secondary: "bg-white text-[var(--c-ink)] border-[var(--c-line)] [--lip:var(--c-line-lip)]",
   };
 
   const isLarge = size === "large";
 
   return (
     <motion.button
-      whileTap={{ scale: disabled ? 1 : 0.95 }}
       className={`${base} ${variants[variant]} ${
         isLarge ? "t-1" : "t-0"
       } ${fullWidth ? "w-full" : ""} ${className}`}
@@ -60,6 +60,7 @@ export function AksharaButton({
           : "var(--control-px-sm)",
         paddingBlock: isLarge ? undefined : "0.5rem",
         maxWidth: "var(--cta-max)",
+        marginBottom: 5,
       }}
       onClick={disabled ? undefined : onClick}
       disabled={disabled}

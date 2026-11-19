@@ -192,7 +192,7 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
     userGridRef.current.add(getCellIndex(x, y));
 
     // Draw raw brush stroke freely on the canvas without visual dots or snapping
-    ctx.strokeStyle = "#4A90E2";
+    ctx.strokeStyle = "var(--c-info)";
     ctx.lineWidth = 14;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -388,23 +388,19 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
               {evaluation === "success" ? (
                 <div className="text-center space-y-2 sm:space-y-4">
                   <span className="t-3 ">🌟</span>
-                  <h3 className="t-2 sm:text-3xl font-black text-emerald-600">Great Job! Success!</h3>
-                  <p className="text-base sm:text-xl text-gray-500 font-medium">
-                    You matched the letter shape with a score of{" "}
-                    <span className="font-bold text-gray-800">{score}%</span>!
-                  </p>
+                  <h3 className="t-2 sm:text-3xl font-black text-[var(--c-correct)]">Great job!</h3>
+                  {/* No score: a child's screen shows no numbers (docs/11 §6, tier 1). */}
+                  <p className="text-base sm:text-xl text-gray-600 font-medium">That is the letter's shape.</p>
                 </div>
               ) : (
                 <div className="text-center space-y-2 sm:space-y-4">
                   <span className="t-3 ">🔄</span>
-                  <h3 className="t-2 sm:text-3xl font-black text-rose-500">Try Again!</h3>
-                  <p className="text-base sm:text-xl text-gray-500 font-medium">
-                    Keep practicing! You scored{" "}
-                    <span className="font-bold text-gray-800">{score}%</span>.
-                  </p>
+                  {/* Gentle, no red and no score (design_guidelines §4.4, §9 point 8). */}
+                  <h3 className="t-2 sm:text-3xl font-black text-gray-800">Let's try once more</h3>
+                  <p className="text-base sm:text-xl text-gray-600 font-medium">Follow the grey shape.</p>
                   <button
                     onClick={clearCanvas}
-                    className="px-4 py-2 sm:px-6 sm:py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm sm:text-lg rounded-2xl shadow-md transition-colors"
+                    className="tile3d px-4 py-2 sm:px-6 sm:py-3 bg-[var(--c-go)] text-white font-extrabold text-sm sm:text-lg rounded-2xl [--lip:var(--c-go-lip)]"
                   >
                     Clear and Retry 🧹
                   </button>
@@ -429,7 +425,7 @@ export function TracingCanvas({ letter, onComplete, onClear }: TracingCanvasProp
           <button
             onClick={checkDrawing}
             disabled={animatingTemplate || !hasDrawn}
-            className="t--1 px-3 py-1.5 font-bold rounded-xl bg-[#4A90E2] hover:bg-[#357ABD] text-white disabled:opacity-50 transition-colors"
+            className="t--1 px-3 py-1.5 font-bold rounded-xl bg-[var(--c-info)] hover:bg-[var(--c-info-lip)] text-white disabled:opacity-50 transition-colors"
           >
             Check 🔍
           </button>

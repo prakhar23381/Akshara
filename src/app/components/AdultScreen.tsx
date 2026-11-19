@@ -7,7 +7,7 @@ export const ADULT = {
   ink2: "#52514e",
   muted: "#898781",
   grid: "#e1e0d9",
-  accent: "#4A90E2",
+  accent: "var(--c-info)",
   page: "#F7F6F2",
   danger: "#d03b3b",
 };

@@ -203,7 +203,7 @@ export function RewardStep() {
         <p className="t--1 text-gray-400 shrink-0">Saving your progress…</p>
       ) : (
         <p className="t--1 text-gray-400 shrink-0">
-          {answered} question{answered === 1 ? "" : "s"} answered
+          {answered > 0 ? "Well played!" : "Well done!"}
         </p>
       )}
     </ChildScreen>

@@ -20,7 +20,7 @@ export function ProgressBar({ progress }: ProgressBarProps) {
       style={{ height: "clamp(0.5rem, 1.2vmin, 0.75rem)" }}
     >
       <motion.div
-        className="h-full bg-[#4A90E2] rounded-full"
+        className="h-full bg-[var(--c-info)] rounded-full"
         initial={{ width: 0 }}
         animate={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
         transition={{ duration: 0.5, ease: "easeOut" }}

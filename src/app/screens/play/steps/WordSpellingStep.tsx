@@ -143,22 +143,22 @@ export function WordSpellingStep({ letter, levelConfig, onComplete }: StepProps)
           const dimmed = !locked && phase !== "default" && !isAnswer;
           const state = !locked
             ? phase === "hint" && isAnswer
-              ? "bg-[#FFD166] border-[#FFD166] animate-pulse"
+              ? "bg-[var(--c-glow)] border-[var(--c-glow)] animate-pulse"
               : dimmed
                 ? "bg-white border-gray-300 opacity-30"
                 : "bg-white border-gray-300"
             : option.text === chosen?.text
               ? isAnswer
-                ? "bg-[#4CAF50] border-[#4CAF50] text-white"
-                : "bg-white border-[#E76F51]"
+                ? "bg-[var(--c-correct)] border-[var(--c-correct)] text-white"
+                : "bg-white border-[var(--c-notyet)]"
               : isAnswer
-                ? "bg-[#4CAF50]/20 border-[#4CAF50]"
+                ? "bg-[var(--c-correct-tint)] border-[var(--c-correct)]"
                 : "bg-white border-gray-300 opacity-40";
           return (
             <button
               onClick={() => pick(option)}
               disabled={locked || dimmed}
-              className={`w-full h-full flex items-center justify-center border-4 transition-all min-h-0 px-3 ${state}`}
+              className={`tile3d w-full h-full flex items-center justify-center border-4 transition-all min-h-0 px-3 ${state}`}
               style={{ borderRadius: "var(--card-radius)" }}
             >
               <span className="letter-glyph row-word font-bold tracking-wide truncate">

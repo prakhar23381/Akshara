@@ -98,7 +98,7 @@ export function ParentReportScreen() {
           <h1 className="t-2 font-semibold">No child to report on yet</h1>
           <button
             onClick={() => navigate("/home")}
-            className="t-0 rounded-xl bg-[#4A90E2] px-5 py-2.5 font-semibold text-white"
+            className="t-0 rounded-xl bg-[var(--c-info)] px-5 py-2.5 font-semibold text-white"
             style={{ minHeight: "var(--tap-min)" }}
           >
             Back to your children

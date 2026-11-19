@@ -17,7 +17,7 @@ export function AvatarCircle({
   };
 
   const className = `${sizeClasses[size]} rounded-full bg-white border-4 ${
-    selected ? "border-[#4A90E2]" : "border-gray-300"
+    selected ? "border-[var(--c-info)]" : "border-gray-300"
   } flex items-center justify-center transition-all`;
 
   // A choice is a real button: it was a clickable <div>, which a keyboard
@@ -30,7 +30,7 @@ export function AvatarCircle({
         onClick={onClick}
         aria-pressed={selected}
         aria-label={`Choose ${emoji}`}
-        className={`${className} cursor-pointer hover:border-[#4A90E2]`}
+        className={`${className} cursor-pointer hover:border-[var(--c-info)]`}
       >
         {emoji}
       </button>

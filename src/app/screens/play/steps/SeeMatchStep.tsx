@@ -126,7 +126,7 @@ export function SeeMatchStep({ letter, levelConfig, onComplete }: StepProps) {
 
       <div className="shrink-0 flex justify-center">
         <span
-          className="letter-glyph font-black text-gray-800 bg-white border-4 border-[#4A90E2] grid place-items-center select-none"
+          className="letter-glyph font-black text-gray-800 bg-white border-4 border-[var(--c-info)] grid place-items-center select-none"
           style={{
             fontSize: "clamp(2.6rem, 14vmin, 5rem)",
             width: "clamp(5rem, 26vmin, 9rem)",
@@ -147,12 +147,12 @@ export function SeeMatchStep({ letter, levelConfig, onComplete }: StepProps) {
           const dimmed = !done && phase !== "default" && !isAnswer;
           const state = done
             ? isAnswer
-              ? "bg-[#4CAF50] border-[#4CAF50] text-white"
+              ? "bg-[var(--c-correct)] border-[var(--c-correct)] text-white"
               : "bg-white border-gray-300 opacity-40"
             : option === chosen
-              ? "bg-white border-[#E76F51]"
+              ? "bg-white border-[var(--c-notyet)]"
               : phase === "hint" && isAnswer
-                ? "bg-[#FFD166] border-[#FFD166] animate-pulse"
+                ? "bg-[var(--c-glow)] border-[var(--c-glow)] animate-pulse"
                 : dimmed
                   ? "bg-white border-gray-300 opacity-30"
                   : "bg-white border-gray-300";
@@ -160,7 +160,7 @@ export function SeeMatchStep({ letter, levelConfig, onComplete }: StepProps) {
             <button
               onClick={() => pick(option)}
               disabled={done || dimmed}
-              className={`w-full h-full flex items-center justify-center border-4 transition-all min-h-0 ${state}`}
+              className={`tile3d w-full h-full flex items-center justify-center border-4 transition-all min-h-0 ${state}`}
               style={{ borderRadius: "var(--card-radius)" }}
             >
               <span className="letter-glyph tile-glyph font-bold">{option}</span>

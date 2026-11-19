@@ -24,7 +24,7 @@ export function ProfileNameScreen() {
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Enter your name"
-        className="w-96 px-8 py-6 t-2 text-center rounded-3xl border-4 border-gray-300 focus:border-[#4A90E2] focus:outline-none tracking-wider"
+        className="w-96 px-8 py-6 t-2 text-center rounded-3xl border-4 border-gray-300 focus:border-[var(--c-info)] focus:outline-none tracking-wider"
         autoFocus
       />
 

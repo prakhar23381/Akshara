@@ -1,0 +1,44 @@
+/*
+ * The child-facing kit (G4; docs/11 §3.9): one colour per meaning, and a
+ * darker "lip" under everything pressable, so it looks pressable before it is
+ * touched. The values were worked out in the play lab's Buttons & colours
+ * station, every text pair checked against WCAG AA there; `src/app/theme/
+ * colors.ts` holds the same values for inline styles. Deliberately not
+ * Duolingo green (decision D1): "go" is peacock teal.
+ */
+:root {
+  --c-page: #F7F6F2; /* kept: the off-white is a dyslexia choice (design_guidelines §5.2) */
+  --c-card: #FFFFFF;
+  --c-ink: #1F1D1A;
+  --c-muted: #6B6A65;
+  --c-line: #D9D6CC;
+  --c-line-lip: #B9B5A8;
+  --c-ghost: #ECEAE3;
+
+  --c-go: #0E7C7B;          /* the one thing to press next */
+  --c-go-lip: #085453;
+  --c-correct: #2F7D32;     /* a right answer, the success sheet (white text 5.3:1) */
+  --c-correct-lip: #1E5520;
+  --c-correct-tint: #E3F1E3;
+  --c-info: #3949AB;        /* listen, secondary help */
+  --c-info-lip: #26327A;
+  --c-info-tint: #E8EBFA;
+  --c-reward: #F2A900;      /* stars, chests, mastered letters (dark text) */
+  --c-reward-lip: #B57E00;
+  --c-reward-ink: #3B2A00;
+  --c-day: #C8442B;         /* the week strip, the tree */
+  --c-day-lip: #8F2F1D;
+  --c-notyet: #D9603F;      /* a wrong answer's outline — never a fill (3.4:1 on the page) */
+  --c-glow: #FFD166;        /* the hint's glow, dark text on it */
+}
+
+/* An answer tile, a card: a thick border standing on a lip; it sinks when pressed. */
+.tile3d {
+  box-shadow: 0 5px 0 var(--lip, var(--c-line-lip));
+  transition: transform 60ms, box-shadow 60ms;
+  touch-action: manipulation;
+}
+.tile3d:not(:disabled):active {
+  transform: translateY(5px);
+  box-shadow: none;
+}

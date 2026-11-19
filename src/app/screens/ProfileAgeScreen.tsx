@@ -30,8 +30,8 @@ export function ProfileAgeScreen() {
             onClick={() => handleAgeSelect(a)}
             className={`w-32 h-32 rounded-3xl t-3 font-bold transition-all ${
               age === a
-                ? "bg-[#4A90E2] text-white border-4 border-[#4A90E2]"
-                : "bg-white text-gray-800 border-4 border-gray-300 hover:border-[#4A90E2]"
+                ? "bg-[var(--c-info)] text-white border-4 border-[var(--c-info)]"
+                : "bg-white text-gray-800 border-4 border-gray-300 hover:border-[var(--c-info)]"
             }`}
           >
             {a}

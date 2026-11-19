@@ -118,7 +118,7 @@ export function ChildProgressScreen() {
                 <div key={letter}
                   className={`relative flex aspect-square items-center justify-center rounded-xl border-2 ${
                     isMastered ? "border-amber-400 bg-amber-50"
-                      : isStarted ? "border-[#4A90E2] bg-white"
+                      : isStarted ? "border-[var(--c-info)] bg-white"
                       : "border-gray-200 bg-gray-50"
                   }`}>
                   <span className={`letter-glyph font-bold ${
@@ -135,7 +135,7 @@ export function ChildProgressScreen() {
         </div>
 
         <button onClick={() => navigate("/roadmap")}
-          className="shrink-0 t-1 rounded-2xl bg-[#4A90E2] px-7 py-3 font-bold text-white hover:bg-[#357ABD] active:scale-95">
+          className="shrink-0 t-1 rounded-2xl bg-[var(--c-info)] px-7 py-3 font-bold text-white hover:bg-[var(--c-info-lip)] active:scale-95">
           Keep learning  →
         </button>
       </div>
