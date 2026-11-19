@@ -5,8 +5,8 @@ matras, step by step and getting harder in kind, not only in degree. Built from
 a literature review on 20 October 2026. It is a **draft for expert review**;
 §8 lists the questions it needs answered. **G1 (lessons) is built** on the
 branch `feat/g1-lessons` since 12 November 2026 and **G2 (review)** on
-`feat/g2-review` since 19 November — §9.1 and §9.2 say exactly how; G3–G6 are
-not built yet.*
+`feat/g2-review` since 19 November, and **G3 (three of the new games)** on
+`feat/g3-games` — §9.1–9.3 say exactly how; the rest is not built yet.*
 
 **Who this is for:** the project's dyslexia specialist and nursery-teacher
 trainer, who will check the teaching; then the development team. No
@@ -373,9 +373,9 @@ the experts without touching production.
 |---|---|---|
 | **G1 — Lessons** | the three lessons per letter from today's activities; "Meet" only once; the barakhadi leaves consonant lessons; the letter order as a switchable table | existing games only |
 | **G2 — Review** | warm-up box rule; contrast nodes; unit checkpoints; practice nodes; gold over two days | existing games |
-| **G3 — New games** | See & match, Letter hunt, Read and pick, Build the word, Teach Mitthu | new |
+| **G3 — New games** | See & match, Letter hunt, Teach Mitthu (Read and pick and Build the word moved to G5) | new |
 | **G4 — The path** | the path UI, Mitthu, the celebration beats (doc 11) | new UI |
-| **G5 — First words** | word nodes and their word lists (after T2) | G3 games |
+| **G5 — First words** | word nodes and their word lists (after T2); the games Read and pick the picture and Build the word | new |
 | **G6 — Matras (W6)** | Part 3 | G3 games + Listen for the syllable |
 
 **What to show the experts:** after G1–G3 the whole teaching structure works,
@@ -426,6 +426,29 @@ each (recovery context §4, 2026-11-19).
 | **Unit check** | One question on each unit letter, then the 2 earlier letters most due, then Memory. Cannot be failed. **Finishing it opens the next unit** (or the child has played in that unit already) |
 | **Mastered = two days** | A letter is *mastered* once its judgement came out mastered on two different calendar days without falling below in between. Until then it is *mastered once* (80 roadmap points, no trophy). Judged on read, so it applies to sessions already saved. The engine's teaching stage is unaffected |
 | **Report** | "Learned" uses the two-day rule and dates a letter from its second day. A lesson on several letters is not counted as a session of its first letter. The "Roadmap pages" card is now "Units" and describes the unit rule |
+
+### 9.3 G3 as built (19 November 2026, branch `feat/g3-games`)
+
+Three decisions, the user choosing the recommended option on each (recovery
+context §4, 2026-11-19).
+
+| Game | In the app | Recorded as |
+|---|---|---|
+| **See & match** | The letter is shown, no sound; the child finds it among its look-alikes (with their own mix-ups). Find it: ×3 after Listen & tap. A lesson side by side on a pair that only looks alike: ×6 across the pair, then Memory | `see_match`; two wrong taps and the answer is shown, as in Listen & tap |
+| **Letter hunt** | The letter's 3 pictured example words split into aksharas; the child taps every one with the letter in it — with a matra, or inside a cluster (the ङ in ङ्गा). In words: first, before Fill the blank | `letter_hunt`; one question per akshara to find, a wrong tap filed as a mix-up with the consonant tapped |
+| **Teach Mitthu** | The child hears a letter, Mitthu says which he thinks it is ("मुझे लगता है… ख"), the child says *Right* / *Not right*; half his guesses are wrong, and the letter heard is always shown after. Only in a lesson side by side on a pair that sounds alike (E5's default): Listen & tap ×6, Mitthu ×4, Memory | `teach_mitthu` against the letter heard; a wrong judgement is a pick of the pair's other letter |
+
+- **None of them decides a stage.** Only Listen & tap and the word games
+  judge a letter. Their answers are mix-ups, review in lessons on several
+  letters, and figures in the report.
+- **The report** gains a **"Seeing (no sound)"** skill from See & match, so a
+  seeing mistake can be told from a hearing one. "Sound → letter" now also
+  counts the warm-up and Teach Mitthu; "Words" counts Letter hunt. The
+  warm-up's answers had reached no report figure at all in G2.
+- **Mitthu** moved from the play lab into the app (`components/Mitthu.tsx`);
+  the lab re-exports it.
+- **Moved to G5:** *Read and pick the picture* and *Build the word* belong to
+  the word lessons, which need the teacher trainer's word lists (T2).
 
 **For an expert's eye:** the warm-up's show-first makes its questions easy, so
 a right answer says less (E7); and a child mastering a letter in one sitting

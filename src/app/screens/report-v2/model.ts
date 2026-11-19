@@ -101,8 +101,8 @@ export interface RoadmapPage {
   started: number;
 }
 
-export type SkillId = "sound" | "lookalike" | "words" | "writing" | "speed" | "matras";
-export const SKILL_IDS: SkillId[] = ["sound", "lookalike", "words", "writing", "speed", "matras"];
+export type SkillId = "sound" | "lookalike" | "seeing" | "words" | "writing" | "speed" | "matras";
+export const SKILL_IDS: SkillId[] = ["sound", "lookalike", "seeing", "words", "writing", "speed", "matras"];
 
 /** One letter's figure for a skill: right first time, a tracing score or seconds. */
 export interface LetterValue {
@@ -304,7 +304,15 @@ const inPeriod = (iso: string, p: Period) => {
 const kindOf = (a: QuestionAttempt): AnswerKind =>
   a.was_guided_win ? "helped" : a.target_letter === a.selected_letter ? "first" : "wrong";
 
-const ASSESSED: ActivityType[] = ["identify", "word_fill", "word_spelling"];
+// Every game with answers. The warm-up (G2) and the G3 games were missing
+// here at first, so their answers counted nowhere in the report.
+const ASSESSED: ActivityType[] = [
+  "identify", "warmup", "teach_mitthu", "see_match", "letter_hunt", "word_fill", "word_spelling",
+];
+/** Hearing a letter and finding it: Listen & tap, the warm-up, Teach Mitthu. */
+const HEARD: ActivityType[] = ["identify", "warmup", "teach_mitthu"];
+/** The letter in words: the word games and Letter hunt. */
+const IN_WORDS: ActivityType[] = ["word_fill", "word_spelling", "letter_hunt"];
 
 interface Answer extends QuestionAttempt {
   activity: ActivityType;
@@ -672,9 +680,12 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
   const scores = (ts: { score: number }[]) => mean(ts.map((t) => t.score));
 
   const skillEntries: SkillEntry[] = [
-    skill("sound", "Sound → letter", (a) => a.activity === "identify"),
+    skill("sound", "Sound → letter", (a) => HEARD.includes(a.activity)),
     skill("lookalike", "Look-alike letters", isLookalike),
-    skill("words", "Words", (a) => a.activity === "word_fill" || a.activity === "word_spelling"),
+    // G3: the same letter found by sight, no sound — so a mistake here is a
+    // seeing mistake, which "Sound → letter" cannot tell from a hearing one.
+    skill("seeing", "Seeing (no sound)", (a) => a.activity === "see_match"),
+    skill("words", "Words", (a) => IN_WORDS.includes(a.activity)),
     {
       id: "writing", label: "Writing (tracing)", unit: "%", lowerIsBetter: false, measured: true,
       measure: measure(scores(tracing(cur)), scores(tracing(prev)), hasPrev),

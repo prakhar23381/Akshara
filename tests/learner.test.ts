@@ -327,12 +327,12 @@ console.log("\n-- loading history --");
   const findNext = planSession("c", "क", ahead, [], "find").levelConfig;
   ok("Find it takes the stage's choices", findNext.distractor_similarity === "high" && findNext.identify_questions === 5);
   // ल is complete (a session from before lessons), so it is due a warm-up.
-  ok("Find it is a warm-up on ल, Listen & tap, then Memory",
-    findNext.steps?.join() === "warmup,identify,memory" && findNext.warmup?.[0]?.target === "ल",
+  ok("Find it is a warm-up on ल, Listen & tap, See & match, then Memory",
+    findNext.steps?.join() === "warmup,identify,see_match,memory" && findNext.warmup?.[0]?.target === "ल",
     String(findNext.steps));
   const wordsNext = planSession("c", "क", ahead, [], "words").levelConfig;
-  ok("In words is the warm-up and the two word games",
-    wordsNext.steps?.join() === "warmup,word_fill,word_spelling" && wordsNext.identify_questions === undefined);
+  ok("In words is the warm-up, Letter hunt and the two word games",
+    wordsNext.steps?.join() === "warmup,letter_hunt,word_fill,word_spelling" && wordsNext.identify_questions === undefined);
   ok("the very first lesson has no warm-up: nothing is complete",
     !planSession("c", "क", EMPTY_PROFILE, [], "meet").levelConfig.steps?.includes("warmup"));
   ok("each lesson says which it is", [meetNext, findNext, wordsNext].map((c) => c.lesson).join() === "meet,find,words");

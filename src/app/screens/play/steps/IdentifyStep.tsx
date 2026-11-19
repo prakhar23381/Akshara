@@ -29,7 +29,7 @@ const FAIL_FORCE = 2;
  * target was left out of a question by chance. Only the remaining slots are
  * random, which keeps the five questions varied.
  */
-function makeOptions(target: string, pool: string[], confused: string[] = []): string[] {
+export function makeOptions(target: string, pool: string[], confused: string[] = []): string[] {
   const personal = confused.filter((l) => l !== target && pool.includes(l));
   const rest = pool.filter((l) => l !== target && !personal.includes(l));
   for (let i = rest.length - 1; i > 0; i--) {

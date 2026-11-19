@@ -92,7 +92,7 @@ vitest nor jest; it is `tsc --noEmit` followed by a plain Node script.
 │   ├── app/
 │   │   ├── api/         client.ts
 │   │   ├── components/  AccountGuards · AdultScreen · AksharaButton · AudioButton
-│   │   │                AvatarCircle · ChildScreen · LetterDisplay · OptionCard
+│   │   │                AvatarCircle · ChildScreen · LetterDisplay · Mitthu · OptionCard
 │   │   │                OptionGrid · PinPad · ProgressBar · Screen · TopBar · TracingCanvas
 │   │   ├── contexts/    AccountContext · AuthContext · ProfileSetupContext · SessionContext
 │   │   ├── data/        curriculum.ts (units, order switch, lessons) · letterContent.ts · letterPaths.ts
@@ -107,7 +107,8 @@ vitest nor jest; it is `tsc --noEmit` followed by a plain Node script.
 │   │   │   │   └── charts/ theme · heat · Delta · Sparkline · DayStrip · Calendar · YearHeatmap · BarList · StackBar · Columns · LetterGrid · days · useWidth
 │   │   │   └── play/    PlayScreen · PlayLayout · StepDots · types
 │   │   │       └── steps/  Intro · Pronunciation · ExampleWords · Matra · Tracing
-│   │   │                   Memory · Identify · WordFill · WordSpelling · Reward
+│   │   │                   Memory · Identify (also the warm-up) · SeeMatch · LetterHunt
+│   │   │                   TeachMitthu · WordFill · WordSpelling · Reward
 │   │   ├── types/       levelConfig.ts · session.ts
 │   │   ├── utils/       soundEffects · speech · tracingEvaluator
 │   │   ├── App.tsx  routes.tsx
@@ -115,10 +116,11 @@ vitest nor jest; it is `tsc --noEmit` followed by a plain Node script.
 │   │   ├── fixtures/    play (engine-driven sessions) · scenarios
 │   │   └── play/        the play lab (dev only, docs/11 §9): main · PlayLab · Mitthu · art · ui · tokens · sounds
 │   │       └── stations/  Mitthu · Buttons · Path · Home · Lesson · Celebration
+│   │                      (play/Mitthu.tsx re-exports app/components/Mitthu)
 │   ├── styles/          index.css → fonts.css · tailwind.css · theme.css
 │   ├── main.tsx  vite-env.d.ts
-├── tests/               accounts · akshara · bands · curriculum · engine · learner · letterStatus
-│                        playthrough · report · reportModel · review · session  (.test.ts)
+├── tests/               accounts · akshara · bands · curriculum · engine · games · learner
+│                        letterStatus · playthrough · report · reportModel · review · session  (.test.ts)
 ├── .legacy/             11 pre-refactor screens + useSessionTracker. Delete after V1–V4
 ├── TODO.md  STATUS_LOG.md  .agent_recovery_context.md  IMPLEMENTATION_PLAN.md
 ├── README.md  ATTRIBUTIONS.md

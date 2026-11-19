@@ -285,9 +285,10 @@ console.log("\n-- the sections' extra detail (B3, deepened) --");
 
   const skill = (id: string) => m.skills.entries.find((e) => e.id === id)!;
   ok("a skill's answer mix is its answers", ["sound", "lookalike", "words"].every((id) => skill(id).mix!.total === skill(id).n));
-  ok("…and Listen & tap plus the word games are every answer",
-    skill("sound").mix!.total + skill("words").mix!.total === m.skills.mix.total);
-  ok("…the helped answers too", skill("sound").mix!.helped + skill("words").mix!.helped === m.skills.mix.helped);
+  ok("…and hearing, seeing and the word games are every answer",
+    skill("sound").mix!.total + skill("seeing").mix!.total + skill("words").mix!.total === m.skills.mix.total);
+  ok("…the helped answers too",
+    skill("sound").mix!.helped + skill("seeing").mix!.helped + skill("words").mix!.helped === m.skills.mix.helped);
   ok("writing and speed are not answers", skill("writing").mix === null && skill("speed").mix === null);
 
   ok("every session stopped early has a step it stopped at",

@@ -66,7 +66,11 @@ export function reviewAnswers(s: LearningSession): QuestionAttempt[] {
   const asked = (act: ActivityRecord) =>
     act.outcome?.kind === "questions" ? firstAnswers(act.outcome.attempts) : [];
   if (!isLetterLesson(s)) {
-    return s.activities.filter((a) => a.type === "identify").flatMap(asked);
+    // Every question in a lesson on several letters: Listen & tap, and since
+    // G3 See & match and Teach Mitthu.
+    return s.activities
+      .filter((a) => a.type === "identify" || a.type === "see_match" || a.type === "teach_mitthu")
+      .flatMap(asked);
   }
   return s.activities.flatMap((act) => {
     if (act.type === "warmup") return asked(act);

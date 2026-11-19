@@ -14,6 +14,9 @@ import { IdentifyStep } from "./steps/IdentifyStep";
 import { WordFillStep } from "./steps/WordFillStep";
 import { WordSpellingStep } from "./steps/WordSpellingStep";
 import { RewardStep } from "./steps/RewardStep";
+import { SeeMatchStep } from "./steps/SeeMatchStep";
+import { LetterHuntStep } from "./steps/LetterHuntStep";
+import { TeachMitthuStep } from "./steps/TeachMitthuStep";
 
 // `null` is allowed: a step with nothing to show (a letter with no usable
 // words) completes itself and renders nothing for the frame before it moves on.
@@ -27,6 +30,10 @@ const STEPS: Record<ActivityType, (p: StepProps) => ReactElement | null> = {
   identify: IdentifyStep,
   // The warm-up is Listen & tap on earlier letters, each shown first (G2).
   warmup: (p) => <IdentifyStep {...p} mode="warmup" />,
+  // G3.
+  see_match: SeeMatchStep,
+  letter_hunt: LetterHuntStep,
+  teach_mitthu: TeachMitthuStep,
   word_fill: WordFillStep,
   word_spelling: WordSpellingStep,
 };

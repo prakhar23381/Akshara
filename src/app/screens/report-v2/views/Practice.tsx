@@ -109,6 +109,9 @@ export function PracticeView({ model, today, onOpen }: { model: ReportModel; tod
 /** What a parent calls each step of a session. */
 const STEP: Record<ActivityType, string> = {
   warmup: "Warm-up on earlier letters",
+  see_match: "Finding the same letter (no sound)",
+  letter_hunt: "Finding the letter in words",
+  teach_mitthu: "Checking Mitthu's guesses",
   intro: "Meeting the letter",
   pronunciation: "Hearing its sound",
   example_words: "Example words",

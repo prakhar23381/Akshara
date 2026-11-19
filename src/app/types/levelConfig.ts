@@ -91,6 +91,14 @@ export interface LevelConfig {
   questions?: PlannedQuestion[];
   /** The letters a lesson about several letters is on; Memory deals them first. */
   focus?: string[];
+  /** See & match (G3): find the shown letter among look-alikes, no sound. */
+  see_match?: PlannedQuestion[];
+  /**
+   * Teach Mitthu (G3): the child hears `target`, Mitthu says it is `shown`,
+   * and the child says whether he is right. Only in a lesson side by side on
+   * a pair that sounds alike.
+   */
+  mitthu?: { target: string; shown: string }[];
   /** The unit a practice lesson or a unit check belongs to (0-based). */
   unit?: number;
 }

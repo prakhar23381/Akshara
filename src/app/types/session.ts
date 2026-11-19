@@ -25,6 +25,12 @@ export type ActivityType =
   // Review (G2): questions on earlier letters before a lesson. Recorded like
   // Listen & tap, but never part of the lesson letter's diagnosis.
   | "warmup"
+  // G3, recorded like the others but never judging a stage (only Listen &
+  // tap and the word games do): find the same letter by sight, no sound; tap
+  // the letter in pictured words; say whether Mitthu heard right.
+  | "see_match"
+  | "letter_hunt"
+  | "teach_mitthu"
   | "word_fill"
   | "word_spelling";
 

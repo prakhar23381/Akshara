@@ -216,12 +216,12 @@ commits are in `main` (table kept as a record):
       policy on `user_profiles`. Until then the trigger is what keeps old
       cached clients' sign-ups working.
 
-## G · Curriculum (docs/12_CURRICULUM_PLAN.md) — G1 and G2 built, the rest open
+## G · Curriculum (docs/12_CURRICULUM_PLAN.md) — G1–G3 built, the rest open
 
 Built on the plan's defaults so the experts can see it working; each phase on
-its own branch, shown through its preview link. G1 is on `feat/g1-lessons`
-(pushed: a preview, behind Vercel's login); G2 on `feat/g2-review` (local).
-What each built is docs/12 §9.1 and §9.2.
+its own branch, shown through its preview link. G1 and G2 are pushed
+(`feat/g1-lessons`, `feat/g2-review`: previews behind Vercel's login); G3 is
+on `feat/g3-games` (local). What each built is docs/12 §9.1–9.3.
 
 - [ ] **G1b · The lab's children still play whole sessions in varnamala
       order** (`src/lab/fixtures/`). They should play lessons in teaching
@@ -247,10 +247,12 @@ What each built is docs/12 §9.1 and §9.2.
       as primers do, or with their matras in Part 3). The report's 33-cell
       grid and "of 33 letters" follow `LETTER_SEQUENCE` and need to follow
       the course.
-- [ ] **G3 · New games.** See & match, Letter hunt, Read and pick, Build the
-      word, Teach Mitthu.
+- [ ] **G3a · Roadmap cards crowd on a phone.** The tick, lock and star
+      icons sit over the glyph on narrow cards ("क ख" side by side; the star
+      on letter cards). Fix with the path's redesign (G4) or before showing.
 - [ ] **G4 · The path, Mitthu, celebrations** (docs/11).
-- [ ] **G5 · First words** (needs the teacher trainer's T2).
+- [ ] **G5 · First words** (needs the teacher trainer's T2), and the two
+      games moved here from G3: Read and pick the picture, Build the word.
 - [ ] **G6 · Matras** — this is W6.
 - [ ] **X1 · Expert review** of docs/12 §8 (E1–E7 specialist, T1–T7 teacher
       trainer), once G1–G3 can be shown.

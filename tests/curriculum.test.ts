@@ -64,7 +64,7 @@ const cfg = (over: Partial<LevelConfig>): LevelConfig => ({
   reasoning: "", provider_used: "on-device", ...over,
 });
 ok("a lesson's order is its snapshot",
-  buildStepOrder(cfg({ lesson: "words", steps: [...LESSON_STEPS.words] })).join() === "word_fill,word_spelling");
+  buildStepOrder(cfg({ lesson: "words", steps: [...LESSON_STEPS.words] })).join() === "letter_hunt,word_fill,word_spelling");
 ok("the snapshot wins over the old flags",
   !buildStepOrder(cfg({ steps: [...LESSON_STEPS.find], include_matras: true, input_mode: "trace" })).includes("matras"));
 ok("a session from before lessons keeps its old order",

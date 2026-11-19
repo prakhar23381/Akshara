@@ -8,9 +8,10 @@ import { bucketLabel } from "./Skills";
 
 /** What each skill is, in a parent's words. */
 const ABOUT: Record<SkillId, string> = {
-  sound: "Listen & tap: hear a letter, tap it.",
+  sound: "Hear a letter, tap it: Listen & tap, the warm-up questions on earlier letters, and saying whether Mitthu heard right.",
   lookalike: "Listen & tap questions where the other choices look like the letter.",
-  words: "The word games: finish a word, and spell one.",
+  seeing: "See a letter — no sound — and find the same one among letters that look like it. A mistake here is about seeing, not hearing.",
+  words: "The letter in words: finish a word, spell one, and find the letter inside pictured words.",
   writing: "The score for tracing a letter.",
   speed: "Time to answer, counting only answers right first time.",
   matras: "",
@@ -19,6 +20,7 @@ const ABOUT: Record<SkillId, string> = {
 const WHAT: Record<SkillId, string> = {
   sound: "right first time",
   lookalike: "right first time",
+  seeing: "right first time",
   words: "right first time",
   writing: "tracing score",
   speed: "to answer",

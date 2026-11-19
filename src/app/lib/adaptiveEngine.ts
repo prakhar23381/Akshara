@@ -13,6 +13,7 @@
  *
  * Keep the thresholds here in sync with diagnosis_agent.py.
  */
+import type { ActivityType } from "../types/session";
 import type {
   CognitiveState,
   DistractorSimilarity,
@@ -29,6 +30,11 @@ import type { LearnerProfile } from "./learnerProfile";
 import {
   CHECKPOINT_OLDER,
   CONTRAST_QUESTIONS,
+  CONTRAST_SEE_MATCH,
+  CONTRAST_STEPS,
+  MITTHU_ITEMS,
+  SEE_MATCH_QUESTIONS,
+  soundsAlike,
   IDENTIFY_QUESTIONS,
   LESSON_LABEL,
   LESSON_STEPS,
@@ -538,7 +544,10 @@ const aidFor = (letter: string, profile: LearnerProfile): VisualAidIntensity =>
  * exactly what was asked.
  *
  * - **contrast**: `focus` is the pair. Six questions, three on each, in mixed
- *   order, the other letter of the pair always among the choices.
+ *   order, the other letter of the pair always among the choices. A pair that
+ *   sounds alike is heard: Listen & tap, then four Teach Mitthu items, half
+ *   of his guesses wrong. A pair that only looks alike is seen: six See &
+ *   match questions, no sound (G3, plan §6.2).
  * - **practice**: `focus` is the unit's weak letters. Six questions among
  *   different shapes, the dot from the start, as their stage asks.
  * - **checkpoint**: `focus` is the unit's letters. One question on each, then
@@ -553,14 +562,32 @@ export function planReview(
 ): LevelConfig {
   const lead = focus[0];
   let questions: PlannedQuestion[];
+  let steps: readonly ActivityType[] = LESSON_STEPS[kind];
+  let seeMatch: PlannedQuestion[] | undefined;
+  let mitthu: { target: string; shown: string }[] | undefined;
   if (kind === "contrast") {
     const [a, b] = focus;
-    const half = Math.floor(CONTRAST_QUESTIONS / 2);
-    questions = shuffled([...Array(half).fill(a), ...Array(CONTRAST_QUESTIONS - half).fill(b)]).map((t) => {
-      const other = t === a ? b : a;
-      const pool = (DISTRACTOR_POOLS[t]?.hard ?? DEFAULT_HARD).filter((l) => l !== a && l !== b);
-      return { target: t, pool: [other, ...pool], confused: [other], aid: aidFor(t, profile), module: "similar" as const };
-    });
+    const sideBySide = (n: number) =>
+      shuffled([...Array(Math.floor(n / 2)).fill(a), ...Array(n - Math.floor(n / 2)).fill(b)]).map((t) => {
+        const other = t === a ? b : a;
+        const pool = (DISTRACTOR_POOLS[t]?.hard ?? DEFAULT_HARD).filter((l) => l !== a && l !== b);
+        return { target: t, pool: [other, ...pool], confused: [other], aid: aidFor(t, profile), module: "similar" as const };
+      });
+    if (soundsAlike(a, b)) {
+      steps = CONTRAST_STEPS.sound;
+      questions = sideBySide(CONTRAST_QUESTIONS);
+      // Mitthu is right on half: each letter heard twice, once guessed right.
+      mitthu = shuffled([
+        ...[a, b].flatMap((t) => [
+          { target: t, shown: t },
+          { target: t, shown: t === a ? b : a },
+        ]),
+      ]).slice(0, MITTHU_ITEMS);
+    } else {
+      steps = CONTRAST_STEPS.shape;
+      questions = [];
+      seeMatch = sideBySide(CONTRAST_SEE_MATCH);
+    }
   } else if (kind === "practice") {
     questions = shuffled(Array.from({ length: PRACTICE_QUESTIONS }, (_, i) => focus[i % focus.length])).map((t) => {
       const q = reviewQuestion(t, profile);
@@ -592,8 +619,10 @@ export function planReview(
     reasoning: `Lesson: ${LESSON_LABEL[kind]} on ${focus.join(", ")}${unit !== undefined ? ` (unit ${unit + 1})` : ""}.`,
     provider_used: "on-device",
     lesson: kind,
-    steps: [...LESSON_STEPS[kind]],
+    steps: [...steps],
     questions,
+    ...(seeMatch ? { see_match: seeMatch } : {}),
+    ...(mitthu ? { mitthu } : {}),
     focus: [...focus],
     ...(unit !== undefined ? { unit } : {}),
   };
@@ -703,6 +732,22 @@ export function planSession(
     : [];
   const warmup = warmLetters.map((l) => reviewQuestion(l, profile));
 
+  // See & match in Find it (G3): the letter among its look-alikes, by sight,
+  // with this child's own mix-ups among them. Look-alikes whatever the stage:
+  // matching a letter that is in front of you is easier than recalling it.
+  const seeMatch: PlannedQuestion[] =
+    lesson === "find"
+      ? Array.from({ length: SEE_MATCH_QUESTIONS }, () => ({
+          target,
+          pool: [
+            ...new Set([...personal, ...(DISTRACTOR_POOLS[target]?.hard ?? DEFAULT_HARD)]),
+          ].filter((l) => l !== target),
+          confused: personal.slice(0, 1),
+          aid: "static" as const,
+          module: "similar" as const,
+        }))
+      : [];
+
   const parts = [
     lesson ? `Lesson: ${LESSON_LABEL[lesson]}.` : "",
     warmLetters.length > 0 ? `Warm-up on ${warmLetters.join(", ")}.` : "",
@@ -736,6 +781,7 @@ export function planSession(
           lesson,
           steps: [...(warmup.length > 0 ? (["warmup"] as const) : []), ...LESSON_STEPS[lesson]],
           ...(warmup.length > 0 ? { warmup } : {}),
+          ...(seeMatch.length > 0 ? { see_match: seeMatch } : {}),
           ...(IDENTIFY_QUESTIONS[lesson] ? { identify_questions: IDENTIFY_QUESTIONS[lesson] } : {}),
         }
       : { include_matras: true }),

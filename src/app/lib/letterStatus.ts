@@ -234,7 +234,10 @@ export function letterStatuses(
 
       const own = (words: boolean) =>
         s.activities
-          .filter((a) => a.type !== "warmup" && WORD_GAMES.includes(a.type) === words)
+          // Only Listen & tap and the word games judge a letter. Warm-up is
+          // review (G2); See & match, Letter hunt and Teach Mitthu are
+          // recorded and reported but never decide a stage (G3).
+          .filter((a) => (words ? WORD_GAMES.includes(a.type) : a.type === "identify"))
           .flatMap((a) => (a.outcome?.kind === "questions" ? a.outcome.attempts : []))
           .filter((a) => a.target_letter === s.letter);
       const heard = own(false);

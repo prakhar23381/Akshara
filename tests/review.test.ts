@@ -231,7 +231,8 @@ console.log("\n-- side by side, practice and the unit check --");
   const qs = c.questions!;
   ok("side by side: six questions, three on each", qs.length === CONTRAST_QUESTIONS && qs.filter((q) => q.target === "क").length === 3);
   ok("the other letter always among the choices", qs.every((q) => q.confused?.[0] === (q.target === "क" ? "ख" : "क") && q.pool.includes(q.confused![0])));
-  ok("Listen & tap, then Memory, no warm-up", c.steps?.join() === "identify,memory" && c.focus?.join("") === "कख");
+  ok("a pair that sounds alike: Listen & tap, Teach Mitthu, Memory, no warm-up",
+    c.steps?.join() === "identify,teach_mitthu,memory" && c.focus?.join("") === "कख");
   const pr = planReview("c", "practice", ["क", "ल"], p, 0);
   ok("practice: six questions among different shapes, the dot from the start",
     pr.questions!.length === 6 && pr.questions!.every((q) => q.module === "dissimilar" && q.aid === "animated") && pr.unit === 0);

@@ -137,6 +137,7 @@ function HelpCard({ entries, when }: { entries: SkillEntry[]; when: string }) {
 const GRID_SKILLS: { id: SkillId; head: string }[] = [
   { id: "sound", head: "Sound" },
   { id: "lookalike", head: "Look-alike" },
+  { id: "seeing", head: "Seeing" },
   { id: "words", head: "Words" },
   { id: "writing", head: "Writing" },
   { id: "speed", head: "Speed" },

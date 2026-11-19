@@ -68,11 +68,14 @@ export const LESSON_KINDS: readonly LetterLesson[] = ["meet", "find", "words"];
  */
 export const LESSON_STEPS: Record<LessonKind, readonly ActivityType[]> = {
   meet: ["intro", "pronunciation", "example_words", "tracing", "identify"],
-  find: ["identify", "memory"],
-  words: ["word_fill", "word_spelling"],
-  // Review lessons (G2), from the games that exist: Listen & tap over the
-  // lesson's letters, then Memory with them.
-  contrast: ["identify", "memory"],
+  // G3: See & match after Listen & tap (seeing apart from hearing); Letter
+  // hunt before the word games (finding the letter in text first).
+  find: ["identify", "see_match", "memory"],
+  words: ["letter_hunt", "word_fill", "word_spelling"],
+  // Review lessons (G2). Side by side depends on the pair (G3): a pair that
+  // sounds alike is heard and judged with Mitthu; one that only looks alike
+  // is matched by sight. `CONTRAST_STEPS` says which; this is the sound kind.
+  contrast: ["identify", "teach_mitthu", "memory"],
   practice: ["identify", "memory"],
   checkpoint: ["identify", "memory"],
 };
@@ -122,6 +125,31 @@ export const CONTRAST_PAIRS: readonly (readonly [string, string])[] = [
   ["प", "फ"],
   ["ब", "भ"],
 ];
+
+/**
+ * Pairs that also sound alike — the letter and its "puff of air" partner.
+ * Side by side, these are heard (Listen & tap, Teach Mitthu); any other pair
+ * only looks alike and is matched by sight (plan §6.2). च/छ is here although
+ * it is not in `CONTRAST_PAIRS`: it sounds alike when a child mixes it up.
+ */
+export const SOUND_PAIRS: readonly (readonly [string, string])[] = [
+  ...CONTRAST_PAIRS,
+  ["च", "छ"],
+];
+export const soundsAlike = (a: string, b: string): boolean =>
+  SOUND_PAIRS.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+
+/** A lesson side by side, by the kind of pair (G3). */
+export const CONTRAST_STEPS = {
+  sound: ["identify", "teach_mitthu", "memory"],
+  shape: ["see_match", "memory"],
+} as const satisfies Record<string, readonly ActivityType[]>;
+
+/** See & match questions in Find it, and in a lesson side by side on a shape pair. */
+export const SEE_MATCH_QUESTIONS = 3;
+export const CONTRAST_SEE_MATCH = 6;
+/** Teach Mitthu items in a lesson side by side on a sound pair; half of his guesses are wrong. */
+export const MITTHU_ITEMS = 4;
 
 /** A pair this child has mixed up this often (either way, unaided) gets its own lesson side by side. */
 export const PERSONAL_PAIR_PICKS = 2;

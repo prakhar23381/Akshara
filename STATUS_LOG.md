@@ -4,6 +4,33 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-11-19 (IST, later) — G2 pushed; G3: three new games (`feat/g3-games`)
+
+* **G2 pushed (user: "push g2 too")**: `feat/g2-review` alone; Vercel built
+  `be0d2fa` at `akshara-git-feat-g2-review-…vercel.app` (behind the login).
+* **G3, user: "all recommended"** — three of the games now, two to G5; See &
+  match never judges a stage and is reported as "Seeing"; Mitthu moved into
+  the app. One commit (the plan said one per game; the three share the
+  planner, the judging rule and the report, so they went in together).
+  - `SeeMatchStep`, `LetterHuntStep`, `TeachMitthuStep`; activity types
+    `see_match`, `letter_hunt`, `teach_mitthu`.
+  - Find it: … Listen & tap · See & match ×3 · Memory. In words: … Letter
+    hunt · Fill · Spelling. Side by side: a sound pair is Listen & tap ×6 ·
+    Teach Mitthu ×4 · Memory; a shape pair See & match ×6 · Memory.
+  - Only Listen & tap and the word games judge a letter; the new games count
+    as mix-ups and, in lessons on several letters, as review.
+  - Report: a "Seeing (no sound)" skill; "Sound → letter" counts the warm-up
+    and Teach Mitthu, "Words" counts Letter hunt. **Fixed a G2 gap:** warm-up
+    answers had reached no report figure.
+* **Verified:** `npm run test` 524 checks in 13 files, 0 failed; `npm run
+  build` clean. Headless Brave, a guest child with units 1–4 and ख finished
+  (written into the device's storage first, so ख's unit opens): the क/ख lesson
+  side by side (Listen & tap, Teach Mitthu, Memory), Find it on ख (warm-up,
+  Listen & tap, See & match, Memory), In words on ख (warm-up, Letter hunt,
+  Fill, Spelling), all by clicking; every answer saved under its activity with
+  question numbers; no runtime errors, no overflow at 390px.
+* **Found:** narrow roadmap cards put their icon over the glyph (TODO G3a).
+
 ## 2026-11-19 (IST) — G2: review (`feat/g2-review`); the G1 preview
 
 * **G1 preview, on the user's instruction ("push it"):** `feat/g1-lessons`
