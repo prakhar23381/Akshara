@@ -24,6 +24,8 @@ interface TopBarProps {
    * child nothing.
    */
   progress?: number | null;
+  /** Passed to the progress bar: a run of three right answers. */
+  glow?: boolean;
   /** Shown in place of the progress bar. For destinations rather than tasks. */
   title?: string;
   onExit?: () => void;
@@ -34,6 +36,7 @@ interface TopBarProps {
 export function TopBar({
   avatarEmoji = "👤",
   progress = null,
+  glow = false,
   title,
   onExit,
   action,
@@ -49,7 +52,7 @@ export function TopBar({
       {avatarEmoji !== null && <AvatarCircle emoji={avatarEmoji} size="small" />}
 
       {progress !== null ? (
-        <ProgressBar progress={progress} />
+        <ProgressBar progress={progress} glow={glow} />
       ) : title ? (
         <h1 className="t-1 font-bold text-gray-800 tracking-wide flex-1 truncate">
           {title}

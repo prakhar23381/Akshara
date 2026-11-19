@@ -92,23 +92,28 @@ vitest nor jest; it is `tsc --noEmit` followed by a plain Node script.
 │   ├── app/
 │   │   ├── api/         client.ts
 │   │   ├── components/  AccountGuards · AdultScreen · AksharaButton · AudioButton
-│   │   │                AvatarCircle · ChildScreen · LetterDisplay · Mitthu · OptionCard
+│   │   │                AvatarCircle · Bubble · ChildScreen · LetterDisplay · Mitthu · OptionCard
+│   │   │                art (Chest, Tree)
 │   │   │                OptionGrid · PinPad · ProgressBar · Screen · TopBar · TracingCanvas
 │   │   ├── contexts/    AccountContext · AuthContext · ProfileSetupContext · SessionContext
 │   │   ├── data/        curriculum.ts (units, order switch, lessons) · letterContent.ts · letterPaths.ts
+│   │   │                mitthuLines.ts (all of Mitthu's Hindi, for review)
 │   │   ├── hooks/       useLetterAudio · useLevelConfig
 │   │   ├── lib/         accounts · adaptiveEngine · akshara · devOverflowCheck
 │   │   │                learnerProfile · letterStatus · offline_sync · reportBands
-│   │   │                review (boxes, units' review lessons) · sessionMetrics · sessionStore · supabase
-│   │   ├── screens/     profile (add a child) · resume · roadmap · report · my-progress
+│   │   │                review (boxes, units' review lessons) · rewards (week, tree, mission, cards)
+│   │   │                sessionMetrics · sessionStore · supabase
+│   │   ├── screens/     profile (add a child) · HomeScreen (/resume) · path/PathScreen (/roadmap)
+│   │   │                report · my-progress
 │   │   │   ├── account/ RoleScreen · PinSetupScreen · UnlockScreen · AdultHomeScreen
 │   │   │   ├── report-v2/ model (every figure) · ParentReport (at /report via ParentReportScreen) · PrintReport · ClassReport (not routed yet)
 │   │   │   │   ├── views/  Summary · Letters · Skills · Practice · MixUps · shared
 │   │   │   │   └── charts/ theme · heat · Delta · Sparkline · DayStrip · Calendar · YearHeatmap · BarList · StackBar · Columns · LetterGrid · days · useWidth
-│   │   │   └── play/    PlayScreen · PlayLayout · StepDots · types
+│   │   │   └── play/    PlayScreen (and the lesson intro) · PlayLayout · SuccessSheet · StepDots · types
 │   │   │       └── steps/  Intro · Pronunciation · ExampleWords · Matra · Tracing
 │   │   │                   Memory · Identify (also the warm-up) · SeeMatch · LetterHunt
 │   │   │                   TeachMitthu · WordFill · WordSpelling · Reward
+│   │   ├── theme/       colors.ts (the colour roles, as in styles/kit.css)
 │   │   ├── types/       levelConfig.ts · session.ts
 │   │   ├── utils/       soundEffects · speech · tracingEvaluator
 │   │   ├── App.tsx  routes.tsx
@@ -117,11 +122,12 @@ vitest nor jest; it is `tsc --noEmit` followed by a plain Node script.
 │   │   └── play/        the play lab (dev only, docs/11 §9): main · PlayLab · Mitthu · art · ui · tokens · sounds
 │   │       └── stations/  Mitthu · Buttons · Path · Home · Lesson · Celebration
 │   │                      (play/Mitthu.tsx re-exports app/components/Mitthu)
-│   ├── styles/          index.css → fonts.css · tailwind.css · theme.css
+│   ├── styles/          index.css → fonts.css · tailwind.css · theme.css · kit.css
 │   ├── main.tsx  vite-env.d.ts
 ├── tests/               accounts · akshara · bands · curriculum · engine · games · learner
-│                        letterStatus · playthrough · report · reportModel · review · session  (.test.ts)
-├── .legacy/             11 pre-refactor screens + useSessionTracker. Delete after V1–V4
+│                        letterStatus · playthrough · report · reportModel · review · rewards · session  (.test.ts)
+├── .legacy/             pre-refactor screens + useSessionTracker; since G4 also the old
+│                        ResumeScreen and LetterRoadmapScreen. Delete after V1–V4
 ├── TODO.md  STATUS_LOG.md  .agent_recovery_context.md  IMPLEMENTATION_PLAN.md
 ├── README.md  ATTRIBUTIONS.md
 └── index.html  lab.html  playlab.html (both dev only, never built)  package.json  tsconfig.json  vite.config.ts  vercel.json  .env.example

@@ -6,7 +6,8 @@ a literature review on 20 October 2026. It is a **draft for expert review**;
 §8 lists the questions it needs answered. **G1 (lessons) is built** on the
 branch `feat/g1-lessons` since 12 November 2026 and **G2 (review)** on
 `feat/g2-review` since 19 November, and **G3 (three of the new games)** on
-`feat/g3-games` — §9.1–9.3 say exactly how; the rest is not built yet.*
+`feat/g3-games`, and **G4 (the path, Mitthu, celebrations)** on
+`feat/g4-path` — §9.1–9.4 say exactly how; G5 and G6 are not built yet.*
 
 **Who this is for:** the project's dyslexia specialist and nursery-teacher
 trainer, who will check the teaching; then the development team. No
@@ -453,6 +454,14 @@ context §4, 2026-11-19).
 **For an expert's eye:** the warm-up's show-first makes its questions easy, so
 a right answer says less (E7); and a child mastering a letter in one sitting
 now sees no trophy until a later day (E3).
+
+### 9.4 G4 as built (19 November 2026, branch `feat/g4-path`)
+
+The child's side of docs/11, on top of the lessons: Home, the path, Mitthu in
+every lesson, the success sheet, the celebration in beats. What and how:
+**docs/11 §10**. Nothing in the teaching changed — the engine, statuses,
+review and the report are as G3 left them. On the path the units are the
+curriculum's (§4.1), and the unit check is the unit's chest.
 
 **Not done in G1, on purpose:** the report lab's simulated children still play
 whole sessions in varnamala order (converting them changes every figure the

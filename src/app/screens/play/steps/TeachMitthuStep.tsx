@@ -8,6 +8,8 @@ import { useHesitationLadder } from "../../../hooks/useHesitationLadder";
 import { useLetterAudio } from "../../../hooks/useLetterAudio";
 import { playErrorSound, playSuccessSound } from "../../../utils/soundEffects";
 import type { StepProps } from "../types";
+import { SuccessSheet } from "../SuccessSheet";
+
 
 type Said = "yes" | "no";
 
@@ -33,6 +35,7 @@ export function TeachMitthuStep({ levelConfig, onComplete }: StepProps) {
   const [index, setIndex] = useState(0);
   const [said, setSaid] = useState<Said | null>(null);
   const [helped, setHelped] = useState(false);
+  const [sheet, setSheet] = useState(false);
   const busy = useRef(false);
   const heardAt = useRef<number | null>(null);
   const item = items[index];
@@ -93,7 +96,9 @@ export function TeachMitthuStep({ levelConfig, onComplete }: StepProps) {
     setSaid(choice);
     if (right) playSuccessSound();
     else playErrorSound();
-    setTimeout(advance, right ? 1600 : 2400);
+    // Right: the sheet, after a moment to read "It was ख" (D7).
+    if (right) setTimeout(() => setSheet(true), 900);
+    else setTimeout(advance, 2400);
   }
 
   // Stalled: the right answer glows, then the app gives it.
@@ -180,6 +185,13 @@ export function TeachMitthuStep({ levelConfig, onComplete }: StepProps) {
         {button("yes")}
         {button("no")}
       </div>
+      <SuccessSheet
+        show={sheet}
+        onContinue={() => {
+          setSheet(false);
+          advance();
+        }}
+      />
     </PlayLayout>
   );
 }

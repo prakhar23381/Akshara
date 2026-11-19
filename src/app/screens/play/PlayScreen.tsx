@@ -1,7 +1,12 @@
-import { useEffect, useRef, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useNavigate } from "react-router";
 import { useSession } from "../../contexts/SessionContext";
-import type { ActivityType } from "../../types/session";
+import { buildStepOrder, type ActivityType } from "../../types/session";
+import { ChildScreen } from "../../components/ChildScreen";
+import { AksharaButton } from "../../components/AksharaButton";
+import { Mitthu } from "../../components/Mitthu";
+import { Bubble, say } from "../../components/Bubble";
+import { LINES } from "../../data/mitthuLines";
 import type { StepProps } from "./types";
 
 import { IntroStep } from "./steps/IntroStep";
@@ -55,6 +60,10 @@ export function PlayScreen() {
   const navigate = useNavigate();
   const { session, currentStep, beginActivity, completeActivity } = useSession();
   const booted = useRef(false);
+  // Mitthu says how big the lesson is before it starts (G4; docs/11 §3.2):
+  // shown once, at the start of a lesson nothing has been done in yet.
+  const [introDone, setIntroDone] = useState(false);
+  const fresh = Boolean(session && session.activities.length === 0);
 
   // Give the provider one tick to rehydrate an active session before deciding
   // there is nothing to play.
@@ -70,10 +79,14 @@ export function PlayScreen() {
   }, [session, navigate]);
 
   useEffect(() => {
-    if (session && currentStep) beginActivity(currentStep);
-  }, [session, currentStep, beginActivity]);
+    if (session && currentStep && (introDone || !fresh)) beginActivity(currentStep);
+  }, [session, currentStep, beginActivity, introDone, fresh]);
 
   if (!session) return null;
+
+  if (fresh && !introDone && currentStep !== null) {
+    return <LessonIntro steps={buildStepOrder(session.level_config)} onGo={() => setIntroDone(true)} />;
+  }
 
   // Every activity done — close the session and celebrate.
   if (currentStep === null) {
@@ -87,5 +100,60 @@ export function PlayScreen() {
       levelConfig={session.level_config}
       onComplete={(outcome) => completeActivity(currentStep, outcome)}
     />
+  );
+}
+
+/** A picture for each game, for a child who cannot read its name. */
+const GAME_ICON: Record<ActivityType, string> = {
+  warmup: "🔁",
+  intro: "✨",
+  pronunciation: "👄",
+  example_words: "🖼️",
+  matras: "🔤",
+  tracing: "✍️",
+  memory: "🃏",
+  identify: "👂",
+  see_match: "👀",
+  letter_hunt: "🔍",
+  word_fill: "✏️",
+  word_spelling: "📝",
+  teach_mitthu: "🦜",
+};
+
+/**
+ * "3 खेल, फिर सरप्राइज़!" — the size of the lesson in pictures, not numbers
+ * the child must read (docs/11 §3.2): one icon per game, then the gift.
+ */
+function LessonIntro({ steps, onGo }: { steps: ActivityType[]; onGo: () => void }) {
+  const line = LINES.lessonIntro(steps.length);
+  useEffect(() => {
+    say(line.hi);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <ChildScreen
+      footer={
+        <AksharaButton fullWidth onClick={onGo}>
+          <span className="letter-glyph">{LINES.play.hi}</span>
+        </AksharaButton>
+      }
+    >
+      <div className="flex flex-col items-center gap-4">
+        <Mitthu pose="excited" size={130} title="Mitthu" />
+        <Bubble text={line.hi} caption={line.en} tail="bottom" />
+        <div className="flex flex-wrap justify-center items-center gap-2" aria-hidden>
+          {steps.map((s, i) => (
+            <span
+              key={`${s}-${i}`}
+              className="grid place-items-center rounded-2xl bg-white border-2 border-[var(--c-line)] shadow-[0_4px_0_var(--c-line)]"
+              style={{ width: "3.2rem", height: "3.2rem", fontSize: "1.6rem" }}
+            >
+              {GAME_ICON[s]}
+            </span>
+          ))}
+          <span style={{ fontSize: "2rem" }}>→ 🎁</span>
+        </div>
+      </div>
+    </ChildScreen>
   );
 }

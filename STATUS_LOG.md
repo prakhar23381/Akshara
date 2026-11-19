@@ -4,6 +4,36 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-11-19 (IST, evening) — G3 pushed; G4: the path, Mitthu, celebrations (`feat/g4-path`)
+
+* **G3 pushed (user: "push g3 too")**: `feat/g3-games` alone; Vercel built
+  `50e7660` (behind the login).
+* **G4, user: "all recommended"** — chests and stickers now (worked out from
+  sessions); one scrolling path (the exception to "nothing scrolls", written
+  into design_guidelines); glow alone on a run; only true quality cards (1–3);
+  Mitthu speaks every instruction. Three local commits:
+  1. `4c92f50` **the look**: `styles/kit.css` + `theme/colors.ts` (the lab's
+     roles; the lab imports them), 3D buttons, a lip on every tile, the old
+     colours swapped outside the report (three failing contrasts fixed), no
+     numbers on a child's screen.
+  2. `d9911d5` **Home and the path**: `HomeScreen` (/resume) and
+     `path/PathScreen` (/roadmap); `lib/rewards.ts`; `data/mitthuLines.ts`;
+     Mitthu's bubble, the chest, the tree and the sounds moved into the app.
+     The old resume screen and roadmap grid → `.legacy/screens`.
+  3. **in the lesson and after**: the lesson intro, Mitthu's instruction
+     under the bar, the glow, the success sheet with Continue, the 🐢, and the
+     celebration in four beats (`RewardStep` rewritten; saving unchanged).
+* **Found and fixed while clicking:** opening the celebration's chest marked
+  it opened, which removed its beat mid-celebration (now fixed once the
+  history loads); a disabled button showed the teal lip; the chest beat let a
+  child leave without opening it.
+* **Verified:** `npm run test` 547 checks in 15 files, 0 failed; `npm run
+  build` clean. Headless Brave, a fresh guest: Home, the path, क's Meet,
+  Find it and In words by clicking — intro, instruction bubbles, 🐢, success
+  sheets, all four beats, the chest opening on कमल's sticker; afterwards क
+  complete and ल next on the path. Home and the path at 390, 820 and 1440 px
+  for a child mid-course (units 1–4 done): no overflow, no runtime errors.
+
 ## 2026-11-19 (IST, later) — G2 pushed; G3: three new games (`feat/g3-games`)
 
 * **G2 pushed (user: "push g2 too")**: `feat/g2-review` alone; Vercel built

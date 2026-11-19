@@ -14,6 +14,8 @@ import {
   playEncouragementSound,
 } from "../../../utils/soundEffects";
 import type { StepProps } from "../types";
+import { SuccessSheet } from "../SuccessSheet";
+import { letterSticker } from "../../../lib/rewards";
 
 type Phase = "default" | "hesitation" | "hint" | "wrong" | "correct";
 
@@ -85,6 +87,8 @@ export function IdentifyStep({
   const [chosen, setChosen] = useState<string | null>(null);
   const [fails, setFails] = useState(0);
   const [slow, setSlow] = useState(false);
+  // The success sheet (G4): a right answer the child found waits for Continue.
+  const [sheet, setSheet] = useState(false);
 
   const answeredAt = useRef<number | null>(null);
   const phaseRef = useRef<Phase>("default");
@@ -246,7 +250,10 @@ export function IdentifyStep({
     if (option === target) {
       setPhase("correct");
       playSuccessSound();
-      setTimeout(advance, 1200);
+      // Right first time: the green sheet and Continue (D7). Right on the
+      // second try — after the glow — moves on by itself: praise must be true.
+      if (fails === 0) setSheet(true);
+      else setTimeout(advance, 1200);
       return;
     }
 
@@ -335,7 +342,20 @@ export function IdentifyStep({
           labelled the child as needing help, in words a struggling reader
           cannot read anyway. `slow` still drives the playback rate. */}
       <div className="shrink-0 flex flex-col items-center gap-1">
-        <AudioButton onPlay={play} size="lg" />
+        <div className="flex items-center gap-3">
+          <AudioButton onPlay={play} size="lg" />
+          {/* The 🐢 (D5): the child may slow the sound down themselves. No word
+              says "slow" — pressing it is their choice, not a label on them —
+              and an answer after it still counts as right first time. */}
+          <button
+            onClick={() => (slow ? play() : setSlow(true))}
+            aria-label="Hear it again, gently"
+            className="tile3d grid place-items-center rounded-full bg-white border-2 border-[var(--c-line)]"
+            style={{ width: "var(--tap-min)", height: "var(--tap-min)", fontSize: "1.5rem", marginBottom: 5 }}
+          >
+            🐢
+          </button>
+        </div>
         <p className="t-0 text-gray-500 tracking-wide">Tap the letter you heard 👆</p>
       </div>
 
@@ -380,6 +400,14 @@ export function IdentifyStep({
           50%      { transform: translate(-50%, -50%) scale(1.18); }
         }
       `}</style>
+      <SuccessSheet
+        show={sheet}
+        picture={letterSticker(target)}
+        onContinue={() => {
+          setSheet(false);
+          advance();
+        }}
+      />
     </PlayLayout>
   );
 }

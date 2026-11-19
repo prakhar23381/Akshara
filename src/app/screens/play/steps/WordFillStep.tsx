@@ -9,6 +9,8 @@ import { playSuccessSound, playErrorSound } from "../../../utils/soundEffects";
 import { useHesitationLadder } from "../../../hooks/useHesitationLadder";
 import { buildFillQuestions, QUESTIONS_PER_ROUND, type WordOption } from "./wordQuestions";
 import type { StepProps } from "../types";
+import { SuccessSheet } from "../SuccessSheet";
+
 
 export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
   const { recordAttempt } = useSession();
@@ -25,6 +27,7 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
   const [index, setIndex] = useState(0);
   const [chosen, setChosen] = useState<WordOption | null>(null);
   const [locked, setLocked] = useState(false);
+  const [sheet, setSheet] = useState(false);
   // `locked` is state, so it only changes on the next render. In the gap, a
   // second tap — or the ladder's rescue timer landing on the same moment as a
   // tap — would record a second attempt and advance twice, skipping a question.
@@ -79,7 +82,9 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
     const right = option.text === q.answer;
     if (right) playSuccessSound();
     else playErrorSound();
-    setTimeout(advance, right ? 900 : 1400);
+    // Right: the green sheet with the word's picture, and Continue (D7).
+    if (right) setSheet(true);
+    else setTimeout(advance, 1400);
   }
 
   // Stalled? Dim, then hint, then answer for the child — the same ladder
@@ -179,6 +184,14 @@ export function WordFillStep({ letter, levelConfig, onComplete }: StepProps) {
               <span className="letter-glyph tile-glyph font-black">{option.text}</span>
             </button>
           );
+        }}
+      />
+      <SuccessSheet
+        show={sheet}
+        picture={q ? { emoji: q.image, word: q.word } : null}
+        onContinue={() => {
+          setSheet(false);
+          advance();
         }}
       />
     </PlayLayout>

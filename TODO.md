@@ -216,12 +216,12 @@ commits are in `main` (table kept as a record):
       policy on `user_profiles`. Until then the trigger is what keeps old
       cached clients' sign-ups working.
 
-## G · Curriculum (docs/12_CURRICULUM_PLAN.md) — G1–G3 built, the rest open
+## G · Curriculum (docs/12_CURRICULUM_PLAN.md) — G1–G4 built, the rest open
 
 Built on the plan's defaults so the experts can see it working; each phase on
-its own branch, shown through its preview link. G1 and G2 are pushed
-(`feat/g1-lessons`, `feat/g2-review`: previews behind Vercel's login); G3 is
-on `feat/g3-games` (local). What each built is docs/12 §9.1–9.3.
+its own branch, shown through its preview link. G1–G3 are pushed (previews
+behind Vercel's login); G4 is on `feat/g4-path` (local). What each built is
+docs/12 §9.1–9.4 and docs/11 §10.
 
 - [ ] **G1b · The lab's children still play whole sessions in varnamala
       order** (`src/lab/fixtures/`). They should play lessons in teaching
@@ -247,10 +247,15 @@ on `feat/g3-games` (local). What each built is docs/12 §9.1–9.3.
       as primers do, or with their matras in Part 3). The report's 33-cell
       grid and "of 33 letters" follow `LETTER_SEQUENCE` and need to follow
       the course.
-- [ ] **G3a · Roadmap cards crowd on a phone.** The tick, lock and star
-      icons sit over the glyph on narrow cards ("क ख" side by side; the star
-      on letter cards). Fix with the path's redesign (G4) or before showing.
-- [ ] **G4 · The path, Mitthu, celebrations** (docs/11).
+- [ ] **G4a · "अच्छे श्रोता" (Good listener) needs replays recorded.** The
+      quality card for pressing Listen again is not offered: nothing records
+      a replay or a 🐢 press. Record them on the Listen & tap outcome.
+- [ ] **G4b · On a real phone:** Mitthu's spoken lines (the device's Hindi
+      voice varies, and may need a first tap before it speaks), the motion
+      (hop, glow, chest), the synthesised sounds against the recordings, the
+      vibration (Android). The headless checks cannot hear or feel.
+- [ ] **G4c · The sticker album.** Stickers are earned (chests) but the
+      child's "My letters" page does not show them yet (docs/11 §3.6).
 - [ ] **G5 · First words** (needs the teacher trainer's T2), and the two
       games moved here from G3: Read and pick the picture, Build the word.
 - [ ] **G6 · Matras** — this is W6.

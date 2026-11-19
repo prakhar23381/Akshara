@@ -1,5 +1,6 @@
 /** The child's rewards (G4): week strip, tree, mission, today's sticker. */
-import { weekStrip, treeLeaves, missionDone, todaysSticker, letterSticker, practisedDays } from "../src/app/lib/rewards";
+import { weekStrip, treeLeaves, missionDone, todaysSticker, letterSticker, practisedDays, qualitiesOf, firstToday } from "../src/app/lib/rewards";
+import type { ActivityRecord } from "../src/app/types/session";
 import type { LearningSession } from "../src/app/types/session";
 import type { LessonKind } from "../src/app/types/levelConfig";
 
@@ -56,6 +57,34 @@ ok("its sticker is the letter's word picture (ग: गाय 🐄)", todaysStick
 const reviewOnly = [...history, s("क", at(2026, 11, 12, 11), { lesson: "checkpoint" })];
 ok("a day of review only gives the weekday's sticker", todaysSticker(reviewOnly, THU)?.emoji === "🥕");
 ok("no lesson today, no sticker", todaysSticker(history, THU) === null);
+
+console.log("\n-- quality cards --");
+{
+  const act = (type: ActivityRecord["type"], attempts?: { t: string; s: string; m?: "similar" | "dissimilar"; g?: boolean }[]): ActivityRecord => ({
+    type, started_at: "x", completed_at: "y",
+    outcome: attempts
+      ? { kind: "questions", attempts: attempts.map((a) => ({ target_letter: a.t, selected_letter: a.s, module_type: a.m ?? "similar", time_to_interact_ms: 1, was_guided_win: !!a.g, hover_duration_ms: 0, jitter_count: 0 })) }
+      : { kind: "viewed", dwell_ms: 1 },
+  });
+  const with_ = (acts: ActivityRecord[]) => ({ ...s("क", at(2026, 11, 12)), activities: acts });
+  ok("always ends with 'Finished'", qualitiesOf(with_([])).join() === "finished");
+  ok("sharp eyes: a look-alike right without help",
+    qualitiesOf(with_([act("identify", [{ t: "क", s: "क" }])]))[0] === "sharpEyes");
+  ok("…not among different shapes", !qualitiesOf(with_([act("identify", [{ t: "क", s: "क", m: "dissimilar" }])])).includes("sharpEyes"));
+  ok("…not when the app gave the answer", !qualitiesOf(with_([act("identify", [{ t: "क", s: "क", g: true }])])).includes("sharpEyes"));
+  ok("never gave up: a wrong answer, and finished anyway", qualitiesOf(with_([act("word_fill", [{ t: "क", s: "ख" }])])).includes("neverGaveUp"));
+  const all = qualitiesOf(with_([act("identify", [{ t: "क", s: "ख" }, { t: "क", s: "क" }]), act("tracing"), act("memory")]));
+  ok("at most three, the first two by preference", all.length === 3 && all.join() === "sharpEyes,steadyHand,finished", all.join());
+}
+
+console.log("\n-- the first lesson today --");
+{
+  const a = s("क", at(2026, 11, 12, 9));
+  const b = s("ल", at(2026, 11, 12, 11));
+  ok("the first lesson today is first", firstToday([a, b], a));
+  ok("a second one is not", !firstToday([a, b], b));
+  ok("a lesson yesterday does not count", firstToday([s("क", at(2026, 11, 11, 9)), b], b));
+}
 
 console.log(`\nRESULT ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

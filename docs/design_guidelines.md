@@ -13,6 +13,33 @@ where each number lives in the code, for the development team.
 then an *In numbers* table. Section 8 defines what the app measures. Section 9
 lists where a specialist would push back, including what the numbers reveal.
 
+> **On the development branches, not yet in the live app (G4, 19 November
+> 2026, `feat/g4-path`).** These change what the sections below say:
+>
+> - **One child screen scrolls: the path** (§5.2). The user chose a single
+>   winding path through the units, opening on the next lesson, over one unit
+>   per screen — seeing how far you have walked is the point of a path. Every
+>   other child screen still does not scroll.
+> - **Colours** (§5): one colour per meaning. Primary buttons are teal
+>   `#0E7C7B` with white (5.2 : 1, was blue 3.3 : 1); the correct tile is
+>   `#2F7D32` with white (5.3 : 1, was 2.8 : 1); the wrong outline is
+>   `#D9603F` (3.4 : 1 on the page, was 2.9 : 1). Everything pressable stands
+>   on a darker lip.
+> - **No numbers on a child's screen** (§9 point 8): no tracing score, memory
+>   move count, question count or percentages.
+> - **Mitthu speaks each game's instruction in Hindi** (§9 point 6), with the
+>   English as a small caption, through the device's Hindi voice — recordings
+>   are still needed (§9 point 7). His lines: `src/app/data/mitthuLines.ts`.
+> - **A right answer the child found gets a green sheet** with a spoken praise
+>   word and Continue (§4.4); a wrong one still gets only the soft outline.
+> - **A 🐢 button** in Listen & tap lets the child slow the sound themselves,
+>   unlabelled (§4.4, §6); an answer after it is still right first time.
+> - **The celebration is four beats** (§4.5): Mitthu proud with the quality
+>   cards the lesson earned (never a score), the letter collected, today's
+>   sticker, and a chest when one is earned.
+>
+> What each phase built: docs/12 §9.1–9.4 and docs/11 §10.
+
 ---
 
 ## Contents
@@ -355,7 +382,8 @@ alone.
 - A warm off-white background instead of pure white, to cut glare (British
   Dyslexia Association style guide).
 - The same three-part layout on every screen: header, activity, one main button.
-  Nothing scrolls on a child's screen.
+  Nothing scrolls on a child's screen (on the G4 branch, the path is the one
+  exception — see the note at the top).
 - One identical "Listen" button wherever there is sound. A speaker that
   sometimes does nothing teaches a child that speakers do not work.
 - A progress bar for the session and dots for the questions. Knowing how much

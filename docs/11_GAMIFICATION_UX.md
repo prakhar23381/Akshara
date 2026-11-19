@@ -540,6 +540,26 @@ browser's hi-IN speech, so it varies by device.
    (4 in a row); that is a number on a child's screen, if a kind one. It could
    be the glow alone.
 
+## 10. As built in the app (G4, 19 November 2026, `feat/g4-path`)
+
+The lab's stations, made real. Five choices, the user taking the recommended
+option on each (recovery context §4, 2026-11-19).
+
+| Idea | In the app |
+|---|---|
+| §3.9 the look | `src/styles/kit.css` and `src/app/theme/colors.ts` (the lab imports them): the colour roles, and `.tile3d` — a lip under every pressable thing. All child screens |
+| §6 tier 1 | No number on a child's screen |
+| §3.1 Mitthu | `components/Mitthu.tsx`; his speech bubble `components/Bubble.tsx` speaks its Hindi line aloud and again on a tap, with the English small beneath for adults. Every line: `data/mitthuLines.ts`, for the teacher trainer (T7) |
+| §3.4–3.5 Home | `screens/HomeScreen.tsx` at `/resume`: greeting by name, the mission (one lesson) with its chest, the week strip, the tree. All worked out from saved sessions (`lib/rewards.ts`) |
+| §3.3 the path | `screens/path/PathScreen.tsx` at `/roadmap`: the units of the curriculum (not vargas — docs/12 §4.1), one scrolling path (decision 2), the next lesson pulsing with Mitthu beside it, a ring filling a third per lesson, gold and a crown at mastery, side by side / practice / the unit check's chest on the path |
+| §3.2 | "N खेल, फिर सरप्राइज़!" before each lesson, one icon per game |
+| §3.8 | Mitthu's instruction under the bar (spoken except where the game plays its own sound); the bar glows on 3 right in a row, no number (decision 3); the green success sheet with Continue (D7) for an answer the child found; the 🐢 (D5) |
+| §3.7 | Four beats; quality cards are the true ones, one to three (decision 4). "अच्छे श्रोता" is not offered: replays are not recorded yet |
+| §3.6 | Chests on the day's first lesson and on a unit check, worked out from sessions — no sticker table. Stickers are the letters' word pictures (emoji until drawn) |
+
+**Not built:** the sticker album page (the child's "My letters" page is
+unchanged), cosmetic choices, the grown-up's reminder (tier 3).
+
 **Still to judge on a real phone:** whether the hop and dance are too busy
 during a lesson, the 🐢's playback speed (0.6×), how loud the synthesised
 sounds are against the recordings, and vibration (Android only).

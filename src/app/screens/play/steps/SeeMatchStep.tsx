@@ -7,6 +7,8 @@ import { useHesitationLadder } from "../../../hooks/useHesitationLadder";
 import { playErrorSound, playSuccessSound } from "../../../utils/soundEffects";
 import { makeOptions } from "./IdentifyStep";
 import type { StepProps } from "../types";
+import { SuccessSheet } from "../SuccessSheet";
+import { letterSticker } from "../../../lib/rewards";
 
 /** Wrong taps on one question before the answer is shown, as in Listen & tap. */
 const FAIL_FORCE = 2;
@@ -38,6 +40,7 @@ export function SeeMatchStep({ letter, levelConfig, onComplete }: StepProps) {
   const [chosen, setChosen] = useState<string | null>(null);
   const [fails, setFails] = useState(0);
   const [done, setDone] = useState(false);
+  const [sheet, setSheet] = useState(false);
   const busy = useRef(false);
   const shownAt = useRef(performance.now());
   const q = questions[index];
@@ -91,7 +94,8 @@ export function SeeMatchStep({ letter, levelConfig, onComplete }: StepProps) {
     if (option === q.target) {
       setDone(true);
       playSuccessSound();
-      setTimeout(advance, 1000);
+      if (fails === 0) setSheet(true);
+      else setTimeout(advance, 1000);
       return;
     }
     playErrorSound();
@@ -166,6 +170,14 @@ export function SeeMatchStep({ letter, levelConfig, onComplete }: StepProps) {
               <span className="letter-glyph tile-glyph font-bold">{option}</span>
             </button>
           );
+        }}
+      />
+      <SuccessSheet
+        show={sheet}
+        picture={letterSticker(q.target)}
+        onContinue={() => {
+          setSheet(false);
+          advance();
         }}
       />
     </PlayLayout>

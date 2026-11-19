@@ -103,3 +103,50 @@ export function markChestOpened(childId: string, now: Date): void {
     /* storage unavailable: the chest simply shows again */
   }
 }
+
+// ── The celebration's quality cards (docs/11 §3.7) ───────────────────────────
+
+export type QualityId = "sharpEyes" | "steadyHand" | "memoryMagic" | "neverGaveUp" | "finished";
+
+/**
+ * The quality cards a finished lesson earned: each praises something true the
+ * child did, never a score or a time. Up to two, in a fixed order of
+ * preference, then always "पूरा किया" — so a lesson shows one to three cards,
+ * every one of them honest (the user's choice, 2026-11-19).
+ *
+ * "अच्छे श्रोता" (pressed Listen again) is not offered yet: replays are not
+ * recorded, and a card must be true.
+ */
+export function qualitiesOf(session: LearningSession): QualityId[] {
+  const done = (t: string) => session.activities.some((a) => a.type === t && a.completed_at);
+  const answers = session.activities.flatMap((a) =>
+    a.outcome?.kind === "questions" ? a.outcome.attempts.map((x) => ({ ...x, activity: a.type })) : [],
+  );
+  const facts: [QualityId, boolean][] = [
+    [
+      "sharpEyes",
+      answers.some(
+        (x) =>
+          (x.activity === "identify" || x.activity === "see_match") &&
+          x.module_type !== "dissimilar" &&
+          !x.was_guided_win &&
+          x.target_letter === x.selected_letter,
+      ),
+    ],
+    ["steadyHand", done("tracing")],
+    ["memoryMagic", done("memory")],
+    ["neverGaveUp", answers.some((x) => !x.was_guided_win && x.target_letter !== x.selected_letter)],
+  ];
+  return [...facts.filter(([, yes]) => yes).map(([id]) => id).slice(0, 2), "finished"];
+}
+
+/** Whether this is the first lesson the child finished today: today's sticker lands, and the mission's chest. */
+export function firstToday(sessions: LearningSession[], session: LearningSession): boolean {
+  const today = dayOf(session.ended_at ?? session.started_at);
+  return !finished(sessions).some(
+    (s) =>
+      s.session_id !== session.session_id &&
+      dayOf(s.ended_at ?? s.started_at) === today &&
+      Date.parse(s.started_at) < Date.parse(session.started_at),
+  );
+}
