@@ -9,8 +9,31 @@ export type CognitiveState =
 export type DistractorSimilarity = "high" | "medium" | "low";
 export type VisualAidIntensity = "none" | "static" | "animated";
 export type InputMode = "tap" | "drag" | "trace";
-/** The three lessons on a letter (docs/12_CURRICULUM_PLAN.md §5). */
-export type LessonKind = "meet" | "find" | "words";
+/**
+ * A lesson (docs/12_CURRICULUM_PLAN.md §5–6). The first three teach one
+ * letter; the others (G2) review several: a look-alike pair side by side, a
+ * unit's weak letters, or a whole unit at its end.
+ */
+export type LessonKind = LetterLesson | "contrast" | "practice" | "checkpoint";
+/** The lessons that teach one letter. */
+export type LetterLesson = "meet" | "find" | "words";
+
+/**
+ * One Listen & tap question planned in advance (G2): a warm-up question, or a
+ * question in a lesson about several letters. A letter lesson's own questions
+ * are not planned this way — the step builds them from the config, as before.
+ */
+export interface PlannedQuestion {
+  target: string;
+  /** Letters the wrong choices are drawn from. */
+  pool: string[];
+  /** Letters that must be among the choices when they are in the pool. */
+  confused?: string[];
+  /** The guiding dot: "animated" from the start, "static" only if the child hesitates. */
+  aid: VisualAidIntensity;
+  /** How the answer is filed: different-shape choices or look-alike ones. */
+  module: ModuleType;
+}
 
 export interface LevelConfig {
   user_id: string;
@@ -58,6 +81,18 @@ export interface LevelConfig {
   steps?: ActivityType[];
   /** Listen & tap questions in this session. Absent means five, as before G1. */
   identify_questions?: number;
+  /**
+   * The warm-up (G2): questions on letters learned earlier, asked before the
+   * lesson starts. Their answers move those letters through review and count
+   * as mix-ups; they never judge a letter's stage (plan §6.1).
+   */
+  warmup?: PlannedQuestion[];
+  /** A lesson about several letters (G2): its Listen & tap questions, in order. */
+  questions?: PlannedQuestion[];
+  /** The letters a lesson about several letters is on; Memory deals them first. */
+  focus?: string[];
+  /** The unit a practice lesson or a unit check belongs to (0-based). */
+  unit?: number;
 }
 
 export interface QuestionAttempt {
@@ -68,6 +103,12 @@ export interface QuestionAttempt {
   was_guided_win: boolean;
   hover_duration_ms: number;
   jitter_count: number;
+  /**
+   * Which question of its activity this answers, from 0 (G2). A wrong tap and
+   * the retry after it share a number, so the first answer to each question
+   * can be told apart. Absent on answers recorded before G2.
+   */
+  q?: number;
 }
 
 export interface SessionPayload {

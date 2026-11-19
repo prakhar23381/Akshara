@@ -22,6 +22,9 @@ export type ActivityType =
   | "memory"
   // Assessed: question/answer, feeds the diagnosis.
   | "identify"
+  // Review (G2): questions on earlier letters before a lesson. Recorded like
+  // Listen & tap, but never part of the lesson letter's diagnosis.
+  | "warmup"
   | "word_fill"
   | "word_spelling";
 
@@ -95,6 +98,19 @@ export function buildStepOrder(config: LevelConfig): ActivityType[] {
   if (config.input_mode === "trace") steps.push("tracing");
   steps.push("memory", "identify", "word_fill", "word_spelling");
   return steps;
+}
+
+/** Lessons that review several letters rather than teach one (G2). */
+export const REVIEW_LESSONS = ["contrast", "practice", "checkpoint"] as const;
+
+/**
+ * Whether a session teaches its own letter: one of the three lessons on it, or
+ * a session from before lessons. A review lesson's `letter` is only the first
+ * of the letters it is about, so it is never evidence about that letter alone.
+ */
+export function isLetterLesson(session: LearningSession): boolean {
+  const lesson = session.level_config?.lesson;
+  return !lesson || !(REVIEW_LESSONS as readonly string[]).includes(lesson);
 }
 
 /** All attempts across every assessed activity, in order. */

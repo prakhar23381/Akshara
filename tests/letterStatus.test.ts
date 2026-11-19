@@ -48,7 +48,8 @@ const session = (
   attempts: QuestionAttempt[],
   opts: { status?: LearningSession["status"]; saved?: CognitiveState } = {},
 ): LearningSession => {
-  clock += 3600_000;
+  // A day apart, so two sessions are two days (G2: mastery must hold on two).
+  clock += 25 * 3600_000;
   return {
     session_id: `s-${clock}`,
     user_id: "child",
@@ -82,6 +83,9 @@ const session = (
   };
 };
 
+/** A letter mastered: right throughout, on two different days. */
+const twoDays = (letter: string) => [session(letter, right(letter)), session(letter, right(letter))];
+
 /** A ब session in which the child taps क once by mistake. */
 const pickK = () => session("ब", [ask("ब", "क"), ...right("ब", 9)]);
 /** A ब session whose last Listen & tap question asks for क. */
@@ -96,7 +100,7 @@ console.log("-- judged from the answers, not the saved label --");
 }
 {
   const st = letterStatuses([session("घ", right("घ"), { saved: "feature_neglect" })])["घ"];
-  ok("and a saved 'still learning' with all answers right is mastered", st.mastered);
+  ok("and a saved 'still learning' with all answers right is mastered once", st.masteredOnce && !st.mastered && st.state === "visual_mastery");
 }
 {
   const s = letterStatuses([session("ङ", [ask("ङ", "ड")], { status: "abandoned" })])["ङ"];
@@ -113,9 +117,9 @@ console.log("-- judged from the answers, not the saved label --");
 
 console.log("\n-- a mix-up earns a check, it never takes mastery away --");
 {
-  const st = letterStatuses([session("क", right("क")), pickK()])["क"];
+  const st = letterStatuses([...twoDays("क"), pickK()])["क"];
   ok(`one mistaken pick: no check (needs ${CHECK_AFTER_PICKS})`, st.mastered && !st.checkDue);
-  const twice = letterStatuses([session("क", right("क")), pickK(), pickK()]);
+  const twice = letterStatuses([...twoDays("क"), pickK(), pickK()]);
   ok("two: a check is due", twice["क"].checkDue);
   ok("and क is still mastered", twice["क"].mastered);
   ok("recorded against the letter asked for", twice["क"].pickedFor["ब"] === 2);
@@ -129,42 +133,43 @@ console.log("\n-- a mix-up earns a check, it never takes mastery away --");
 }
 {
   const supplied = session("ब", [ask("ब", "क", true), ...right("ब", 9)]);
-  const st = letterStatuses([session("क", right("क")), supplied, supplied])["क"];
+  const st = letterStatuses([...twoDays("क"), supplied, supplied])["क"];
   ok("an answer the app supplied is no mix-up", !st.checkDue);
 }
 {
   const word = session("ब", [ask("ब", "का"), ...right("ब", 9)]);
-  const st = letterStatuses([session("क", right("क")), word, { ...word, session_id: "w2" }])["क"];
+  const st = letterStatuses([...twoDays("क"), word, { ...word, session_id: "w2" }])["क"];
   ok("a matra or word picked is no mix-up", !st.checkDue);
 }
 
 console.log("\n-- the check question --");
 {
-  const st = letterStatuses([session("क", right("क")), pickK(), pickK(), checkK(ask("क", "क"))])["क"];
+  const st = letterStatuses([...twoDays("क"), pickK(), pickK(), checkK(ask("क", "क"))])["क"];
   ok("right first time: still mastered", st.mastered);
   ok("and the mix-ups are settled", !st.checkDue && Object.keys(st.pickedFor).length === 0);
 }
 {
-  const st = letterStatuses([session("क", right("क")), pickK(), pickK(), checkK(ask("क", "ब"), ask("क", "क"))])["क"];
+  const st = letterStatuses([...twoDays("क"), pickK(), pickK(), checkK(ask("क", "ब"), ask("क", "क"))])["क"];
   ok("wrong first time — even with the retry right — back to still learning", !st.mastered && st.state === "feature_neglect", st.state);
   ok("which is 60 roadmap points, not 0", completionScore(st) === 60);
 }
 {
-  const st = letterStatuses([session("क", right("क")), pickK(), pickK(), checkK(ask("क", "क", true))])["क"];
+  const st = letterStatuses([...twoDays("क"), pickK(), pickK(), checkK(ask("क", "क", true))])["क"];
   ok("answered by the app: back to still learning", !st.mastered);
 }
 {
-  const s = [session("क", right("क")), pickK(), pickK(), checkK(ask("क", "ब")), session("क", right("क"))];
-  ok("one good session on क earns it back", letterStatuses(s)["क"].mastered);
+  const s = [...twoDays("क"), pickK(), pickK(), checkK(ask("क", "ब")), session("क", right("क"))];
+  ok("one good session on क makes it mastered once again", letterStatuses(s)["क"].masteredOnce);
+  ok("and a second, another day, earns it back", letterStatuses([...s, session("क", right("क"))])["क"].mastered);
 }
 {
-  const s = [session("क", right("क")), pickK(), pickK(), checkK(ask("क", "ब"))];
-  ok("the check is not evidence against ब", letterStatuses(s)["ब"].mastered);
+  const s = [...twoDays("क"), pickK(), pickK(), checkK(ask("क", "ब"))];
+  ok("the check is not evidence against ब", letterStatuses(s)["ब"].state === "visual_mastery");
 }
 {
   // A check answered before the child quit the session still counts. (Built in
   // order: each session() is an hour after the one before.)
-  const s = [session("क", right("क")), pickK(), pickK()];
+  const s = [...twoDays("क"), pickK(), pickK()];
   s.push(session("ब", [...right("ब", 4), ask("क", "ब")], { status: "abandoned" }));
   ok("a check in an abandoned session still counts", !letterStatuses(s)["क"].mastered);
 }
@@ -217,7 +222,9 @@ console.log("\n-- a letter's three lessons --");
 
   const done = letterStatuses([meet("क"), find("क"), words("क")])["क"];
   ok("In words completes the letter", done.complete && done.lessons.words);
-  ok("clean Find it and In words together are mastery", done.mastered);
+  ok("clean Find it and In words together are mastery — once, on one day", done.masteredOnce && !done.mastered);
+  const later = letterStatuses([meet("क"), find("क"), words("क"), find("क")])["क"];
+  ok("mastered once a later day agrees", later.mastered && !later.masteredOnce);
   ok("a complete letter goes back to Find it, never Meet", done.nextLesson === "find");
   ok("its miss rate is over both lessons", done.errorRate === 0);
 
@@ -230,7 +237,7 @@ console.log("\n-- a letter's three lessons --");
 {
   // The pooled judgement: 11 answers, as when one session held every game.
   const oneMiss = letterStatuses([meet("क"), find("क", 1), words("क")])["क"];
-  ok("one miss in eleven is still mastery (9%)", oneMiss.mastered, String(oneMiss.errorRate));
+  ok("one miss in eleven is still mastery (9%)", oneMiss.state === "visual_mastery", String(oneMiss.errorRate));
   const twoMisses = letterStatuses([meet("क"), find("क", 1), words("क", 1)])["क"];
   ok("two in eleven is not (18%)", !twoMisses.mastered && twoMisses.state === "feature_neglect");
 
@@ -239,7 +246,7 @@ console.log("\n-- a letter's three lessons --");
   ok("a clean In words does not outweigh a failed Find it", !failedFind.mastered, failedFind.state);
   // Replaying a lesson replaces that lesson's answers, and only those.
   const retried = letterStatuses([meet("क"), find("क", 3), words("क"), find("क")])["क"];
-  ok("replaying Find it cleanly replaces its answers", retried.mastered);
+  ok("replaying Find it cleanly replaces its answers", retried.state === "visual_mastery");
   const slipped = letterStatuses([meet("क"), find("क"), words("क"), words("क", 3)])["क"];
   ok("and a poor In words takes mastery away again", !slipped.mastered && slipped.complete);
 }
@@ -247,7 +254,7 @@ console.log("\n-- a letter's three lessons --");
   // Sessions from before lessons: every game in one sitting.
   const old = letterStatuses([session("क", right("क"))])["क"];
   ok("a session from before lessons counts as all three", old.complete && old.lessons.meet && old.nextLesson === "find");
-  ok("and is judged on itself, as it was", old.mastered);
+  ok("and is judged on itself, as it was — mastered once, under the two-day rule", old.masteredOnce);
   const savedOnly = letterStatuses([], [{ letter: "ग", mastered: true, sessions_count: 2 }])["ग"];
   ok("a letter known only from a saved row is complete", savedOnly.complete && savedOnly.nextLesson === "find");
   // The reward screen saves a row after every lesson; it must not complete the letter.

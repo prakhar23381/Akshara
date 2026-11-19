@@ -77,7 +77,8 @@ const session = (
     status?: LearningSession["status"];
   } = {},
 ): LearningSession => {
-  clock += 3600_000;
+  // A day apart, so two sessions are two days (G2: mastery must hold on two).
+  clock += 25 * 3600_000;
   return {
     session_id: `s-${clock}`,
     user_id: opts.user ?? "child-a",
@@ -189,11 +190,12 @@ console.log("\n-- judged from the answers, not the saved label --");
 console.log("\n-- mix-ups count for both letters --");
 {
   const all = (letter: string) => [...Array(10)].map(() => attempt(letter, letter));
-  const masterK = session("क", all("क"), { state: "visual_mastery" });
+  // Mastered: right throughout on two different days.
+  const masterK = [session("क", all("क"), { state: "visual_mastery" }), session("क", all("क"), { state: "visual_mastery" })];
   const once = session("ब", [attempt("ब", "क"), ...all("ब").slice(1)]);
-  ok("one mistaken pick of a mastered letter is not enough", buildLearnerProfile([masterK, once]).checks.length === 0);
+  ok("one mistaken pick of a mastered letter is not enough", buildLearnerProfile([...masterK, once]).checks.length === 0);
   const twice = session("ब", [attempt("ब", "क"), ...all("ब").slice(1)]);
-  const p = buildLearnerProfile([masterK, once, twice]);
+  const p = buildLearnerProfile([...masterK, once, twice]);
   ok("two make it due a check", p.checks[0]?.letter === "क", JSON.stringify(p.checks));
   ok("naming the letter it was picked for", p.checks[0]?.pickedFor[0] === "ब");
   ok("but it is still mastered until the check", p.stateByLetter["क"] === "visual_mastery");
@@ -324,13 +326,20 @@ console.log("\n-- loading history --");
     meetNext.distractor_pool.join(" "));
   const findNext = planSession("c", "क", ahead, [], "find").levelConfig;
   ok("Find it takes the stage's choices", findNext.distractor_similarity === "high" && findNext.identify_questions === 5);
-  ok("Find it is Listen & tap, then Memory", findNext.steps?.join() === "identify,memory");
+  // ल is complete (a session from before lessons), so it is due a warm-up.
+  ok("Find it is a warm-up on ल, Listen & tap, then Memory",
+    findNext.steps?.join() === "warmup,identify,memory" && findNext.warmup?.[0]?.target === "ल",
+    String(findNext.steps));
   const wordsNext = planSession("c", "क", ahead, [], "words").levelConfig;
-  ok("In words is the two word games", wordsNext.steps?.join() === "word_fill,word_spelling" && wordsNext.identify_questions === undefined);
+  ok("In words is the warm-up and the two word games",
+    wordsNext.steps?.join() === "warmup,word_fill,word_spelling" && wordsNext.identify_questions === undefined);
+  ok("the very first lesson has no warm-up: nothing is complete",
+    !planSession("c", "क", EMPTY_PROFILE, [], "meet").levelConfig.steps?.includes("warmup"));
   ok("each lesson says which it is", [meetNext, findNext, wordsNext].map((c) => c.lesson).join() === "meet,find,words");
 
   // The check question has one place to go: the end of Find it.
   const sessions = [
+    session("क", Array.from({ length: 10 }, () => attempt("क", "क"))),
     session("क", Array.from({ length: 10 }, () => attempt("क", "क"))),
     session("भ", [attempt("भ", "क"), attempt("भ", "क"), ...Array.from({ length: 8 }, () => attempt("भ", "भ"))]),
   ];

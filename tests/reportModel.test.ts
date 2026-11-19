@@ -75,12 +75,11 @@ const aarav = parent("week");
   ok("ग ↔ घ is new this week", second.a === "ग" && second.b === "घ" && second.isNew && second.previous === 0);
   ok("practise next: क and ख", m.practiseNext?.kind === "mixup" && m.practiseNext.count === 7);
   ok("29 letters not started", m.letters.counts.not_started === 29);
-  ok("learned this week: the change is the letters learned this week (क)",
-    m.letters.learned.change === 1 && m.letters.learnedInPeriod.join() === "क", JSON.stringify(m.letters.learned));
-  const monday = buildReportModel(aarav.sources, new Date("2026-10-12T12:30:00Z"), "week");
-  ok("on the Monday after, nothing is learned 'this week' — क was last week's",
-    monday.letters.learned.change === 0 && monday.letters.learnedInPeriod.length === 0 && monday.letters.learned.value === 1,
-    JSON.stringify(monday.letters.learned));
+  // Aarav's क came out mastered on one day only (7 Oct): under the two-day
+  // rule (G2) it is not learned yet.
+  ok("mastered on one day is not yet learned: nothing learned this week",
+    m.letters.learned.value === 0 && m.letters.learnedInPeriod.length === 0, JSON.stringify(m.letters.learned));
+  ok("…but the letter's status says it was mastered once", m.letters.entries.find((e) => e.letter === "क")!.learned === false);
   ok("letters learned agrees with the current report",
     m.letters.learned.value === buildProgressReport(aarav.sources).letters_mastered);
   ok("the session list is newest first", m.practice.list[0].letter === "घ" && m.practice.list.length === 6);
@@ -142,10 +141,36 @@ console.log("\n-- ● means learned, and nothing else (2026-10-12) --");
   ok(`every ● is a learned letter and every learned letter is ● (${letters} checked)`, odd.length === 0, odd.slice(0, 5).join(", "));
 }
 
+console.log("\n-- learned: mastery on two days (G2) --");
+{
+  const K = "क";
+  const { history, play } = createPlayer("two-days", { idPrefix: "d2d20000", metrics: true });
+  const all = { identify: [K, K, K, K, K], words: [K, K, K, K, K, K] };
+  play({ letter: K, when: "2026-10-06T10:00:00Z", ...all });
+  const src = { rows: rowsOf(history), progress: [], displayName: "Two", source: "device" as const };
+  const one = buildReportModel(src, NOW, "week");
+  ok("one day of mastery: not learned", one.letters.learned.value === 0);
+  play({ letter: K, when: "2026-10-06T15:00:00Z", ...all });
+  ok("a second sitting the same day: still not", buildReportModel({ ...src, rows: rowsOf(history) }, NOW, "week").letters.learned.value === 0);
+  play({ letter: K, when: "2026-10-08T10:00:00Z", ...all });
+  const two = buildReportModel({ ...src, rows: rowsOf(history) }, NOW, "week");
+  ok("a second day: learned, and learned this week",
+    two.letters.learned.value === 1 && two.letters.learnedInPeriod.join() === K && two.letters.learned.change === 1,
+    JSON.stringify(two.letters.learned));
+  const k = two.letters.entries.find((e) => e.letter === K)!;
+  ok("learned on the second day", k.learnedAt === new Date("2026-10-08T10:00:00Z").toISOString(), String(k.learnedAt));
+  const monday = buildReportModel({ ...src, rows: rowsOf(history) }, new Date("2026-10-12T12:30:00Z"), "week");
+  ok("on the Monday after, nothing is learned 'this week' — क was last week's",
+    monday.letters.learned.change === 0 && monday.letters.learnedInPeriod.length === 0 && monday.letters.learned.value === 1,
+    JSON.stringify(monday.letters.learned));
+}
+
 console.log("\n-- E3: a check answer counts for the letter it asked for --");
 {
   const K = "क", KH = "ख";
   const { history, play } = createPlayer("check-child", { idPrefix: "c4ec0000", metrics: true });
+  // Mastered: right throughout on two different days.
+  play({ letter: K, when: "2026-10-04T10:00:00Z", identify: [K, K, K, K, K], words: [K, K, K, K, K, K] });
   play({ letter: K, when: "2026-10-05T10:00:00Z", identify: [K, K, K, K, K], words: [K, K, K, K, K, K] });
   // Two taps of क in place of ख: क is due a check.
   play({ letter: KH, when: "2026-10-06T10:00:00Z", identify: [KH, K, KH, KH, KH], words: [KH, KH, K, KH, KH, KH] });
@@ -161,8 +186,8 @@ console.log("\n-- E3: a check answer counts for the letter it asked for --");
   const kh = m.letters.entries.find((e) => e.letter === KH)!;
   ok("क was learned, and the missed check takes it away here too", !k.learned, JSON.stringify(k));
   ok("क's latest answer is the check: 0% right first time", k.latestRightFirstTime === 0, String(k.latestRightFirstTime));
-  ok("…in ख's session, but filed under क", k.history.length === 2 && kh.history.length === 2, `${k.history.length} ${kh.history.length}`);
-  ok("…and says whose session it was", k.history[1].sessionLetter === KH && k.history[0].sessionLetter === K);
+  ok("…in ख's session, but filed under क", k.history.length === 3 && kh.history.length === 2, `${k.history.length} ${kh.history.length}`);
+  ok("…and says whose session it was", k.history[2].sessionLetter === KH && k.history[0].sessionLetter === K);
   ok("ख's own figures leave the check out", kh.latestRightFirstTime === 100, String(kh.latestRightFirstTime));
   ok("the mix-up is counted once, as क ↔ ख", m.mixups.pairs.some((p) => p.a === K && p.b === KH));
   ok("once asked, the check is no longer due", m.letters.checks.length === 0, JSON.stringify(m.letters.checks));

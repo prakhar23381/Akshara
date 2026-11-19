@@ -1,7 +1,6 @@
 import type { ReportSources } from "../../api/reportSources";
 import { rowToSession } from "../../lib/sessionStore";
 import { errorBand } from "../../lib/reportBands";
-import { diagnose } from "../../lib/adaptiveEngine";
 import {
   checksDue, letterStatuses, pageAverage, pageLetters, pageOpen, TOTAL_PAGES,
   type DueCheck, type LetterStatus as EngineStatus,
@@ -434,18 +433,10 @@ function letterEntries(
     const latest = withAnswers[withAnswers.length - 1]?.rightFirstTime ?? null;
 
     const learned = statuses[letter]?.mastered ?? false;
-    // When the current run of mastery began: the letter's own finished
-    // sessions, judged. Null for a letter known only from a saved row.
-    let learnedAt: string | null = null;
-    if (learned) {
-      const completed = own.filter((s) => s.status === "completed");
-      for (let i = completed.length - 1; i >= 0; i--) {
-        const { state } = diagnose(answersOf(completed[i]), letter);
-        if (state === "insufficient_data") continue;
-        if (state !== "visual_mastery") break;
-        learnedAt = completed[i].started_at;
-      }
-    }
+    // When the letter became learned: the session on the second day its
+    // mastery held (G2), as the status works it out. Null for a letter known
+    // only from a saved row.
+    const learnedAt: string | null = learned ? (statuses[letter]?.masteredAt ?? null) : null;
 
     const status: LetterStatus = learned
       ? "secure"

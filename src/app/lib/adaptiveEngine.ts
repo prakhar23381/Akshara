@@ -20,12 +20,18 @@ import type {
   LessonKind,
   LevelConfig,
   ModuleType,
+  PlannedQuestion,
   QuestionAttempt,
   SessionPayload,
   VisualAidIntensity,
 } from "../types/levelConfig";
 import type { LearnerProfile } from "./learnerProfile";
-import { IDENTIFY_QUESTIONS, LESSON_LABEL, LESSON_STEPS } from "../data/curriculum";
+import {
+  IDENTIFY_QUESTIONS,
+  LESSON_LABEL,
+  LESSON_STEPS,
+  WARMUP_QUESTIONS,
+} from "../data/curriculum";
 
 // Exported because the report colours error rates by these same two lines:
 // a colour then always marks a point at which this engine changes the
@@ -484,6 +490,31 @@ export function analyzeLocally(
   };
 }
 
+/**
+ * A review question on an earlier letter (G2): look-alike choices once the
+ * child is past the shape, different shapes before, with the letters this
+ * child mixes it up with among them. No dot from the start — review is
+ * recall — but it appears if the child hesitates.
+ */
+export function reviewQuestion(letter: string, profile: LearnerProfile): PlannedQuestion {
+  const state = profile.stateByLetter[letter] ?? "feature_neglect";
+  const easy = state === "gross_shape_blindness" || state === "insufficient_data";
+  const pools = DISTRACTOR_POOLS[letter];
+  const pool = (easy ? pools?.easy : pools?.hard) ?? (easy ? DEFAULT_EASY : DEFAULT_HARD);
+  const confused = Object.entries(profile.confusions[letter] ?? {})
+    .filter(([l]) => l !== letter)
+    .sort((a, b) => b[1] - a[1])
+    .map(([l]) => l)
+    .slice(0, 1);
+  return {
+    target: letter,
+    pool: [...new Set([...confused, ...pool])].filter((l) => l !== letter),
+    confused,
+    aid: "static",
+    module: easy ? "dissimilar" : "similar",
+  };
+}
+
 /** Plausible response-time bounds, so one distracted session cannot set absurd timers. */
 const BASELINE_MIN_MS = 3000;
 const BASELINE_MAX_MS = 12000;
@@ -577,8 +608,16 @@ export function planSession(
       ? Math.min(BASELINE_MAX_MS, Math.max(BASELINE_MIN_MS, profile.latencyMedianMs))
       : 6000;
 
+  // The warm-up (G2): the earlier letters most due for review, never this
+  // lesson's own. Empty until the child has a complete letter.
+  const warmLetters = lesson
+    ? profile.reviewOrder.filter((l) => l !== target).slice(0, WARMUP_QUESTIONS)
+    : [];
+  const warmup = warmLetters.map((l) => reviewQuestion(l, profile));
+
   const parts = [
     lesson ? `Lesson: ${LESSON_LABEL[lesson]}.` : "",
+    warmLetters.length > 0 ? `Warm-up on ${warmLetters.join(", ")}.` : "",
     profile.sessionCount > 0
       ? `Personalised from ${profile.sessionCount} recorded session${profile.sessionCount === 1 ? "" : "s"} (${profile.source}).`
       : "No recorded sessions yet: standard first assessment.",
@@ -607,7 +646,8 @@ export function planSession(
     ...(lesson
       ? {
           lesson,
-          steps: [...LESSON_STEPS[lesson]],
+          steps: [...(warmup.length > 0 ? (["warmup"] as const) : []), ...LESSON_STEPS[lesson]],
+          ...(warmup.length > 0 ? { warmup } : {}),
           ...(IDENTIFY_QUESTIONS[lesson] ? { identify_questions: IDENTIFY_QUESTIONS[lesson] } : {}),
         }
       : { include_matras: true }),

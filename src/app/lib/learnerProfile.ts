@@ -1,5 +1,6 @@
-import type { CognitiveState, LessonKind } from "../types/levelConfig";
-import { sessionAttempts, type LearningSession } from "../types/session";
+import type { CognitiveState, LetterLesson } from "../types/levelConfig";
+import { isLetterLesson, sessionAttempts, type LearningSession } from "../types/session";
+import { reviewBoxes, reviewOrder } from "./review";
 import { loadAllSessions, rowToSession } from "./sessionStore";
 import { ownAttempts } from "./adaptiveEngine";
 import { supabase, isSupabaseConfigured } from "./supabase";
@@ -42,7 +43,9 @@ export interface LearnerProfile {
   /** Mastered letters this child keeps picking by mistake, due a check question (E3). */
   checks: DueCheck[];
   /** The lesson due on each letter the child has a history on; any other letter starts at Meet. */
-  lessonByLetter: Record<string, LessonKind>;
+  lessonByLetter: Record<string, LetterLesson>;
+  /** Complete letters in the order review asks them, most due first (G2, review.ts). */
+  reviewOrder: string[];
   /**
    * Recency-weighted confusion strength: `confusions[target][chosen]`.
    * Higher means the child has picked `chosen` in place of `target` more often
@@ -61,6 +64,7 @@ export const EMPTY_PROFILE: LearnerProfile = {
   latestState: null,
   checks: [],
   lessonByLetter: {},
+  reviewOrder: [],
   confusions: {},
   latencyMedianMs: null,
 };
@@ -135,12 +139,13 @@ function median(values: number[]): number | null {
 /**
  * Pure: sessions in, profile out. Sessions may be in any order. `saved` is the
  * child's `letter_progress` rows, which only letters with no saved answers rely
- * on (see `letterStatus.ts`).
+ * on (see `letterStatus.ts`). `now` decides which letters are due for review.
  */
 export function buildLearnerProfile(
   sessions: LearningSession[],
   source: LearnerProfile["source"] = "device",
   saved: SavedProgress[] = [],
+  now: number = Date.now(),
 ): LearnerProfile {
   const newestFirst = [...sessions].sort((a, b) => (a.started_at < b.started_at ? 1 : -1));
   const recent = newestFirst.slice(0, HISTORY_LIMIT);
@@ -167,7 +172,7 @@ export function buildLearnerProfile(
   // supplied answer is a miss, as in the diagnosis). Since G1 that is the
   // letter's latest lessons pooled, not one session: a lesson alone is too few
   // answers, and a word lesson alone says nothing about shape.
-  const lessonByLetter: Record<string, LessonKind> = {};
+  const lessonByLetter: Record<string, LetterLesson> = {};
   Object.entries(statuses).forEach(([letter, st]) => {
     if (st.errorRate !== null) errorRateByLetter[letter] = st.errorRate;
     lessonByLetter[letter] = st.nextLesson;
@@ -176,7 +181,7 @@ export function buildLearnerProfile(
   // The newest finished session's letter says where the child is now. Only
   // sessions that finished: an abandoned session was never diagnosed.
   for (const s of newestFirst) {
-    if (s.status !== "completed") continue;
+    if (s.status !== "completed" || !isLetterLesson(s)) continue;
     const st = statuses[s.letter];
     if (!st || st.errorRate === null || st.state === "insufficient_data") continue;
     if (ownAttempts(sessionAttempts(s), s.letter).length === 0) continue;
@@ -212,6 +217,7 @@ export function buildLearnerProfile(
     latestState,
     checks: checksDue(statuses),
     lessonByLetter,
+    reviewOrder: reviewOrder(reviewBoxes(sessions), statuses, now),
     confusions,
     latencyMedianMs: median(latencies),
   };

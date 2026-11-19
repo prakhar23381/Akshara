@@ -25,6 +25,8 @@ const STEPS: Record<ActivityType, (p: StepProps) => ReactElement | null> = {
   tracing: TracingStep,
   memory: MemoryStep,
   identify: IdentifyStep,
+  // The warm-up is Listen & tap on earlier letters, each shown first (G2).
+  warmup: (p) => <IdentifyStep {...p} mode="warmup" />,
   word_fill: WordFillStep,
   word_spelling: WordSpellingStep,
 };

@@ -1,10 +1,10 @@
 import {
   LETTER_SEQUENCE,
   type CognitiveState,
-  type LessonKind,
+  type LetterLesson,
   type QuestionAttempt,
 } from "../types/levelConfig";
-import { sessionAttempts, type LearningSession } from "../types/session";
+import { isLetterLesson, type LearningSession } from "../types/session";
 import { diagnose, isMiss, overallErrorRate } from "./adaptiveEngine";
 import { TEACHING_UNITS, lessonAfter } from "../data/curriculum";
 
@@ -37,6 +37,20 @@ import { TEACHING_UNITS, lessonAfter } from "../data/curriculum";
  * exactly how it was judged then. A lesson can only make a letter mastered once
  * the letter has word-game answers: Find it alone is not enough.
  *
+ * **Mastered means it held on two different days (G2, plan question E3).** The
+ * judgement can reach mastery in one sitting; that is `masteredOnce`, and the
+ * letter is `mastered` once the judgement has come out mastered on a second
+ * calendar day (the device's time zone) without falling below in between.
+ * Judged on read like everything here, so it applies to every session already
+ * saved: a letter mastered on a single day before G2 reads as mastered once.
+ * The stage the engine teaches at is unchanged by it — only the label is.
+ *
+ * **Review answers never judge a letter (G2).** The warm-up, lessons side by
+ * side, practice and unit checks ask about letters learned earlier. Their
+ * answers count as mix-ups — so a mastered letter picked by mistake still
+ * earns its check question — but a stage moves only through that check (plan
+ * §6.1). A review lesson's `letter` is just the first of its letters.
+ *
  * Pure: sessions and saved rows in, statuses out.
  */
 
@@ -66,15 +80,19 @@ export interface LetterStatus {
   pickedFor: Record<string, number>;
   /** Mastered, and picked by mistake often enough to be asked for once more. */
   checkDue: boolean;
+  /** Judged mastered, but on one day only so far: not yet `mastered`. */
+  masteredOnce: boolean;
+  /** When the current run of mastery became `mastered` (the session on its second day); null otherwise or if only saved. */
+  masteredAt: string | null;
   /** The lessons the child has finished on this letter, at least once each. */
-  lessons: Record<LessonKind, boolean>;
+  lessons: Record<LetterLesson, boolean>;
   /**
    * In words finished: the letter's three lessons are done and the course
    * moves on. Not the same as mastered — that is how well, this is how far.
    */
   complete: boolean;
   /** The lesson a child opening this letter plays now. */
-  nextLesson: LessonKind;
+  nextLesson: LetterLesson;
   /** Share missed of the answers the status was judged on; null if never judged from answers. */
   errorRate: number | null;
 }
@@ -96,9 +114,21 @@ const STATES: CognitiveState[] = [
 const asState = (v: unknown): CognitiveState =>
   STATES.includes(v as CognitiveState) ? (v as CognitiveState) : "insufficient_data";
 
+
+/** Mastery must hold on this many different days (plan question E3). */
+export const MASTERY_DAYS = 2;
+
+/** A calendar day in the device's time zone, which is the child's. */
+export const dayOf = (iso: string): string => {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+};
+
 const blank = (): LetterStatus => ({
   state: "insufficient_data",
   mastered: false,
+  masteredOnce: false,
+  masteredAt: null,
   sessions: 0,
   judged: false,
   pickedFor: {},
@@ -109,7 +139,7 @@ const blank = (): LetterStatus => ({
   errorRate: null,
 });
 
-const ALL_LESSONS = (): Record<LessonKind, boolean> => ({ meet: true, find: true, words: true });
+const ALL_LESSONS = (): Record<LetterLesson, boolean> => ({ meet: true, find: true, words: true });
 const WORD_GAMES = ["word_fill", "word_spelling"];
 
 export function letterStatuses(
@@ -135,27 +165,43 @@ export function letterStatuses(
   // latest word games, which since G1 come from different sessions.
   const pools: Record<string, { heard: QuestionAttempt[]; inWords: QuestionAttempt[] }> = {};
   // The last lesson finished on each letter, which decides the next one.
-  const last: Record<string, LessonKind> = {};
+  const last: Record<string, LetterLesson> = {};
+  // The days on which each letter's judgement came out mastered, since it last
+  // fell below mastery.
+  const masteryDays: Record<string, Set<string>> = {};
   const ordered = [...sessions].sort(
     (a, b) => Date.parse(a.started_at) - Date.parse(b.started_at),
   );
 
   for (const s of ordered) {
-    get(s.letter);
-    played[s.letter] = (played[s.letter] ?? 0) + 1;
-    const attempts = sessionAttempts(s);
+    const teaches = isLetterLesson(s);
+    if (teaches) {
+      get(s.letter);
+      played[s.letter] = (played[s.letter] ?? 0) + 1;
+    }
     const checked = new Set<string>();
 
-    for (const a of attempts) {
-      // A check question: the first answer on another letter decides it. The
-      // retries that follow a wrong tap are the same question.
-      if (a.target_letter !== s.letter && !checked.has(a.target_letter)) {
+    for (const act of s.activities) {
+      if (act.outcome?.kind !== "questions") continue;
+      for (const a of act.outcome.attempts) {
+      // A check question: in a letter lesson's Listen & tap, the first answer
+      // on another letter decides it. The retries that follow a wrong tap are
+      // the same question. Warm-up and review answers are never checks.
+      if (
+        teaches &&
+        act.type === "identify" &&
+        a.target_letter !== s.letter &&
+        !checked.has(a.target_letter)
+      ) {
         checked.add(a.target_letter);
         const st = out[a.target_letter];
         if (st) {
           if (st.mastered && isMiss(a)) {
             st.mastered = false;
+            st.masteredOnce = false;
+            st.masteredAt = null;
             st.state = "feature_neglect";
+            masteryDays[a.target_letter] = new Set();
           }
           st.pickedFor = {};
         }
@@ -172,14 +218,15 @@ export function letterStatuses(
           st.pickedFor[a.target_letter] = (st.pickedFor[a.target_letter] ?? 0) + 1;
         }
       }
+      }
     }
 
     // The session's own letter, judged on its own questions by today's rules.
     // An abandoned session was never judged; a finished one with no questions
     // on its letter has nothing to judge, so it leaves the status as it was.
-    if (s.status === "completed") {
+    if (teaches && s.status === "completed") {
       const st = get(s.letter);
-      const lesson = s.level_config?.lesson;
+      const lesson = s.level_config?.lesson as LetterLesson | undefined;
       // A session from before lessons played every game: all three at once.
       if (lesson) st.lessons[lesson] = true;
       else st.lessons = ALL_LESSONS();
@@ -187,7 +234,7 @@ export function letterStatuses(
 
       const own = (words: boolean) =>
         s.activities
-          .filter((a) => WORD_GAMES.includes(a.type) === words)
+          .filter((a) => a.type !== "warmup" && WORD_GAMES.includes(a.type) === words)
           .flatMap((a) => (a.outcome?.kind === "questions" ? a.outcome.attempts : []))
           .filter((a) => a.target_letter === s.letter);
       const heard = own(false);
@@ -207,8 +254,14 @@ export function letterStatuses(
           state = "feature_neglect";
         }
         if (state !== "insufficient_data") {
+          const days = (masteryDays[s.letter] ??= new Set());
+          if (state === "visual_mastery") days.add(dayOf(s.started_at));
+          else days.clear();
           st.state = state;
-          st.mastered = state === "visual_mastery";
+          const was = st.mastered && st.masteredAt !== null;
+          st.mastered = days.size >= MASTERY_DAYS;
+          st.masteredAt = st.mastered ? (was ? st.masteredAt : s.started_at) : null;
+          st.masteredOnce = state === "visual_mastery" && !st.mastered;
           st.judged = true;
           st.pickedFor = {};
           st.errorRate = overallErrorRate(judgedOn);
@@ -277,6 +330,8 @@ export const PAGE_UNLOCK_SCORE = 75;
 export function completionScore(st: LetterStatus | undefined): number {
   if (!st) return 0;
   if (st.mastered) return 100;
+  // Mastered on one day: most of the way, short of the trophy (G2).
+  if (st.state === "visual_mastery") return 80;
   if (st.state === "feature_neglect") return 60;
   if (st.state === "gross_shape_blindness") return 25;
   return 0; // insufficient_data

@@ -6,7 +6,7 @@ import { StepDots } from "../StepDots";
 import { useSession } from "../../../contexts/SessionContext";
 import { useLetterAudio } from "../../../hooks/useLetterAudio";
 import { FEATURE_HIGHLIGHT_POSITIONS } from "../../../types/levelConfig";
-import type { ModuleType } from "../../../types/levelConfig";
+import type { ModuleType, VisualAidIntensity } from "../../../types/levelConfig";
 import { FEATURE_BY_LETTER } from "../../../lib/adaptiveEngine";
 import {
   playSuccessSound,
@@ -44,11 +44,43 @@ function makeOptions(target: string, pool: string[], confused: string[] = []): s
   return opts;
 }
 
-export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
+/** How long the warm-up shows a letter before asking for it. */
+const PREVIEW_MS = 2400;
+
+interface Question {
+  target: string;
+  options: string[];
+  aid: VisualAidIntensity;
+  module: ModuleType;
+  /** The first answer on a letter that has had no answers: no dot, no help to read. */
+  assessment: boolean;
+}
+
+/**
+ * Listen & tap. Three kinds of question list (G2):
+ *
+ * - **a letter lesson** — the lesson's own letter, three or five times, with
+ *   any check question last, built here from the config as before;
+ * - **a lesson on several letters** — the questions the planner listed in
+ *   `levelConfig.questions` (side by side, practice, the unit check);
+ * - **the warm-up** (`mode="warmup"`) — `levelConfig.warmup`. Each letter is
+ *   first shown and said, then asked for (plan §6.1: young children see and
+ *   hear before they answer). Answers are recorded as the warm-up's.
+ */
+export function IdentifyStep({
+  letter,
+  levelConfig,
+  onComplete,
+  mode = "lesson",
+}: StepProps & { mode?: "lesson" | "warmup" }) {
   const { recordAttempt } = useSession();
+  const warmup = mode === "warmup";
+  const activity = warmup ? "warmup" : "identify";
+  const planned = warmup ? (levelConfig.warmup ?? []) : levelConfig.questions;
   // A lesson sets its own length: three in Meet, five in Find it.
-  const QUESTIONS = levelConfig.identify_questions ?? DEFAULT_QUESTIONS;
+  const QUESTIONS = planned ? planned.length : (levelConfig.identify_questions ?? DEFAULT_QUESTIONS);
   const [index, setIndex] = useState(0);
+  const [previewing, setPreviewing] = useState(warmup);
   const [phase, setPhase] = useState<Phase>("default");
   const [chosen, setChosen] = useState<string | null>(null);
   const [fails, setFails] = useState(0);
@@ -73,39 +105,75 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
   // counts for or against this session's own.
   const check =
     levelConfig.check && levelConfig.check.letter !== letter ? levelConfig.check : null;
-  const questions = useMemo(
-    () =>
-      Array.from({ length: QUESTIONS }, (_, i) =>
-        check && i === QUESTIONS - 1
-          ? { target: check.letter, options: makeOptions(check.letter, check.pool, check.confused) }
-          : {
-              target: letter,
-              options: makeOptions(letter, levelConfig.distractor_pool, levelConfig.confused_letters),
-            },
-      ),
-    [letter, levelConfig.distractor_pool, levelConfig.confused_letters, check, QUESTIONS],
-  );
-  const target = questions[index]?.target ?? letter;
-  const options = questions[index]?.options ?? [];
-  const isCheck = target !== letter;
+  const questions = useMemo<Question[]>(() => {
+    if (planned) {
+      return planned.map((q) => ({
+        target: q.target,
+        options: makeOptions(q.target, q.pool, q.confused),
+        aid: q.aid,
+        module: q.module,
+        assessment: false,
+      }));
+    }
+    // The lesson's own letter, filed by this session's stage.
+    const ownModule: ModuleType =
+      levelConfig.distractor_similarity === "low"
+        ? "dissimilar"
+        : levelConfig.visual_aid_intensity === "none"
+          ? "similar"
+          : "scaffold";
+    return Array.from({ length: QUESTIONS }, (_, i) =>
+      check && i === QUESTIONS - 1
+        ? {
+            // A check tests a letter the child has mastered: look-alike
+            // letters, and no dot until they hesitate.
+            target: check.letter,
+            options: makeOptions(check.letter, check.pool, check.confused),
+            aid: "static" as const,
+            module: "similar" as const,
+            assessment: false,
+          }
+        : {
+            target: letter,
+            options: makeOptions(letter, levelConfig.distractor_pool, levelConfig.confused_letters),
+            aid: levelConfig.visual_aid_intensity,
+            module: ownModule,
+            assessment: levelConfig.cognitive_state === "insufficient_data",
+          },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [letter, planned, levelConfig.distractor_pool, levelConfig.confused_letters, check, QUESTIONS]);
+  const question = questions[index];
+  const target = question?.target ?? letter;
+  const options = question?.options ?? [];
+  const moduleType: ModuleType = question?.module ?? "similar";
 
   const { play } = useLetterAudio(target, slow, markAudioEnd);
 
-  // A check question uses look-alike letters, whatever this session's stage.
-  const moduleType: ModuleType = isCheck
-    ? "similar"
-    : levelConfig.distractor_similarity === "low"
-      ? "dissimilar"
-      : levelConfig.visual_aid_intensity === "none"
-        ? "similar"
-        : "scaffold";
+  // Nothing to ask (a warm-up with no earlier letters): move straight on.
+  useEffect(() => {
+    if (QUESTIONS === 0) onComplete();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [QUESTIONS]);
 
   useEffect(() => {
-    play();
-  }, [index, play]);
+    if (QUESTIONS > 0) play();
+  }, [index, play, QUESTIONS]);
   useEffect(() => {
     if (slow) play();
   }, [slow, play]);
+
+  // The warm-up's preview: the letter is shown and said, then the question
+  // follows and the sound plays again, so the response time is measured from
+  // the question, not the preview.
+  useEffect(() => {
+    if (!previewing) return;
+    const t = setTimeout(() => {
+      setPreviewing(false);
+      play();
+    }, PREVIEW_MS);
+    return () => clearTimeout(t);
+  }, [previewing, index, play]);
 
   const advance = useCallback(() => {
     if (index < QUESTIONS - 1) {
@@ -115,10 +183,11 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
       setChosen(null);
       setFails(0);
       setSlow(false);
+      setPreviewing(warmup);
     } else {
       onComplete();
     }
-  }, [index, onComplete, QUESTIONS]);
+  }, [index, onComplete, QUESTIONS, warmup]);
 
   const log = useCallback(
     (selected: string, guided: boolean) => {
@@ -126,7 +195,7 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
         answeredAt.current != null
           ? Math.max(0, Math.round(performance.now() - answeredAt.current))
           : 0;
-      recordAttempt("identify", {
+      recordAttempt(activity, {
         target_letter: target,
         selected_letter: selected,
         module_type: moduleType,
@@ -134,15 +203,17 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
         was_guided_win: guided,
         hover_duration_ms: 0,
         jitter_count: 0,
+        q: index,
       });
       answeredAt.current = null;
     },
-    [target, moduleType, recordAttempt],
+    [target, moduleType, recordAttempt, activity, index],
   );
 
   // The hesitation ladder: dim, then pulse, then answer for the child so a
   // session can never dead-end.
   useEffect(() => {
+    if (previewing || QUESTIONS === 0) return;
     const s1 = levelConfig.hesitation_trigger_stage1_ms;
     const s2 = levelConfig.hesitation_trigger_stage2_ms;
     const t1 = setTimeout(() => {
@@ -164,10 +235,10 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
       clearTimeout(t2);
       clearTimeout(t3);
     };
-  }, [index, levelConfig, target, log, advance]);
+  }, [index, levelConfig, target, log, advance, previewing, QUESTIONS]);
 
   function pick(option: string) {
-    if (busy.current || phase === "correct" || phase === "wrong") return;
+    if (previewing || busy.current || phase === "correct" || phase === "wrong") return;
     busy.current = true;
     setChosen(option);
     log(option, false);
@@ -201,14 +272,17 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
     }, 1400);
   }
 
-  const assessment = levelConfig.cognitive_state === "insufficient_data";
-  // A check tests a letter the child has mastered: no dot until they hesitate.
-  const proactive =
-    !assessment && !isCheck && levelConfig.visual_aid_intensity === "animated";
+  const assessment = question?.assessment ?? false;
+  // The dot from the start only where the question asks for it.
+  const proactive = !assessment && question?.aid === "animated";
   const hinting = phase === "hint" || phase === "hesitation";
   const showDot = !assessment && (proactive || hinting);
-  const featureKey = isCheck ? FEATURE_BY_LETTER[target] : levelConfig.feature_to_highlight;
+  const featureKey =
+    target === letter && !planned ? levelConfig.feature_to_highlight : FEATURE_BY_LETTER[target];
   const feature = featureKey ? FEATURE_HIGHLIGHT_POSITIONS[featureKey] : null;
+  // A lesson's own letter takes its strength from the stage; a planned
+  // question has no stage of its own, so a steady strong dot.
+  const dotOpacity = planned ? 0.85 : levelConfig.scaffold_intensity;
 
   function stateOf(option: string) {
     if (phase === "correct" && option === target) return "correct";
@@ -226,6 +300,25 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
     hint: "bg-[#FFD166] border-[#FFD166] animate-pulse",
     dimmed: "bg-white border-gray-300 opacity-30",
   };
+
+  if (QUESTIONS === 0) return null;
+
+  // The warm-up shows the letter first: "this one — now find it".
+  if (previewing) {
+    return (
+      <PlayLayout>
+        <StepDots total={QUESTIONS} current={index} />
+        <h1 className="shrink-0 t-1 font-bold text-gray-800 text-center">Look and listen 👀</h1>
+        <span
+          className="letter-glyph font-black text-gray-800 select-none"
+          style={{ fontSize: "clamp(4rem, 26vmin, 9rem)", lineHeight: 1.1 }}
+        >
+          {target}
+        </span>
+        <AudioButton onPlay={play} size="lg" />
+      </PlayLayout>
+    );
+  }
 
   return (
     <PlayLayout centerBody={false}>
@@ -271,7 +364,7 @@ export function IdentifyStep({ letter, levelConfig, onComplete }: StepProps) {
                   width: "clamp(0.6rem, 2.2vmin, 1.1rem)",
                   height: "clamp(0.6rem, 2.2vmin, 1.1rem)",
                   transform: "translate(-50%, -50%)",
-                  opacity: hinting ? 1 : levelConfig.scaffold_intensity,
+                  opacity: hinting ? 1 : dotOpacity,
                   animation:
                     proactive || hinting ? "breathe 2s ease-in-out infinite" : "none",
                 }}
