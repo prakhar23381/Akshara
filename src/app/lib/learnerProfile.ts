@@ -340,11 +340,13 @@ export async function loadLetterStatuses(userId: string): Promise<{
   source: LearnerProfile["source"];
   /** Each unit's lessons beyond its letters (G2, review.ts). */
   units: UnitPlan[];
+  /** The sessions it was all worked out from — the child's rewards read them too (G4). */
+  sessions: LearningSession[];
 }> {
   const [{ sessions, source }, saved] = await Promise.all([
     loadHistory(userId),
     loadSavedProgress(userId),
   ]);
   const statuses = letterStatuses(sessions, saved);
-  return { statuses, saved, source, units: unitPlans(sessions, statuses) };
+  return { statuses, saved, source, units: unitPlans(sessions, statuses), sessions };
 }

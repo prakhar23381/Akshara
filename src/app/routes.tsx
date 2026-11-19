@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import { ProfileNameScreen } from "./screens/ProfileNameScreen";
 import { ProfileAgeScreen } from "./screens/ProfileAgeScreen";
 import { ProfileAvatarScreen } from "./screens/ProfileAvatarScreen";
-import { ResumeScreen } from "./screens/ResumeScreen";
-import { LetterRoadmapScreen } from "./screens/LetterRoadmapScreen";
+import { HomeScreen } from "./screens/HomeScreen";
+import { PathScreen } from "./screens/path/PathScreen";
 import { PlayScreen } from "./screens/play/PlayScreen";
 import { HomeRedirect } from "./screens/HomeRedirect";
 import { ParentReportScreen } from "./screens/ParentReportScreen";
@@ -47,8 +47,8 @@ export const router = createBrowserRouter([
   { path: "/report", element: adult(<ParentReportScreen />) },
 
   // Child area
-  { path: "/resume", element: child(<ResumeScreen />) },
-  { path: "/roadmap", element: child(<LetterRoadmapScreen />) },
+  { path: "/resume", element: child(<HomeScreen />) },
+  { path: "/roadmap", element: child(<PathScreen />) },
 
   /**
    * The whole activity sequence for one letter, at one URL.
