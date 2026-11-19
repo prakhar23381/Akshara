@@ -4,7 +4,9 @@ import { useLevelConfig } from "../hooks/useLevelConfig";
 import { useSession } from "../contexts/SessionContext";
 import { useAccount } from "../contexts/AccountContext";
 import { LESSON_KINDS, LESSON_LABEL, TEACHING_ORDER } from "../data/curriculum";
-import { prepareSessionConfig } from "../api/client";
+import { prepareReviewConfig, prepareSessionConfig } from "../api/client";
+import { checkpointsDone, type UnitPlan } from "../lib/review";
+import { PRACTICE_LESSONS } from "../data/curriculum";
 import { loadLetterStatuses } from "../lib/learnerProfile";
 import {
   completionScore,
@@ -28,6 +30,8 @@ export function LetterRoadmapScreen() {
   const { startSession } = useSession();
 
   const [statuses, setStatuses] = useState<Record<string, LetterStatus>>({});
+  // Each unit's lessons beyond its letters (G2): side by side, practice, the unit check.
+  const [units, setUnits] = useState<UnitPlan[]>([]);
   // Saved session counts, which number the next session on a letter.
   const [sessionsCount, setSessionsCount] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -44,13 +48,17 @@ export function LetterRoadmapScreen() {
     // not read from the label saved when the session ended (see letterStatus.ts).
     async function fetchProgress() {
       try {
-        const { statuses, saved } = await loadLetterStatuses(userId);
+        const { statuses, saved, units } = await loadLetterStatuses(userId);
         setStatuses(statuses);
+        setUnits(units);
         // Open on the unit the child is working in: the first open page with a
-        // letter still to finish. With eight units, always opening on the
-        // first one left a child several taps from their own letters.
-        const pages = Array.from({ length: TOTAL_PAGES }, (_, i) => i).filter((i) => pageOpen(i, statuses));
-        const working = pages.find((i) => pageLetters(i).some((l) => !statuses[l]?.complete));
+        // letter still to finish, or its unit check still to do. With eight
+        // units, always opening on the first left a child taps from their work.
+        const done = checkpointsDone(units);
+        const pages = Array.from({ length: TOTAL_PAGES }, (_, i) => i).filter((i) => pageOpen(i, statuses, done));
+        const working = pages.find(
+          (i) => pageLetters(i).some((l) => !statuses[l]?.complete) || !units[i]?.checkpoint.done,
+        );
         setCurrentPage(working ?? pages[pages.length - 1] ?? 0);
         setSessionsCount(
           Object.fromEntries(saved.map((row) => [row.letter, row.sessions_count ?? 0])),
@@ -68,9 +76,11 @@ export function LetterRoadmapScreen() {
 
   const getCompletionScore = (letter: string): number => completionScore(statuses[letter]);
 
-  // The previous page averaging 75% opens a page — and a page the child has
-  // already played on stays open, so a corrected mastery never takes it away.
-  const isPageUnlocked = (pageIndex: number): boolean => pageOpen(pageIndex, statuses);
+  // A unit opens when the one before is finished — its letters complete and
+  // its unit check done — and a unit the child has already played in stays
+  // open, so a corrected status never takes it away.
+  const unitsDone = checkpointsDone(units);
+  const isPageUnlocked = (pageIndex: number): boolean => pageOpen(pageIndex, statuses, unitsDone);
 
   const getPageAverageScore = (pageIndex: number): number =>
     Math.round(pageAverage(pageIndex, statuses));
@@ -119,6 +129,22 @@ export function LetterRoadmapScreen() {
     }
   };
 
+  // A lesson on several letters (G2). Its session is filed under its first
+  // letter but numbers nothing: it is not that letter's lesson.
+  const handleReviewClick = async (item: ReviewItem) => {
+    if (!item.open || !isPageUnlocked(currentPage) || startingLetter) return;
+    setStartingLetter(item.key);
+    try {
+      const levelConfig = await prepareReviewConfig(userId, item.kind, item.focus, item.unit);
+      setLevelConfig(levelConfig);
+      startSession({ userId, letter: item.focus[0], sessionNumber: 1, levelConfig });
+      navigate("/play");
+    } catch (err) {
+      console.error("[Roadmap] Failed to start a review lesson:", err);
+      setStartingLetter(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col items-center justify-center gap-4 overflow-hidden">
@@ -142,6 +168,7 @@ export function LetterRoadmapScreen() {
 
   // The current page's letters: one unit of the course.
   const activeLetters = pageLetters(currentPage);
+  const reviewItems = itemsOf(units[currentPage]);
 
   return (
     <div className="h-[100dvh] bg-[#F7F6F2] flex flex-col overflow-hidden relative">
@@ -306,8 +333,100 @@ export function LetterRoadmapScreen() {
               </motion.div>
             );
           })}
+
+          {/* Lessons on several letters, after the unit's letters (G2). A
+              locked one says what opens it; a done one keeps a tick. */}
+          {reviewItems.map((item) => {
+            const live = pageUnlocked && item.open;
+            const isStarting = startingLetter === item.key;
+            return (
+              <motion.div
+                key={item.key}
+                whileTap={live && !isStarting ? { scale: 0.95 } : {}}
+                onClick={() => handleReviewClick(item)}
+                role="button"
+                aria-label={`${item.label}${item.done ? ", done" : live ? "" : ", not open yet"}`}
+                aria-disabled={!live}
+                className={`relative rounded-2xl border-4 border-dashed p-2 flex flex-col items-center justify-center gap-1.5 min-h-0 transition-all ${
+                  live
+                    ? item.done
+                      ? "bg-emerald-50 border-emerald-300 cursor-pointer"
+                      : "bg-amber-50 border-amber-400 cursor-pointer shadow-sm"
+                    : "bg-gray-100 border-gray-200 opacity-60 cursor-not-allowed"
+                }`}
+              >
+                <div className="absolute top-2 right-2 select-none">
+                  {item.done ? (
+                    <Trophy size={16} className="text-emerald-500" />
+                  ) : !live ? (
+                    <Lock size={14} className="text-gray-400" />
+                  ) : null}
+                </div>
+                <span
+                  style={{ fontSize: "clamp(1.2rem, 4.5vmin, 2.4rem)", lineHeight: 1 }}
+                  className="letter-glyph font-black text-gray-800 select-none whitespace-nowrap"
+                >
+                  {isStarting ? "⏳" : item.glyph}
+                </span>
+                <span className="t--1 font-bold text-gray-600 text-center leading-tight">{item.label}</span>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </div>
   );
+}
+
+/** A card for a lesson on several letters (G2). */
+interface ReviewItem {
+  key: string;
+  kind: "contrast" | "practice" | "checkpoint";
+  glyph: string;
+  label: string;
+  open: boolean;
+  done: boolean;
+  focus: string[];
+  unit?: number;
+}
+
+/**
+ * A unit's cards beyond its letters, in the order a child meets them: lessons
+ * side by side, then practice when it is owed, then the unit check.
+ */
+function itemsOf(plan: UnitPlan | undefined): ReviewItem[] {
+  if (!plan) return [];
+  const items: ReviewItem[] = plan.contrasts.map((c) => ({
+    key: `contrast:${c.pair.join("")}`,
+    kind: "contrast",
+    glyph: c.pair.join(" "),
+    label: "Side by side",
+    open: c.open,
+    done: c.done,
+    focus: [...c.pair],
+  }));
+  if (plan.practice.shown) {
+    items.push({
+      key: `practice:${plan.unit}`,
+      kind: "practice",
+      glyph: "🔁",
+      label: `Practice ${Math.min(plan.practice.done, PRACTICE_LESSONS)}/${PRACTICE_LESSONS}`,
+      open: plan.complete,
+      done: !plan.practice.needed,
+      // Once the weak letters have caught up, practice covers the whole unit.
+      focus: plan.practice.weak.length > 0 ? plan.practice.weak : plan.letters,
+      unit: plan.unit,
+    });
+  }
+  items.push({
+    key: `checkpoint:${plan.unit}`,
+    kind: "checkpoint",
+    glyph: "🏁",
+    label: "Unit check",
+    open: plan.checkpoint.open,
+    done: plan.checkpoint.done,
+    focus: plan.letters,
+    unit: plan.unit,
+  });
+  return items;
 }

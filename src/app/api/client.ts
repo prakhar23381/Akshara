@@ -7,7 +7,7 @@ import type {
 import { LETTER_SEQUENCE } from "../types/levelConfig";
 import { supabase } from "../lib/supabase";
 import { queueOfflineSession, syncOfflineSessions } from "../lib/offline_sync";
-import { analyzeLocally, planSession } from "../lib/adaptiveEngine";
+import { analyzeLocally, planReview, planSession } from "../lib/adaptiveEngine";
 import { loadAllSessions, rowToSession } from "../lib/sessionStore";
 import { letterStatuses } from "../lib/letterStatus";
 import { loadLearnerProfile } from "../lib/learnerProfile";
@@ -259,6 +259,21 @@ export async function prepareSessionConfig(
   const { levelConfig } = planSession(userId, letter, profile, readLastPool(letter), lesson);
   writeLastPool(letter, levelConfig.distractor_pool);
   return levelConfig;
+}
+
+/**
+ * The config for a lesson on several letters (G2): side by side, practice or a
+ * unit check. Which letters it covers comes from the unit's plan (review.ts);
+ * the child's history decides the choices and the timing, as for a letter.
+ */
+export async function prepareReviewConfig(
+  userId: string,
+  kind: "contrast" | "practice" | "checkpoint",
+  focus: string[],
+  unit?: number,
+): Promise<LevelConfig> {
+  const profile = await loadLearnerProfile(userId);
+  return planReview(userId, kind, focus, profile, unit);
 }
 
 // One child's records, and where they are gathered: `api/reportSources.ts`.

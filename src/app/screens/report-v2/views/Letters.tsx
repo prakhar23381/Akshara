@@ -4,7 +4,6 @@ import { LetterGrid, StatusLegend, StatusMark } from "../charts/LetterGrid";
 import { NumbersTable } from "../charts/NumbersTable";
 import { Sparkline } from "../charts/Sparkline";
 import { ACCENT, FONT_DEVANAGARI, GRID, INK, INK2, STATUS_WORD } from "../charts/theme";
-import { PAGE_UNLOCK_SCORE } from "../../../lib/letterStatus";
 import { Card, Glyph, Muted, PERIOD_WORD, pct, sessionWhen, shortDate, useColumns, usePrinting, type View } from "./shared";
 
 /**
@@ -89,15 +88,16 @@ export function LettersView({ model, onOpen }: { model: ReportModel; onOpen?: (v
       </Card>
 
       <div className="flex flex-col gap-3 md:gap-4 min-w-0">
-        <Card title="Roadmap pages">
+        <Card title="Units">
           <ul className="flex flex-col gap-3">
             {pages.map((p) => (
-              <PageRow key={p.page} page={p} last={p.page === pages.length - 1} />
+              <PageRow key={p.page} page={p} />
             ))}
           </ul>
           <Muted>
-            A learned letter counts 100, one still being learned less. The mark is {PAGE_UNLOCK_SCORE}%: there the
-            next page opens — or once the child has played on it.
+            The bar is how well the unit's letters are known: a learned letter counts 100, one still being learned
+            less. The next unit opens once this one is finished — every letter's three lessons and the unit check —
+            or once the child has played in it.
           </Muted>
         </Card>
 
@@ -203,16 +203,17 @@ function LetterRow({
   );
 }
 
-function PageRow({ page: p, last }: { page: RoadmapPage; last: boolean }) {
-  const range = `${p.letters[0]}–${p.letters[p.letters.length - 1]}`;
+function PageRow({ page: p }: { page: RoadmapPage }) {
+  // A unit is a handful of letters chosen apart, not a range: list them.
+  const range = p.letters.join(" ");
   return (
     <li
       className="flex flex-col gap-1"
-      aria-label={`Page ${p.page + 1}, ${range}: ${p.average}%, ${p.learned} learned and ${p.started} started of ${p.letters.length}, ${p.open ? "open" : "not open yet"}`}
+      aria-label={`Unit ${p.page + 1}, ${range}: ${p.average}%, ${p.learned} learned and ${p.started} started of ${p.letters.length}, ${p.open ? "open" : "not open yet"}`}
     >
       <div className="flex items-baseline justify-between gap-2" aria-hidden>
         <span className="t-0" style={{ color: INK }}>
-          <span className="font-semibold">Page {p.page + 1}</span> <Glyph>{range}</Glyph>
+          <span className="font-semibold">Unit {p.page + 1}</span> <Glyph>{range}</Glyph>
         </span>
         <span className="t--1" style={{ color: p.open ? INK : INK2 }}>
           {p.open ? "open" : "not open yet"}
@@ -224,12 +225,6 @@ function PageRow({ page: p, last }: { page: RoadmapPage; last: boolean }) {
             <span
               className="absolute left-0 top-0 h-full"
               style={{ width: `${p.average}%`, minWidth: 4, background: ACCENT, borderRadius: "0 4px 4px 0" }}
-            />
-          )}
-          {!last && (
-            <span
-              className="absolute"
-              style={{ left: `calc(${PAGE_UNLOCK_SCORE}% - 1px)`, top: -3, width: 2, height: 16, background: INK2 }}
             />
           )}
         </span>

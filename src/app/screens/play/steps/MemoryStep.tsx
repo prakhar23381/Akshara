@@ -43,8 +43,12 @@ function buildDeck(target: string, confused: string[]): Card[] {
 }
 
 export function MemoryStep({ letter, levelConfig, onComplete }: StepProps) {
+  // A lesson on several letters (G2) deals its own letters first: the pair
+  // side by side, the unit's weak letters, the unit.
+  const focus = levelConfig.focus ?? [];
   const [cards, setCards] = useState<Card[]>(() =>
-    buildDeck(letter, [
+    buildDeck(focus[0] ?? letter, [
+      ...focus.slice(1),
       ...(levelConfig.confused_letters ?? []),
       ...levelConfig.distractor_pool,
     ]),

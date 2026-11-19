@@ -27,9 +27,12 @@ import type {
 } from "../types/levelConfig";
 import type { LearnerProfile } from "./learnerProfile";
 import {
+  CHECKPOINT_OLDER,
+  CONTRAST_QUESTIONS,
   IDENTIFY_QUESTIONS,
   LESSON_LABEL,
   LESSON_STEPS,
+  PRACTICE_QUESTIONS,
   WARMUP_QUESTIONS,
 } from "../data/curriculum";
 
@@ -515,6 +518,94 @@ export function reviewQuestion(letter: string, profile: LearnerProfile): Planned
   };
 }
 
+const shuffled = <T,>(items: T[]): T[] => {
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+/** The dot a review question gets from the letter's stage: from the start only while learning the shape. */
+const aidFor = (letter: string, profile: LearnerProfile): VisualAidIntensity =>
+  profile.stateByLetter[letter] === "gross_shape_blindness" ? "animated" : "static";
+
+/**
+ * A lesson on several letters (G2, plan §6): side by side, practice or a unit
+ * check. Built from the games that exist — Listen & tap over the letters, then
+ * Memory with them — and planned in full here, so the session's config says
+ * exactly what was asked.
+ *
+ * - **contrast**: `focus` is the pair. Six questions, three on each, in mixed
+ *   order, the other letter of the pair always among the choices.
+ * - **practice**: `focus` is the unit's weak letters. Six questions among
+ *   different shapes, the dot from the start, as their stage asks.
+ * - **checkpoint**: `focus` is the unit's letters. One question on each, then
+ *   the two earlier letters most due for review. Nothing in it can be failed.
+ */
+export function planReview(
+  userId: string,
+  kind: Extract<LessonKind, "contrast" | "practice" | "checkpoint">,
+  focus: string[],
+  profile: LearnerProfile,
+  unit?: number,
+): LevelConfig {
+  const lead = focus[0];
+  let questions: PlannedQuestion[];
+  if (kind === "contrast") {
+    const [a, b] = focus;
+    const half = Math.floor(CONTRAST_QUESTIONS / 2);
+    questions = shuffled([...Array(half).fill(a), ...Array(CONTRAST_QUESTIONS - half).fill(b)]).map((t) => {
+      const other = t === a ? b : a;
+      const pool = (DISTRACTOR_POOLS[t]?.hard ?? DEFAULT_HARD).filter((l) => l !== a && l !== b);
+      return { target: t, pool: [other, ...pool], confused: [other], aid: aidFor(t, profile), module: "similar" as const };
+    });
+  } else if (kind === "practice") {
+    questions = shuffled(Array.from({ length: PRACTICE_QUESTIONS }, (_, i) => focus[i % focus.length])).map((t) => {
+      const q = reviewQuestion(t, profile);
+      const easy = (DISTRACTOR_POOLS[t]?.easy ?? DEFAULT_EASY).filter((l) => l !== t);
+      return { ...q, pool: [...new Set([...(q.confused ?? []), ...easy])], aid: "animated" as const, module: "dissimilar" as const };
+    });
+  } else {
+    const older = profile.reviewOrder.filter((l) => !focus.includes(l)).slice(0, CHECKPOINT_OLDER);
+    questions = [...shuffled(focus), ...older].map((t) => reviewQuestion(t, profile));
+  }
+
+  const baseline = baselineOf(profile);
+  const state = profile.stateByLetter[lead] ?? "feature_neglect";
+  return {
+    user_id: userId,
+    target_alphabet: lead,
+    cognitive_state: state,
+    distractor_similarity: kind === "practice" ? "low" : "high",
+    visual_aid_intensity: kind === "practice" ? "animated" : "static",
+    input_mode: "tap",
+    scaffold_intensity: 0.5,
+    // Memory falls back to these if the lesson has too few letters of its own.
+    distractor_pool: (DISTRACTOR_POOLS[lead]?.hard ?? DEFAULT_HARD).filter((l) => !focus.includes(l)),
+    confused_letters: [],
+    feature_to_highlight: FEATURE_BY_LETTER[lead] ?? "",
+    phonological_note: "",
+    hesitation_trigger_stage1_ms: baseline + 8000,
+    hesitation_trigger_stage2_ms: baseline + 13000,
+    reasoning: `Lesson: ${LESSON_LABEL[kind]} on ${focus.join(", ")}${unit !== undefined ? ` (unit ${unit + 1})` : ""}.`,
+    provider_used: "on-device",
+    lesson: kind,
+    steps: [...LESSON_STEPS[kind]],
+    questions,
+    focus: [...focus],
+    ...(unit !== undefined ? { unit } : {}),
+  };
+}
+
+/** The child's typical response time, bounded; 6 s for a child we know nothing about. */
+function baselineOf(profile: LearnerProfile): number {
+  return profile.latencyMedianMs !== null
+    ? Math.min(BASELINE_MAX_MS, Math.max(BASELINE_MIN_MS, profile.latencyMedianMs))
+    : 6000;
+}
+
 /** Plausible response-time bounds, so one distracted session cannot set absurd timers. */
 const BASELINE_MIN_MS = 3000;
 const BASELINE_MAX_MS = 12000;
@@ -603,10 +694,7 @@ export function planSession(
       }
     : undefined;
 
-  const baseline =
-    profile.latencyMedianMs !== null
-      ? Math.min(BASELINE_MAX_MS, Math.max(BASELINE_MIN_MS, profile.latencyMedianMs))
-      : 6000;
+  const baseline = baselineOf(profile);
 
   // The warm-up (G2): the earlier letters most due for review, never this
   // lesson's own. Empty until the child has a complete letter.

@@ -8,7 +8,7 @@ import { useSession } from "../../../contexts/SessionContext";
 import { useLevelConfig } from "../../../hooks/useLevelConfig";
 import { supabase } from "../../../lib/supabase";
 import { LETTER_SEQUENCE } from "../../../types/levelConfig";
-import { sessionAttempts } from "../../../types/session";
+import { isLetterLesson, sessionAttempts } from "../../../types/session";
 import { TEACHING_ORDER } from "../../../data/curriculum";
 import { loadLetterStatuses } from "../../../lib/learnerProfile";
 
@@ -39,6 +39,14 @@ export function RewardStep() {
       // (letterStatus.ts) — not from this lesson's answers alone: a clean word
       // lesson would otherwise crown a letter the child cannot yet pick out.
       // A session from before lessons held every game and still judges itself.
+      // A lesson on several letters (G2) is review: it judges no letter and
+      // writes no letter's progress row.
+      if (!isLetterLesson(session)) {
+        if (nextConfig) setLevelConfig(nextConfig);
+        setReady(true);
+        confetti({ particleCount: 90, spread: 70, origin: { y: 0.7 } });
+        return;
+      }
       let letterMastered = lessonAlone;
       let stateNow = nextConfig?.cognitive_state ?? session.level_config.cognitive_state;
       if (session.level_config.lesson) {
@@ -97,13 +105,17 @@ export function RewardStep() {
   // well it went (plan §3, principle 7); it used to wait for mastery. A session
   // from before lessons was the whole letter.
   const lesson = session.level_config.lesson;
-  const letterDone = !lesson || lesson === "words";
+  const review = !isLetterLesson(session);
+  const letterDone = !review && (!lesson || lesson === "words");
+  const focus = session.level_config.focus ?? [session.letter];
 
-  // Only the letters that mean something right now.
-  const shown = TEACHING_ORDER.slice(
-    Math.max(0, letterIndex - 2),
-    Math.min(TEACHING_ORDER.length, letterIndex + 3),
-  );
+  // Only the letters that mean something right now: a review lesson's own.
+  const shown = review
+    ? focus
+    : TEACHING_ORDER.slice(
+        Math.max(0, letterIndex - 2),
+        Math.min(TEACHING_ORDER.length, letterIndex + 3),
+      );
 
   return (
     <ChildScreen
@@ -146,7 +158,11 @@ export function RewardStep() {
       <p className="t-0 text-gray-600 text-center shrink-0">
         {mastered
           ? `You have mastered “${session.letter}”.`
-          : `You finished practising “${session.letter}”.`}
+          : lesson === "checkpoint"
+            ? `You finished unit ${(session.level_config.unit ?? 0) + 1}!`
+            : review
+              ? `You practised ${focus.join(" ")}.`
+              : `You finished practising “${session.letter}”.`}
       </p>
 
       <div className="shrink-0 flex gap-2">
@@ -168,7 +184,7 @@ export function RewardStep() {
           <span
             key={l}
             className={`letter-glyph flex items-center justify-center rounded-full font-black border-2 ${
-              l === session.letter
+              l === session.letter || review
                 ? "bg-amber-400 border-amber-500 text-white"
                 : "bg-white border-gray-200 text-gray-400"
             }`}

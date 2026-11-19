@@ -1,6 +1,6 @@
 import type { CognitiveState, LetterLesson } from "../types/levelConfig";
 import { isLetterLesson, sessionAttempts, type LearningSession } from "../types/session";
-import { reviewBoxes, reviewOrder } from "./review";
+import { reviewBoxes, reviewOrder, unitPlans, type UnitPlan } from "./review";
 import { loadAllSessions, rowToSession } from "./sessionStore";
 import { ownAttempts } from "./adaptiveEngine";
 import { supabase, isSupabaseConfigured } from "./supabase";
@@ -338,10 +338,13 @@ export async function loadLetterStatuses(userId: string): Promise<{
   statuses: Record<string, LetterStatus>;
   saved: SavedProgressRow[];
   source: LearnerProfile["source"];
+  /** Each unit's lessons beyond its letters (G2, review.ts). */
+  units: UnitPlan[];
 }> {
   const [{ sessions, source }, saved] = await Promise.all([
     loadHistory(userId),
     loadSavedProgress(userId),
   ]);
-  return { statuses: letterStatuses(sessions, saved), saved, source };
+  const statuses = letterStatuses(sessions, saved);
+  return { statuses, saved, source, units: unitPlans(sessions, statuses) };
 }

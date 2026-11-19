@@ -6,7 +6,8 @@ import {
   type DueCheck, type LetterStatus as EngineStatus,
 } from "../../lib/letterStatus";
 import { LETTER_SEQUENCE, type QuestionAttempt } from "../../types/levelConfig";
-import { buildStepOrder, type ActivityType, type LearningSession } from "../../types/session";
+import { buildStepOrder, isLetterLesson, type ActivityType, type LearningSession } from "../../types/session";
+import { checkpointsDone, unitPlans } from "../../lib/review";
 
 /**
  * Every figure the new parent report shows, computed in one place.
@@ -418,11 +419,14 @@ function letterEntries(
     return top ? { letter: top[0], count: top[1] } : null;
   };
   return LETTER_SEQUENCE.map((letter) => {
-    const own = before.filter((s) => s.letter === letter);
+    // The letter's own lessons. A lesson on several letters is filed under
+    // its first letter but is not that letter's session (G2); its answers
+    // still count below, under the letter each one asked for.
+    const own = before.filter((s) => s.letter === letter && isLetterLesson(s));
     const prog = progress.find((p) => p.letter === letter);
     const history = before
       .map((s) => ({ s, answers: answersOf(s).filter((a) => a.target_letter === letter) }))
-      .filter(({ s, answers }) => s.letter === letter || answers.length > 0)
+      .filter(({ s, answers }) => (s.letter === letter && isLetterLesson(s)) || answers.length > 0)
       .map(({ s, answers }) => ({
         at: s.started_at,
         rightFirstTime: rightFirstTime(answers),
@@ -629,13 +633,14 @@ export function buildReportModel(src: ReportSources, now: Date, range: Range): R
   // ── Letters
   const statuses = letterStatuses(sessions, src.progress);
   const entries = letterEntries(sessions, src.progress, now, statuses);
+  const unitsDone = checkpointsDone(unitPlans(sessions, statuses));
   const pages: RoadmapPage[] = Array.from({ length: TOTAL_PAGES }, (_, page) => {
     const letters = pageLetters(page);
     return {
       page,
       letters,
       average: Math.round(pageAverage(page, statuses)),
-      open: pageOpen(page, statuses),
+      open: pageOpen(page, statuses, unitsDone),
       learned: letters.filter((l) => statuses[l]?.mastered).length,
       started: letters.filter((l) => entries.find((e) => e.letter === l)?.status !== "not_started").length,
     };

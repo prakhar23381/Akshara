@@ -99,7 +99,7 @@ vitest nor jest; it is `tsc --noEmit` followed by a plain Node script.
 │   │   ├── hooks/       useLetterAudio · useLevelConfig
 │   │   ├── lib/         accounts · adaptiveEngine · akshara · devOverflowCheck
 │   │   │                learnerProfile · letterStatus · offline_sync · reportBands
-│   │   │                sessionMetrics · sessionStore · supabase
+│   │   │                review (boxes, units' review lessons) · sessionMetrics · sessionStore · supabase
 │   │   ├── screens/     profile (add a child) · resume · roadmap · report · my-progress
 │   │   │   ├── account/ RoleScreen · PinSetupScreen · UnlockScreen · AdultHomeScreen
 │   │   │   ├── report-v2/ model (every figure) · ParentReport (at /report via ParentReportScreen) · PrintReport · ClassReport (not routed yet)
@@ -118,7 +118,7 @@ vitest nor jest; it is `tsc --noEmit` followed by a plain Node script.
 │   ├── styles/          index.css → fonts.css · tailwind.css · theme.css
 │   ├── main.tsx  vite-env.d.ts
 ├── tests/               accounts · akshara · bands · curriculum · engine · learner · letterStatus
-│                        playthrough · report · reportModel · session  (.test.ts)
+│                        playthrough · report · reportModel · review · session  (.test.ts)
 ├── .legacy/             11 pre-refactor screens + useSessionTracker. Delete after V1–V4
 ├── TODO.md  STATUS_LOG.md  .agent_recovery_context.md  IMPLEMENTATION_PLAN.md
 ├── README.md  ATTRIBUTIONS.md

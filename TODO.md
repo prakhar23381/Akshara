@@ -216,24 +216,26 @@ commits are in `main` (table kept as a record):
       policy on `user_profiles`. Until then the trigger is what keeps old
       cached clients' sign-ups working.
 
-## G · Curriculum (docs/12_CURRICULUM_PLAN.md) — G1 built, the rest open
+## G · Curriculum (docs/12_CURRICULUM_PLAN.md) — G1 and G2 built, the rest open
 
 Built on the plan's defaults so the experts can see it working; each phase on
 its own branch, shown through its preview link. G1 is on `feat/g1-lessons`
-(local, not pushed); what it built is docs/12 §9.1.
+(pushed: a preview, behind Vercel's login); G2 on `feat/g2-review` (local).
+What each built is docs/12 §9.1 and §9.2.
 
-- [ ] **G1a · The report's "Roadmap pages" card still describes the old
-      rule** (`report-v2/views/Letters.tsx`): "Page N", a first–last letter
-      range that means nothing for a unit, a tick at 75 % and "there the next
-      page opens". The rows themselves are right (they read the units). Left
-      alone because the report was outside G1's approved files — needs the
-      user's go-ahead.
 - [ ] **G1b · The lab's children still play whole sessions in varnamala
       order** (`src/lab/fixtures/`). They should play lessons in teaching
       order; doing so changes every figure `tests/reportModel.test.ts` pins,
       so it is its own piece of work. Until then the lab shows histories from
       before lessons — still valid data, and a standing check that old
       sessions read correctly.
+- [ ] **G2a · Experts: two things G2 made visible.** The warm-up's
+      show-then-ask makes its questions easy (E7); and a letter mastered in one
+      sitting now shows no trophy until a second day (E3). Both are defaults
+      to confirm, not settled.
+- [ ] **G2b · The child's own progress page** (`ChildProgressScreen`) shows
+      mastered letters only; a letter mastered once looks the same as one not
+      started. Consider a half-state there.
 - [ ] **G1c · Look at G1 on a device** — a lesson is short; does it feel like
       one? The roadmap card's star overlaps the letter on a phone (it did
       before G1 too).
@@ -245,8 +247,6 @@ its own branch, shown through its preview link. G1 is on `feat/g1-lessons`
       as primers do, or with their matras in Part 3). The report's 33-cell
       grid and "of 33 letters" follow `LETTER_SEQUENCE` and need to follow
       the course.
-- [ ] **G2 · Review.** Warm-up box rule, contrast nodes, unit checkpoints,
-      practice nodes, gold over two days.
 - [ ] **G3 · New games.** See & match, Letter hunt, Read and pick, Build the
       word, Teach Mitthu.
 - [ ] **G4 · The path, Mitthu, celebrations** (docs/11).

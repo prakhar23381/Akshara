@@ -3,11 +3,12 @@
  * that review answers move a letter through its boxes without ever judging
  * its stage.
  */
-import { reviewBoxes, reviewOrder, firstAnswers, reviewAnswers } from "../src/app/lib/review";
+import { reviewBoxes, reviewOrder, firstAnswers, reviewAnswers, unitPlans, personalPairs } from "../src/app/lib/review";
 import { letterStatuses, completionScore } from "../src/app/lib/letterStatus";
 import { buildLearnerProfile } from "../src/app/lib/learnerProfile";
-import { planSession, analyzeLocally } from "../src/app/lib/adaptiveEngine";
-import { LESSON_STEPS, BOX_DAYS } from "../src/app/data/curriculum";
+import { planSession, planReview, analyzeLocally } from "../src/app/lib/adaptiveEngine";
+import { LESSON_STEPS, BOX_DAYS, UNITS, CONTRAST_QUESTIONS } from "../src/app/data/curriculum";
+import { isLetterLesson } from "../src/app/types/session";
 import type { ActivityType, LearningSession } from "../src/app/types/session";
 import type { LessonKind, QuestionAttempt } from "../src/app/types/levelConfig";
 
@@ -165,6 +166,80 @@ console.log("\n-- mastered once --");
   const once = letterStatuses(whole("क", 0))["क"];
   ok("one day of mastery is 80 roadmap points, short of the trophy", once.masteredOnce && completionScore(once) === 80);
   ok("two days are 100", completionScore(letterStatuses([...whole("क", 0), ...whole("क", 1)])["क"]) === 100);
+}
+
+console.log("\n-- side by side, practice and the unit check --");
+{
+  // क (unit 1) and ख (unit 5): their lesson side by side shows in unit 5.
+  const u5 = (p: ReturnType<typeof unitPlans>) => p[4].contrasts.find((c) => c.pair.join("") === "कख")!;
+  const onlyK = [...whole("क", 0)];
+  ok("a fixed pair shows in the later letter's unit", u5(unitPlans(onlyK, letterStatuses(onlyK))) !== undefined);
+  ok("closed until both letters are complete", !u5(unitPlans(onlyK, letterStatuses(onlyK))).open);
+  const both = [...whole("क", 0), ...whole("ख", 1)];
+  ok("open once both are", u5(unitPlans(both, letterStatuses(both))).open);
+  const contrast = session("क", 2, "contrast", { identify: [ask("क", "क", 0), ask("ख", "ख", 1)] });
+  contrast.level_config = { ...contrast.level_config, focus: ["क", "ख"] };
+  const after = [...both, contrast];
+  ok("done once played", u5(unitPlans(after, letterStatuses(after))).done);
+  ok("it is not क's lesson", !isLetterLesson(contrast) && letterStatuses(after)["क"].sessions === 3);
+  ok("and moves both letters through review", reviewBoxes(after)["ख"].box === 2 && reviewBoxes(after)["क"].box === 2);
+
+  // A pair the child keeps mixing up gets one too.
+  const mixed = [...whole("म", 0), session("न", 1, "find", { identify: [ask("न", "म", 0), ask("न", "म", 1)] })];
+  ok("two unaided mix-ups of म and न make them a pair", personalPairs(mixed).some((p) => p.join("") === "मन"));
+  const plans = unitPlans(mixed, letterStatuses(mixed));
+  ok("shown, marked as this child's own", plans[2].contrasts.some((c) => c.pair.join("") === "मन" && c.personal));
+  const unlike = [...whole("क", 0), session("स", 1, "find", { identify: [ask("स", "क", 0), ask("स", "क", 1)] })];
+  ok("letters that do not look alike are never a pair, however often mixed", personalPairs(unlike).length === 0);
+  ok("a single slip is not a pair", personalPairs([...whole("म", 0), session("न", 1, "find", { identify: [ask("न", "म", 0)] })]).length === 0);
+}
+{
+  // Unit 1 with two letters still at "learning the shape".
+  const u = UNITS[0];
+  const shapeMiss = (l: string, q: number) => ({ ...ask(l, "ह", q), module_type: "dissimilar" as const });
+  const weakLetter = (l: string) => [
+    session(l, 0, "meet", { identify: [shapeMiss(l, 0), shapeMiss(l, 1), ask(l, l, 2)] }),
+    session(l, 0, "find", { identify: [shapeMiss(l, 0), shapeMiss(l, 1), ...[2, 3, 4].map((q) => ({ ...ask(l, l, q), module_type: "dissimilar" as const }))] }),
+    session(l, 0, "words", { word_fill: right(l, 3), word_spelling: right(l, 3) }),
+  ];
+  const s = [...weakLetter(u[0]), ...weakLetter(u[1]), ...u.slice(2).flatMap((l) => whole(l, 0))];
+  const st = letterStatuses(s);
+  ok("(two letters are at learning the shape)", st[u[0]].state === "gross_shape_blindness" && st[u[1]].state === "gross_shape_blindness");
+  const p0 = unitPlans(s, st)[0];
+  ok("two practice lessons are owed", p0.practice.needed && p0.practice.shown && p0.practice.weak.join() === `${u[0]},${u[1]}`);
+  ok("and the unit check waits for them", !p0.checkpoint.open);
+  const practice = (day: number) => {
+    const x = session(u[0], day, "practice", { identify: [ask(u[0], u[0], 0)] });
+    x.level_config = { ...x.level_config, unit: 0, focus: [u[0], u[1]] };
+    return x;
+  };
+  const one = [...s, practice(1)];
+  ok("one is not enough", unitPlans(one, letterStatuses(one))[0].practice.needed);
+  const two = [...one, practice(2)];
+  const p2 = unitPlans(two, letterStatuses(two))[0];
+  ok("after two, the unit check opens — even if the letters are still weak", !p2.practice.needed && p2.checkpoint.open);
+  ok("and practice stays shown, with its count", p2.practice.shown && p2.practice.done === 2);
+  const fine = u.flatMap((l) => whole(l, 0));
+  const pf = unitPlans(fine, letterStatuses(fine))[0];
+  ok("a unit with no weak letters owes no practice", !pf.practice.shown && pf.checkpoint.open);
+  ok("a unit not yet complete has its check closed", !unitPlans(whole(u[0], 0), letterStatuses(whole(u[0], 0)))[0].checkpoint.open);
+}
+{
+  const s = [...whole("क", 0), ...whole("ख", 1), ...whole("ल", 1)];
+  const p = buildLearnerProfile(s, "device", [], T0 + 3 * DAY);
+  const c = planReview("c", "contrast", ["क", "ख"], p);
+  const qs = c.questions!;
+  ok("side by side: six questions, three on each", qs.length === CONTRAST_QUESTIONS && qs.filter((q) => q.target === "क").length === 3);
+  ok("the other letter always among the choices", qs.every((q) => q.confused?.[0] === (q.target === "क" ? "ख" : "क") && q.pool.includes(q.confused![0])));
+  ok("Listen & tap, then Memory, no warm-up", c.steps?.join() === "identify,memory" && c.focus?.join("") === "कख");
+  const pr = planReview("c", "practice", ["क", "ल"], p, 0);
+  ok("practice: six questions among different shapes, the dot from the start",
+    pr.questions!.length === 6 && pr.questions!.every((q) => q.module === "dissimilar" && q.aid === "animated") && pr.unit === 0);
+  const cp = planReview("c", "checkpoint", ["क", "ल"], p, 0);
+  ok("unit check: each unit letter once, then the most due earlier letter",
+    cp.questions!.slice(0, 2).map((q) => q.target).sort().join() === ["क", "ल"].sort().join() && cp.questions![2]?.target === "ख",
+    cp.questions!.map((q) => q.target).join());
+  ok("nothing is ever its own wrong choice", [c, pr, cp].every((x) => x.questions!.every((q) => !q.pool.includes(q.target))));
 }
 
 console.log(`\nRESULT ${pass} passed, ${fail} failed`);

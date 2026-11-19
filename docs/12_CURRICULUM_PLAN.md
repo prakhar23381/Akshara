@@ -4,8 +4,9 @@
 matras, step by step and getting harder in kind, not only in degree. Built from
 a literature review on 20 October 2026. It is a **draft for expert review**;
 §8 lists the questions it needs answered. **G1 (lessons) is built** on the
-branch `feat/g1-lessons` since 12 November 2026 — §9.1 says exactly how; the
-rest is not built yet.*
+branch `feat/g1-lessons` since 12 November 2026 and **G2 (review)** on
+`feat/g2-review` since 19 November — §9.1 and §9.2 say exactly how; G3–G6 are
+not built yet.*
 
 **Who this is for:** the project's dyslexia specialist and nursery-teacher
 trainer, who will check the teaching; then the development team. No
@@ -409,6 +410,26 @@ consequences worth an expert's eye:
   have been played.
 - **Meet is three questions**, so one miss is 33 % and reads as *learning the
   shape* until Find it replaces those answers.
+
+### 9.2 G2 as built (19 November 2026, branch `feat/g2-review`)
+
+The five decisions were put to the user, who chose the recommended option on
+each (recovery context §4, 2026-11-19).
+
+| | Built |
+|---|---|
+| **Warm-up** | Every lesson opens with 2 questions on earlier letters once the child has a complete letter (1 while they have one). Each letter is first shown and said ("Look and listen"), then asked for — the plan's default for question E7 |
+| **Which letters** | The box rule of §6.1, worked out from saved answers on every read (`src/app/lib/review.ts`). A letter enters box 1 when In words completes it. Review answers — the warm-up's, every answer in a lesson on several letters, and check questions — move it; a letter lesson's own questions do not. Due letters first, *learning the shape* before others, then the most overdue |
+| **Review never judges** | Review answers count as mix-ups (so a mastered letter picked by mistake still earns its check question) but never set a stage and are never check answers |
+| **Side by side** | For the 8 puff-of-air pairs the look-alike table lists both ways (क/ख ग/घ ज/झ ट/ठ ड/ढ त/थ प/फ ब/भ; च/छ is not in the table) and any pair the look-alike table links that this child has mixed up 2+ times (a slip between letters that look nothing alike is a shape problem, for practice), once both letters are complete. Shown in the later letter's unit. Six Listen & tap questions, three on each in mixed order with the other always a choice, then Memory with both. Optional |
+| **Practice** | When all of a unit's letters are complete and 2+ are at *learning the shape*: two practice lessons (six questions among different shapes, dot from the start, then Memory) before the unit check |
+| **Unit check** | One question on each unit letter, then the 2 earlier letters most due, then Memory. Cannot be failed. **Finishing it opens the next unit** (or the child has played in that unit already) |
+| **Mastered = two days** | A letter is *mastered* once its judgement came out mastered on two different calendar days without falling below in between. Until then it is *mastered once* (80 roadmap points, no trophy). Judged on read, so it applies to sessions already saved. The engine's teaching stage is unaffected |
+| **Report** | "Learned" uses the two-day rule and dates a letter from its second day. A lesson on several letters is not counted as a session of its first letter. The "Roadmap pages" card is now "Units" and describes the unit rule |
+
+**For an expert's eye:** the warm-up's show-first makes its questions easy, so
+a right answer says less (E7); and a child mastering a letter in one sitting
+now sees no trophy until a later day (E3).
 
 **Not done in G1, on purpose:** the report lab's simulated children still play
 whole sessions in varnamala order (converting them changes every figure the

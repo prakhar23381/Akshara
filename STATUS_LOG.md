@@ -4,6 +4,47 @@ Permanent record of completed work. Outstanding work is in [TODO.md](TODO.md);
 current state and recovery context in
 [.agent_recovery_context.md](.agent_recovery_context.md).
 
+## 2026-11-19 (IST) — G2: review (`feat/g2-review`); the G1 preview
+
+* **G1 preview, on the user's instruction ("push it"):** `feat/g1-lessons`
+  pushed alone; Vercel built it from `84be22c` at
+  `akshara-git-feat-g1-lessons-…vercel.app`. Production untouched. The
+  preview is behind Vercel Authentication (the request redirects to Vercel's
+  login), so a supervisor needs the dashboard's Share link or preview
+  protection turned off. Advice given: demo it in guest mode — the two
+  versions share one database, and the live app would misread lesson sessions.
+* **G2, on the user's instruction ("all recommended")** — five decisions,
+  recommended option on each (recovery context §4). Two local commits on
+  `feat/g2-review`, off `feat/g1-lessons`:
+  1. **Warm-up and two-day mastery** (`7a587a5`): `lib/review.ts` (boxes
+     1/2/4/7/14 days from saved answers, which letters are due); a warm-up of
+     2 questions, each letter shown and said first; Listen & tap runs planned
+     question lists and numbers every answer (`q`); review answers never
+     judge a stage or count as check answers; *mastered* needs two days,
+     *mastered once* before (80 roadmap points); the report dates learning
+     from the second day.
+  2. **Side by side, practice, unit check**: `unitPlans()` per unit;
+     `planReview()`; roadmap cards after each unit's letters; units open when
+     the unit check before is finished; Memory deals a lesson's own letters;
+     the reward screen says what was practised and writes no letter row; the
+     report's card is "Units", and a lesson on several letters no longer
+     counts as a session of its first letter. Closes TODO G1a.
+* **Found by clicking:** the first full run of unit 1 put six "side by side"
+  cards on the unit — every pair the script had mixed twice, क/स among them,
+  though the two look nothing alike. Personal pairs now need the look-alike
+  table to link the letters, as the approved plan described.
+* **Found:** the test files are outside `tsc`'s `include`, so a changed
+  signature broke `letterStatus.test.ts` only at runtime — the suite's total
+  dropped without a ✗. Watch the total, not just the ✗ lines.
+* **Verified:** `npm run test` 498 checks in 12 files, 0 failed; `npm run
+  build` clean. Headless Brave, a new guest: ल's first lesson opened with the
+  warm-up on क (shown, then asked), answers saved under `warmup` with
+  question numbers. Then all of unit 1 by clicking (15 lessons): practice
+  owed (two letters at learning the shape), counted 0/2 → 2/2, the unit check
+  opened only after it, asked each unit letter once, and finishing it opened
+  unit 2. No runtime errors, no overflow at 390px. (Google Fonts are unreachable from the
+  sandbox now and hung page loads: the scratch script answers them empty.)
+
 ## 2026-11-12 (IST) — G1: a letter in three lessons (`feat/g1-lessons`)
 
 * **The user's instruction:** "begin with g1", after the plan and its five

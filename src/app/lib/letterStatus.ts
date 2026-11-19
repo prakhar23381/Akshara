@@ -320,12 +320,6 @@ export function checksDue(statuses: Record<string, LetterStatus>): DueCheck[] {
 
 /** One page per unit of the course (data/curriculum.ts). */
 export const TOTAL_PAGES = TEACHING_UNITS.length;
-/**
- * The mark the report draws on a page's average. Before G1 a page opened when
- * the page before it averaged this; pages now open by completion (`pageOpen`).
- */
-export const PAGE_UNLOCK_SCORE = 75;
-
 /** A letter's points on the roadmap — how well it is known, 0–100. */
 export function completionScore(st: LetterStatus | undefined): number {
   if (!st) return 0;
@@ -347,15 +341,19 @@ export function pageAverage(page: number, statuses: Record<string, LetterStatus>
 }
 
 /**
- * Page 1 is always open; a later page opens when every letter on the page
- * before it is complete — its three lessons finished, however well (plan §3,
- * principle 7: move forward by finishing). A page the child has already played
- * on stays open: statuses are judged afresh on every read, and a child whose
- * history predates the units has played letters all over them.
+ * Page 1 is always open; a later page opens when the unit before it is
+ * finished — its letters complete and its unit check done (G2; plan §6.3).
+ * A page the child has already played on stays open: statuses are judged
+ * afresh on every read, and a child whose history predates the units has
+ * played letters all over them. `checkpointsDone` comes from `unitPlans`
+ * (review.ts).
  */
-export function pageOpen(page: number, statuses: Record<string, LetterStatus>): boolean {
+export function pageOpen(
+  page: number,
+  statuses: Record<string, LetterStatus>,
+  checkpointsDone: ReadonlySet<number>,
+): boolean {
   if (page <= 0) return true;
-  const before = pageLetters(page - 1);
-  if (before.length > 0 && before.every((l) => statuses[l]?.complete)) return true;
+  if (checkpointsDone.has(page - 1)) return true;
   return pageLetters(page).some((l) => (statuses[l]?.sessions ?? 0) > 0);
 }

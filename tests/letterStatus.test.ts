@@ -15,6 +15,7 @@ import {
   CHECK_AFTER_PICKS,
 } from "../src/app/lib/letterStatus";
 import { LESSON_STEPS, UNITS } from "../src/app/data/curriculum";
+import { checkpointsDone, unitPlans } from "../src/app/lib/review";
 import { analyzeLocally } from "../src/app/lib/adaptiveEngine";
 import type { LearningSession } from "../src/app/types/session";
 import type { CognitiveState, LessonKind, QuestionAttempt } from "../src/app/types/levelConfig";
@@ -267,16 +268,20 @@ console.log("\n-- the roadmap --");
   const page1 = pageLetters(0);
   ok("a page is a unit of the course", page1.join("") === UNITS[0].join("") && TOTAL_PAGES === UNITS.length);
   const whole = (l: string) => [meet(l), find(l, 2), words(l, 2)];
-  const finished = letterStatuses(page1.flatMap(whole));
-  ok("page 2 opens when every letter on page 1 is complete, however well", pageOpen(1, finished) && !finished[page1[0]].mastered);
-  const oneShort = letterStatuses([...page1.slice(1).flatMap(whole), meet(page1[0]), find(page1[0])]);
-  ok("one letter short of In words keeps it shut", !pageOpen(1, oneShort));
-  const mastery = letterStatuses(page1.map((l) => session(l, right(l))));
-  ok("letters played whole before lessons open it too", pageOpen(1, mastery));
+  const finishedLetters = page1.flatMap(whole);
+  const st = letterStatuses(finishedLetters);
+  const none = checkpointsDone(unitPlans(finishedLetters, st));
+  ok("every letter of unit 1 complete is not enough by itself (G2)", !pageOpen(1, st, none));
+  const check = lesson(page1[0], "checkpoint", { heard: page1.map((l) => ask(l, l)) });
+  check.level_config = { ...check.level_config, unit: 0, focus: [...page1] };
+  const withCheck = [...finishedLetters, check];
+  const stc = letterStatuses(withCheck);
+  ok("finishing the unit check opens the next unit, however well it went",
+    pageOpen(1, stc, checkpointsDone(unitPlans(withCheck, stc))) && !stc[page1[0]].mastered);
+  ok("the unit check judges no letter", stc[page1[0]].state === st[page1[0]].state && stc[page1[0]].sessions === st[page1[0]].sessions);
   const played = letterStatuses([meet(page1[0]), lesson(pageLetters(1)[0], "meet", { heard: [shape(pageLetters(1)[0], "ल")] }, "abandoned")]);
-  ok("a page the child has played on stays open", pageOpen(1, played));
-  ok("page 1 is always open", pageOpen(0, {}));
-  ok("a page past the last is not open", !pageOpen(TOTAL_PAGES, finished) || pageLetters(TOTAL_PAGES).length === 0);
+  ok("a page the child has played on stays open", pageOpen(1, played, new Set()));
+  ok("page 1 is always open", pageOpen(0, {}, new Set()));
 }
 
 console.log(`\nRESULT ${pass} passed, ${fail} failed`);
